@@ -1,17 +1,32 @@
-# Ri3D-2025
-Official code from the UMN Robotics team for the 2025 Ri3D/FRC season!
- 
-Our robot subsystems include:
-1) **Drivetrain:** We chose to use a mecanum drive this year for better maneuverability compared to tank drive, and our available drivetrain commands include driving a specific distance, turning to a specific angle using a NavX gyroscope, and autonomously aiming at an Apriltag target and driving within range of it.
-2) **Coral Elevator:** This subsystem controls the Elevator and the End Effector, the systems used to manipulate Coral. The Elevator height, End Effector arm, and End Effector wheel all have manual control options as well as five presets for different scoring modes and other functions. All motors in this system are NEO 550 motors.
-3) **Intake:** The intake subsystem is responsible for collecting Algae game elements from the floor. We chose to go with an intake roller powered by a NEO 550 motor, and it is actuated in and out a NEO motor heavily geared down.
-4) **Climber:** Our climber is a passive mechanism mounted on the elevator subsystem.
-5) **Vision:** We are running a Photonvision pipeline on an Orange Pi 5 to detect Apriltags, and we can track and follow either the nearest Apriltag or an Apriltag with a specific ID.
-6) **LED Subsystem:** We wrote code for controlling RGB LED strips using a REV Blinkin LED driver to add some extra bling to our robot!
-7) **Power Subsystem:** This subsystem is for reading data from the REV PDH, such as the current draw of specific channels.
+# 🔥 Team 7221 - Reefscape 2025 🌊
 
-How to get set up for FRC programming:
-1) Install the latest 2025 release of WPILib and the latest 2025 release of the NI FRC Game tools.
-2) Use this open-source Ri3D repository as a template for your code if you'd like! :)
+![Team7221](https://img.shields.io/badge/Team-7221-blue)
+![Season](https://img.shields.io/badge/Season-2025-orange)
+![Game](https://img.shields.io/badge/Game-Reefscape-green)
 
-Our project is created using the "Timed Robot" template/style and our code is written in Java.
+## 🚀 The Bot
+
+Our 2025 robot is engineered for defensive play, ball control, and high maneuverability in FRC Reefscape. Built on an AM14U5 chassis with tank drive mechanics but arcade-style controls for better driver experience.
+
+### Key Features
+- **Drivetrain**: 6-wheel tank drive with center drop using NEO motors
+- **Control System**: Arcade-style controls for intuitive driving
+- **Ball Control**: Front-mounted arm system for game piece manipulation
+- **Hook System**: Rear mechanism for barge interaction
+- **Speed Modes**: Turbo and precision driving configurations
+
+## 🔧 Getting Started
+
+### Prerequisites
+- WPILib 2025 Installation
+- REV Hardware Client (for Spark MAX configuration)
+- Visual Studio Code with WPILib extension
+- Git
+
+### Installation
+```bash
+# Clone the repository
+git clone https://github.com/Team7221/Team7221-Reefscape-2025.git
+
+# Open the project in VS Code
+code Team7221-Reefscape-2025
