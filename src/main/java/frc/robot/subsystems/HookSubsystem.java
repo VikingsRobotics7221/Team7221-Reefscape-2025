@@ -127,7 +127,7 @@ public class HookSubsystem extends SubsystemBase {
         m_isExtended = false;
         m_isRetracting = false;
         
-        System.out.println("🪝 HOOK SUBSYSTEM READY TO CONQUER! 🪝");
+        System.out.println(">> HOOK SUBSYSTEM READY TO CONQUER! <<");
     }
     
     /**
@@ -141,7 +141,7 @@ public class HookSubsystem extends SubsystemBase {
             if (m_lastExtendTime ==0) {
                 m_lastExtendTime = System.currentTimeMillis();
                 m_currentHookSpeed = Constants.HOOK_EXTEND_MIN_SPEED;
-                System.out.println("🪝 STARTING HOOK EXTENSION! 🪝");
+                System.out.println(">> STARTING HOOK EXTENSION! <<");
             } else if (timeSinceStart < 500) {
                 // Ramp up during first 500ms
                 double rampProgress = timeSinceStart / 500.0;
