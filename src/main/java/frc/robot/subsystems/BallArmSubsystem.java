@@ -97,7 +97,7 @@ public class BallArmSubsystem extends SubsystemBase {
      * Creates the AWESOME BALL ARM SUBSYSTEM!!!
      */
     public BallArmSubsystem() {
-        System.out.println("🤖 INITIALIZING THE EPIC BALL ARM!!!");
+        System.out.println(">> INITIALIZING THE EPIC BALL ARM!!!");
         
         //------------------------------------------
         // INITIALIZE MOTORS - SPARKS FLYING!!!!!
@@ -161,7 +161,7 @@ motor.setSmartCurrentLimit(30); // 30 amps is PLENTY
     public void resetArmEncoder() {
         // MEMORIZE THE CURRENT POSITION AS "ZERO"
         m_armPositionZero = m_armMotor.getEncoder().getPosition();
-        System.out.println("⚡ ARM ENCODER ZEROED! ⚡");
+        System.out.println(">> ARM ENCODER ZEROED! >>");
     }
     
     /**
@@ -181,7 +181,7 @@ motor.setSmartCurrentLimit(30); // 30 amps is PLENTY
      */
     public void moveArm(double speed) {
         /*
-         *   SAFETY FIRST! ⚠️
+         *   SAFETY FIRST! >>
          *   
          *   Check limit switches before allowing movement!
          *   
@@ -247,9 +247,9 @@ motor.setSmartCurrentLimit(30); // 30 amps is PLENTY
         
         // Debug message if we're in intake or release mode
         if (speed > 0.1) {
-            System.out.println("⟳ BALL NOMMING MODE ACTIVE: " + speed);
+            System.out.println(">> BALL NOMMING MODE ACTIVE: " + speed);
         } else if (speed < -0.1) {
-            System.out.println("⟲ BALL YEETING MODE ACTIVE: " + speed);
+            System.out.println(">> BALL YEETING MODE ACTIVE: " + speed);
         }
     }
     
@@ -268,7 +268,7 @@ motor.setSmartCurrentLimit(30); // 30 amps is PLENTY
         // If we have a NEW ball detection, announce it!
         if (ballDetected && !m_hasBall) {
             System.out.println("");
-            System.out.println("   ⭐ BALL DETECTED! GOTCHA! ⭐");
+            System.out.println("   >> BALL DETECTED! GOTCHA! >>");
             System.out.println("       Distance: " + rangeInches + " inches");
             System.out.println("");
         }
@@ -285,10 +285,10 @@ motor.setSmartCurrentLimit(30); // 30 amps is PLENTY
         // First SAFETY CHECK - make sure position is within safe boundaries
         if (targetPosition < Constants.BALL_ARM_MIN_POSITION) {
             targetPosition = Constants.BALL_ARM_MIN_POSITION;
-            System.out.println("⚠️ ARM POSITION CLAMPED TO MINIMUM!");
+            System.out.println(">> ARM POSITION CLAMPED TO MINIMUM!");
         } else if (targetPosition > Constants.BALL_ARM_MAX_POSITION) {
             targetPosition = Constants.BALL_ARM_MAX_POSITION;
-            System.out.println("⚠️ ARM POSITION CLAMPED TO MAXIMUM!");
+            System.out.println(">> ARM POSITION CLAMPED TO MAXIMUM!");
         }
         
         double currentPosition = getArmPosition();
@@ -315,7 +315,7 @@ motor.setSmartCurrentLimit(30); // 30 amps is PLENTY
             // Only log occasionally to avoid spam
             long now = System.currentTimeMillis();
             if (now - m_lastStatusTime > 500) {
-                System.out.println("🔄 ARM MOVING TO: " + targetPosition + 
+                System.out.println(">> ARM MOVING TO: " + targetPosition + 
                                    " (current: " + currentPosition + 
                                    ", error: " + error + ")");
                 m_lastStatusTime = now;
@@ -327,7 +327,7 @@ motor.setSmartCurrentLimit(30); // 30 amps is PLENTY
      * Move the arm to the home position
      */
     public void homeArm() {
-        System.out.println("🏠 ARM GOING HOME!");
+        System.out.println(">> ARM GOING HOME!");
         setArmPosition(Constants.BALL_ARM_HOME_POSITION);
     }
     
@@ -336,7 +336,7 @@ motor.setSmartCurrentLimit(30); // 30 amps is PLENTY
      */
     public void pickupPosition() {
         System.out.println("");
-        System.out.println("   ⬇️ ARM GOING TO PICKUP POSITION!");
+        System.out.println("   >> ARM GOING TO PICKUP POSITION!");
         System.out.println("   TIME TO GRAB SOME BALLS!!!");
         System.out.println("");
         setArmPosition(Constants.BALL_ARM_PICKUP_POSITION);
@@ -347,7 +347,7 @@ motor.setSmartCurrentLimit(30); // 30 amps is PLENTY
      */
     public void scorePosition() {
         System.out.println("");
-        System.out.println("   ⬆️ ARM GOING TO SCORE POSITION!");
+        System.out.println("   >> ARM GOING TO SCORE POSITION!");
         System.out.println("   PREPARE THE BALL CANNONS!!!");
         System.out.println("");
         setArmPosition(Constants.BALL_ARM_SCORE_POSITION);
@@ -360,11 +360,11 @@ motor.setSmartCurrentLimit(30); // 30 amps is PLENTY
         // If we don't have a ball, run the gripper to intake
         if (!m_hasBall) {
             setGripper(Constants.BALL_GRIPPER_INTAKE_SPEED);
-            System.out.println("🔄 INTAKE MODE ACTIVATED!");
+            System.out.println(">> INTAKE MODE ACTIVATED!");
         } else {
             // If we have a ball, just hold it gently
             setGripper(Constants.BALL_GRIPPER_HOLD_SPEED);
-            System.out.println("👐 HOLDING BALL GENTLY!");
+            System.out.println(">> HOLDING BALL GENTLY!");
         }
     }
     
@@ -373,7 +373,7 @@ motor.setSmartCurrentLimit(30); // 30 amps is PLENTY
      */
     public void releaseBall() {
         System.out.println("");
-        System.out.println("   🚀 RELEASING THE BALL! YEEEEET! 🚀");
+        System.out.println("   >> RELEASING THE BALL! YEEEEET! >>");
         System.out.println("");
         setGripper(Constants.BALL_GRIPPER_RELEASE_SPEED);
     }
