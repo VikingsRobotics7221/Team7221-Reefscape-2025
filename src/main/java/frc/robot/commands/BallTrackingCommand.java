@@ -60,7 +60,7 @@ public class BallTrackingCommand extends Command {
         // This command NEEDS these subsystems
         addRequirements(m_drive, m_arm);
         
-        System.out.println("🔥🔥🔥 BALL TRACKING SYSTEM ONLINE 🔥🔥🔥");
+        System.out.println(">>>>>> BALL TRACKING SYSTEM ONLINE >>>>>>");
     }
     
     @Override
@@ -127,7 +127,7 @@ public class BallTrackingCommand extends Command {
             m_targetYaw = m_vision.getBestTarget().getYaw();
             m_targetDistance = m_vision.getTargetDistance();
             
-            System.out.println("🔍 BALL SPOTTED! Yaw: " + m_targetYaw + 
+            System.out.println(">> BALL SPOTTED! Yaw: " + m_targetYaw + 
                               "° Distance: " + m_targetDistance + "m");
             
             // Move to alignment state
@@ -233,7 +233,7 @@ public class BallTrackingCommand extends Command {
             // Start the intake
             m_arm.setGripper(Constants.BALL_GRIPPER_INTAKE_SPEED);
             
-            System.out.println("🦾 ARM DEPLOYED! GRABBING BALL!");
+            System.out.println(">> ARM DEPLOYED! GRABBING BALL!");
         }
         
         // Did we get the ball?
@@ -242,7 +242,7 @@ public class BallTrackingCommand extends Command {
             m_arm.setGripper(Constants.BALL_GRIPPER_HOLD_SPEED);
             changeState(TrackingState.RETURNING);
             
-            System.out.println("✅ BALL ACQUIRED! MISSION SUCCESSFUL!");
+            System.out.println(">> BALL ACQUIRED! MISSION SUCCESSFUL!");
         }
         
         // If we've been in this state too long without getting a ball
@@ -252,7 +252,7 @@ public class BallTrackingCommand extends Command {
             m_arm.homeArm();
             changeState(TrackingState.SEARCHING);
             
-            System.out.println("⏱️ COLLECTION TIMEOUT - RETURNING TO SEARCH");
+            System.out.println(">> COLLECTION TIMEOUT - RETURNING TO SEARCH");
         }
     }
     
@@ -279,7 +279,7 @@ public class BallTrackingCommand extends Command {
             m_drive.arcadeDrive(0, 0);
             changeState(TrackingState.COMPLETE);
             
-            System.out.println("🎯 MISSION COMPLETE! READY FOR DRIVER CONTROL!");
+            System.out.println(">> MISSION COMPLETE! READY FOR DRIVER CONTROL!");
         }
     }
     
@@ -313,7 +313,7 @@ public class BallTrackingCommand extends Command {
         
         // Check if we've timed out
         if (timeInState > timeoutLimit) {
-            System.out.println("⚠️ STATE TIMEOUT: " + m_state);
+            System.out.println(">> STATE TIMEOUT: " + m_state);
             
             // Handle timeout based on state
             switch (m_state) {
@@ -349,7 +349,7 @@ public class BallTrackingCommand extends Command {
         m_state = newState;
         
         // Log state change
-        System.out.println("🔄 TRACKING STATE: " + m_state);
+        System.out.println(">> TRACKING STATE: " + m_state);
     }
     
     @Override
@@ -368,11 +368,11 @@ public class BallTrackingCommand extends Command {
         
         // Status message
         if (interrupted) {
-            System.out.println("🛑 BALL TRACKING INTERRUPTED");
+            System.out.println(">> BALL TRACKING INTERRUPTED");
         } else if (m_hasTimedOut) {
-            System.out.println("⏱️ BALL TRACKING TIMED OUT");
+            System.out.println(">> BALL TRACKING TIMED OUT");
         } else {
-            System.out.println("🎯 BALL TRACKING COMPLETED SUCCESSFULLY");
+            System.out.println(">> BALL TRACKING COMPLETED SUCCESSFULLY");
         }
     }
     
