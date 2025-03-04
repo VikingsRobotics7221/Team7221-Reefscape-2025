@@ -38,7 +38,7 @@ public class Drivetrain_GyroStraight extends Command {
 	/** initialize ************************************************************
 	 * Called just before this Command runs the first time */
 	public void initialize() {
-		drivetrain.driveCartesian(0, 0, 0);
+		drivetrain.arcadeDrive(0, 0); // FIXED: Changed from driveCartesian to arcadeDrive
 		goalAngle = drivetrain.getGyroAngle();
 		drivetrain.resetEncoders();
 	}
@@ -53,7 +53,7 @@ public class Drivetrain_GyroStraight extends Command {
 		correction = Math.min(MAX_CORRECTION, correction);
 		correction = Math.max(-MAX_CORRECTION, correction);
 		
-		drivetrain.driveCartesian(0, forwardPower, -1 * correction);
+		drivetrain.arcadeDrive(forwardPower, -1 * correction); // FIXED: Changed from driveCartesian to arcadeDrive
 	}
 	
 	/** isFinished ************************************************************	
@@ -66,6 +66,6 @@ public class Drivetrain_GyroStraight extends Command {
 
 	// Called once the command ends or is interrupted.
 	public void end(boolean interrupted) {
-		drivetrain.driveCartesian(0, 0, 0);
+		drivetrain.arcadeDrive(0, 0); // FIXED: Changed from driveCartesian to arcadeDrive
 	}
 }
