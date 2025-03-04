@@ -172,4 +172,24 @@ public final class Constants {
     // MOTION CONSTRAINTS
     public static final double kMAX_ANGULAR_SPEED_RADIANS_PER_SECOND = 2*Math.PI;
     public static final double kMAX_ANGULAR_ACCELERATION_RADIANS_PER_SECOND_SQUARED = 2*Math.PI;
+
+   //------------------------------------------
+   // VISION SYSTEM SETTINGS
+   //------------------------------------------
+
+   // TRACKING CONSTANTS
+    public static final double TRACKED_TAG_ROATION_KP = 0.015; // Rotation control gain
+    public static final double TRACKED_TAG_FORWARD_DRIVE_KP = 0.3; // Forward control gain
+    public static final double TRACKED_TAG_STRAFE_DRIVE_KP = 0.4; // Strafe control gain
+
+   // APRILTAG CONFIG
+    public static final double APRILTAG_ROTATION_POWER_CAP = 0.4; // Max rotation power
+    public static final double APRILTAG_FORWARD_POWER_CAP = 0.4; // Max forward power
+    public static final double APRILTAG_STRAFE_POWER_CAP = 0.4; // Max strafe power
+    public static final double APRILTAG_TRACKING_DISTANCE_THRESHOLD = 0.3; // Meters
+
+   // CAMERA SETTINGS
+    public static final int CAMERA_WIDTH = 640; // Camera resolution width
+    public static final int CAMERA_HEIGHT = 480; // Camera resolution height
+    public static final double CAMERA_FOV = 68.5; // Field of view in degrees
 }
