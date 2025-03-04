@@ -26,6 +26,8 @@ import frc.robot.subsystems.HookSubsystem;
 import frc.robot.commands.hook.HookCommands;
 import frc.robot.commands.BallTargetingCommand;
 import frc.robot.commands.autonomous.BallHoardingAuto;
+import edu.wpi.first.wpilibj.RobotController;
+import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 
 public class Robot extends TimedRobot {
 
@@ -144,18 +146,18 @@ new Trigger(() -> operatorController.getPOV() == 90)
         );
     }
 
-    @Override
-    public void robotPeriodic() {
-        CommandScheduler.getInstance().run();
-        
-        // Log gyro data
-        SmartDashboard.putNumber("Gyroscope Pitch", m_driveSubsystem.getPitch());
-        SmartDashboard.putNumber("Gyroscope Yaw", m_driveSubsystem.getYaw());
-        SmartDashboard.putNumber("Gyroscope Roll", m_driveSubsystem.getRoll());
-        
-        // Log battery voltage
-        SmartDashboard.putNumber("Battery Voltage", DriverStation.getBatteryVoltage());
-    }
+   @Override
+public void robotPeriodic() {
+    CommandScheduler.getInstance().run();
+    
+    // Log gyro data
+    SmartDashboard.putNumber("Gyroscope Pitch", m_driveSubsystem.getPitch());
+    SmartDashboard.putNumber("Gyroscope Yaw", m_driveSubsystem.getYaw());
+    SmartDashboard.putNumber("Gyroscope Roll", m_driveSubsystem.getRoll());
+    
+    // Log battery voltage - FIXED: Using RobotController instead of DriverStation
+    SmartDashboard.putNumber("Battery Voltage", RobotController.getBatteryVoltage());
+}
 
     @Override
     public void disabledInit() {
