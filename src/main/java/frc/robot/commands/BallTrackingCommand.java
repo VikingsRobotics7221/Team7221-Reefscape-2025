@@ -10,9 +10,9 @@ import frc.robot.subsystems.BallArmSubsystem;
 import frc.robot.subsystems.VisionSubsystem;
 
 /**
- * BallTrackingCommand - The ultimate auto ball hunter!
+ * BallTrackingCommand - THE ULTIMATE AUTO BALL HUNTER!
  * 
- * This command uses the vision system to find, approach, and collect
+ * This awesome command uses the vision system to find, approach, and collect
  * balls automatically, making us UNSTOPPABLE in Reefscape.
  * 
  * coded by paysean
@@ -197,10 +197,11 @@ public class BallTrackingCommand extends Command {
             m_drive.arcadeDrive(forwardSpeed, turnPower);
             
             // Check if we're close enough to collect
-            if (m_targetDistance < 0.3) {  // 30cm
+            if (m_targetDistance < Constants.BALL_DETECTION_THRESHOLD_INCHES / 39.37) { // convert inches to meters
                 m_drive.arcadeDrive(0, 0);  // Stop
                 changeState(TrackingState.COLLECTING);
             }
+            
         } else {
             // Lost sight of the ball!
             m_drive.arcadeDrive(0, 0);  // Stop
@@ -243,50 +244,43 @@ public class BallTrackingCommand extends Command {
             
             System.out.println("✅ BALL ACQUIRED! MISSION SUCCESSFUL!");
         }
-    }
-    
-    /**
-     * RETURNING state - Put everything back in travel position
-     */
-    private void executeReturning() {
-        // Return arm to safe position
-        m_arm.homeArm();
         
-        // Get current angle from gyro
-        double currentAngle = m_drive.getGyroAngle();
-        
-        // If we're significantly off from original heading, turn back
-        if (Math.abs(currentAngle) > 45) {
-            double turnPower = -currentAngle * 0.01;  // P control gain
+        // If we've been in this state too long without getting a ball
+        if (timeInState > 3000) {
+            // Timeout - go back to searching
+            m_arm.setGripper(0);
+            m_arm.homeArm();
+            changeState(TrackingState.SEARCHING);
             
-            // Limit turn power
-            turnPower = Math.max(-0.3, Math.min(0.3, turnPower));
-            
-            m_drive.arcadeDrive(0, turnPower);
-            
-            // Close enough to original heading?
-            if (Math.abs(currentAngle) < 5) {
-                m_drive.arcadeDrive(0, 0);  // Stop
-                changeState(TrackingState.COMPLETE);
-            }
-        } else {
-            // We didn't turn much, just finish
-            changeState(TrackingState.COMPLETE);
+            System.out.println("⏱️ COLLECTION TIMEOUT - RETURNING TO SEARCH");
         }
     }
     
     /**
-     * Change to a new state
+     * RETURNING state - Return to home position or orientation
      */
-    private void changeState(TrackingState newState) {
-        // Record when we entered this state
-        m_stateStartTime = System.currentTimeMillis();
+    private void executeReturning() {
+        // First, put the arm back to home position
+        m_arm.homeArm();
         
-        // Update the state
-        m_state = newState;
+        // Then, use the gyro to turn back to starting orientation (0 degrees)
+        double angleError = -m_drive.getGyroAngle();
+        double turnPower = angleError * Constants.GYRO_TURN_KP;
         
-        // Log state change
-        System.out.println("🔄 TRACKING STATE: " + m_state);
+        // Limit turn power for safety
+        turnPower = Math.max(-0.3, Math.min(0.3, turnPower));
+        
+        // Apply turning power
+        m_drive.arcadeDrive(0, turnPower);
+        
+        // Check if we're close enough to the target angle
+        if (Math.abs(angleError) < Constants.TURNING_THRESHOLD_DEGREES) {
+            // We're at the right angle, we're done!
+            m_drive.arcadeDrive(0, 0);
+            changeState(TrackingState.COMPLETE);
+            
+            System.out.println("🎯 MISSION COMPLETE! READY FOR DRIVER CONTROL!");
+        }
     }
     
     /**
@@ -342,6 +336,20 @@ public class BallTrackingCommand extends Command {
                     break;
             }
         }
+    }
+    
+    /**
+     * Change to a new state in our state machine
+     */
+    private void changeState(TrackingState newState) {
+        // Record when we entered this state
+        m_stateStartTime = System.currentTimeMillis();
+        
+        // Update the state
+        m_state = newState;
+        
+        // Log state change
+        System.out.println("🔄 TRACKING STATE: " + m_state);
     }
     
     @Override
