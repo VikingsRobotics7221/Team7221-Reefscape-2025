@@ -34,7 +34,7 @@ public class ReefscapeAuto extends SequentialCommandGroup {
                 // Set vision to ball detection mode
                 Robot.m_visionSubsystem.setPipeline(0);
                 
-                System.out.println("🚀 STARTING REEFSCAPE AUTO ROUTINE");
+                System.out.println(">> STARTING REEFSCAPE AUTO ROUTINE");
             }),
             
             // Drive forward into field
@@ -64,7 +64,7 @@ public class ReefscapeAuto extends SequentialCommandGroup {
             // Cleanup - make sure arm is stowed
             new InstantCommand(() -> {
                 Robot.m_ballArmSubsystem.homeArm();
-                System.out.println("✅ AUTO ROUTINE COMPLETE");
+                System.out.println(">> AUTO ROUTINE COMPLETE");
             })
         );
     }
