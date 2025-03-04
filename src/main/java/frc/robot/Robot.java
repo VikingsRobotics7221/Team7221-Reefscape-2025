@@ -25,6 +25,7 @@ import frc.robot.subsystems.VisionSubsystem;
 import frc.robot.subsystems.HookSubsystem;
 import frc.robot.commands.hook.HookCommands;
 import frc.robot.commands.BallTargetingCommand;
+import frc.robot.commands.autonomous.BallHoardingAuto;
 
 public class Robot extends TimedRobot {
 
