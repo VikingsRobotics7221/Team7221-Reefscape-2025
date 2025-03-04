@@ -201,16 +201,6 @@ public final class Constants {
    public static final double BALL_MIN_AREA = 0.01;        // Minimum area of ball in image (0-1)
    public static final double BALL_DETECTION_DISTANCE = 5.0; // Maximum detection distance in meters
 
-   // Ball collection positions
-   public static final double BALL_ARM_PICKUP_POSITION = -5.0; // Encoder rotations
-   public static final double BALL_ARM_SCORE_POSITION = 3.0;   // Encoder rotations
-   public static final double BALL_ARM_HOME_POSITION = 0.0;    // Encoder rotations
-
-   // Ball gripper speeds
-   public static final double BALL_GRIPPER_INTAKE_SPEED = 0.85; // 85% power for intake
-   public static final double BALL_GRIPPER_HOLD_SPEED = 0.2;    // 20% power to hold
-   public static final double BALL_GRIPPER_RELEASE_SPEED = -0.7; // 70% power to release
-
    // PID values for tracking
    public static final double BALL_TRACKING_KP = 0.015; // P gain for tracking
    public static final double BALL_APPROACH_KP = 0.3;   // P gain for approach
