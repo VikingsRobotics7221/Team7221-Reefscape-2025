@@ -1,111 +1,95 @@
-// src/main/java/frc/robot/commands/BallTargetingCommand.java
+// src/main/java/frc/robot/commands/BallTrackingCommand.java
 package frc.robot.commands;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.Constants;
 import frc.robot.Robot;
-import frc.robot.subsystems.BallArmSubsystem;
 import frc.robot.subsystems.DriveSubsystem;
+import frc.robot.subsystems.BallArmSubsystem;
 import frc.robot.subsystems.VisionSubsystem;
 
 /**
- * BallTargetingCommand - ULTIMATE BALL TRACKING SYSTEM
+ * BallTrackingCommand - The ultimate auto ball hunter!
  * 
- * This is Team 7221's automated targeting system that:
- * 1. Uses vision to locate balls
- * 2. Drives to optimal collection position 
- * 3. Deploys arm and collects
- * 4. All in one smooth operation!
+ * This command uses the vision system to find, approach, and collect
+ * balls automatically, making us UNSTOPPABLE in Reefscape.
  * 
  * coded by paysean
  */
-public class BallTargetingCommand extends Command {
+public class BallTrackingCommand extends Command {
     
-    // ========== STATE MACHINE SETUP ==========
-    private enum TargetingState {
-        SEARCHING,   // Looking for a ball
-        ALIGNING,    // Turning to face ball
-        APPROACHING, // Driving to ball
-        COLLECTING,  // Grabbing the ball
-        RETURNING,   // Going back to ready position
-        COMPLETE     // All done!
+    // State machine for tracking our progress
+    private enum TrackingState {
+        SEARCHING,    // Looking for balls
+        ALIGNING,     // Turning to face the ball
+        APPROACHING,  // Driving to the ball
+        COLLECTING,   // Grabbing the ball
+        RETURNING,    // Going back to ready position
+        COMPLETE      // All done!
     }
     
-    // ========== SUBSYSTEMS ==========
+    // ===== SUBSYSTEMS WE NEED =====
     private final DriveSubsystem m_drive;
     private final BallArmSubsystem m_arm;
     private final VisionSubsystem m_vision;
     
-    // ========== TRACKING VARIABLES ==========
-    private TargetingState m_state = TargetingState.SEARCHING;
+    // ===== TRACKING VARIABLES =====
+    private TrackingState m_state = TrackingState.SEARCHING;
     private long m_stateStartTime = 0;
     private double m_targetYaw = 0.0;
     private double m_targetDistance = 0.0;
     private boolean m_hasTimedOut = false;
     
-    // ========== STATE TIMEOUT LIMITS (ms) ==========
-    private static final long SEARCH_TIMEOUT = 5000;    // 5 seconds max search
-    private static final long ALIGN_TIMEOUT = 2000;     // 2 seconds max alignment
-    private static final long APPROACH_TIMEOUT = 3000;  // 3 seconds max approach
-    private static final long COLLECT_TIMEOUT = 2000;   // 2 seconds max collection
-    private static final long RETURN_TIMEOUT = 2000;    // 2 seconds max return
-    
-    // ========== ASCII ART FTW ==========
-    private static final String[] STATE_ART = {
-        "  _____  \n |     | \n | 👁️👁️ | SEARCHING\n |_____| ",
-        "  _____  \n |     | \n | 👀  | ALIGNING\n |_____| ",
-        "  _____  \n |     | \n | 🚗💨 | APPROACHING\n |_____| ",
-        "  _____  \n |     | \n | 🤲  | COLLECTING\n |_____| ",
-        "  _____  \n |     | \n | 🏠  | RETURNING\n |_____| ",
-        "  _____  \n |     | \n | 🎯  | COMPLETE\n |_____| "
-    };
+    // ===== TIMEOUT LIMITS =====
+    private static final long SEARCH_TIMEOUT = 5000;    // 5 sec timeout
+    private static final long ALIGN_TIMEOUT = 2000;     // 2 sec timeout
+    private static final long APPROACH_TIMEOUT = 3000;  // 3 sec timeout
+    private static final long COLLECT_TIMEOUT = 2000;   // 2 sec timeout
+    private static final long RETURN_TIMEOUT = 2000;    // 2 sec timeout
     
     /**
-     * Creates a new BallTargetingCommand - THE BALL HUNTER 9000!
+     * Creates a new BallTrackingCommand - The ultimate ball finder!
      */
-    public BallTargetingCommand() {
-        // Get references to our subsystems from Robot
+    public BallTrackingCommand() {
+        // Get subsystem references from Robot
         m_drive = Robot.m_driveSubsystem;
         m_arm = Robot.m_ballArmSubsystem;
         m_vision = Robot.m_visionSubsystem;
         
-        // THIS COMMAND NEEDS CONTROL OF THESE SUBSYSTEMS
+        // This command NEEDS these subsystems
         addRequirements(m_drive, m_arm);
         
-        System.out.println(" ___________________________ ");
-        System.out.println("|                           |");
-        System.out.println("| BALL TARGETING ACTIVATED! |");
-        System.out.println("|___________________________|");
+        System.out.println("🔥🔥🔥 BALL TRACKING SYSTEM ONLINE 🔥🔥🔥");
     }
     
     @Override
     public void initialize() {
         // Start in SEARCHING state
-        changeState(TargetingState.SEARCHING);
+        changeState(TrackingState.SEARCHING);
         
-        // Switch vision pipeline to ball detection
-        m_vision.setPipeline(0); // 0 = Ball tracking pipeline
+        // Make sure vision is set to ball detection mode
+        m_vision.setPipeline(0);  // Pipeline 0 = Ball detection
         
-        // Make sure arm is in home position
+        // Put arm in safe position
         m_arm.homeArm();
         
-        // Switch to precision drive mode for smoother targeting
+        // Use precision driving for smoother approach
         m_drive.enablePrecisionMode();
         
-        // Disable manual control while targeting system is active
+        // Disable manual control while we're auto-tracking
         Robot.manualDriveControl = false;
     }
     
     @Override
     public void execute() {
-        // Update dashboard with our current state
-        SmartDashboard.putString("Targeting State", m_state.toString());
+        // Update dashboard with current state
+        SmartDashboard.putString("Tracking State", m_state.toString());
         
-        // Check for timeout in current state
+        // Check for timeouts
         checkForTimeout();
         
-        // State machine logic - run the current state's code
+        // Run the state machine
         switch (m_state) {
             case SEARCHING:
                 executeSearching();
@@ -128,7 +112,7 @@ public class BallTargetingCommand extends Command {
                 break;
                 
             case COMPLETE:
-                // Do nothing, waiting for command to end
+                // Nothing to do, just waiting to end
                 break;
         }
     }
@@ -137,19 +121,20 @@ public class BallTargetingCommand extends Command {
      * SEARCHING state - Spin around looking for balls
      */
     private void executeSearching() {
+        // Check if vision system has found a target
         if (m_vision.getHasTarget()) {
-            // FOUND SOMETHING! Get target info
+            // We found something! Get target info
             m_targetYaw = m_vision.getBestTarget().getYaw();
             m_targetDistance = m_vision.getTargetDistance();
             
-            System.out.println("🔍 BALL DETECTED! Yaw: " + m_targetYaw + 
-                               "° Distance: " + m_targetDistance + "m");
+            System.out.println("🔍 BALL SPOTTED! Yaw: " + m_targetYaw + 
+                              "° Distance: " + m_targetDistance + "m");
             
             // Move to alignment state
-            changeState(TargetingState.ALIGNING);
+            changeState(TrackingState.ALIGNING);
         } else {
-            // Still searching - rotate slowly to scan for balls
-            m_drive.arcadeDrive(0, 0.25); // Spin at 25% power
+            // No target yet, keep searching - rotate slowly
+            m_drive.arcadeDrive(0, 0.25);  // 25% rotation power
         }
     }
     
@@ -162,9 +147,8 @@ public class BallTargetingCommand extends Command {
             m_targetYaw = m_vision.getBestTarget().getYaw();
             m_targetDistance = m_vision.getTargetDistance();
             
-            // Calculate turn power proportional to how far off we are
-            // PID would be better, but P control is good enough here
-            double turnPower = m_targetYaw * 0.015; // P gain
+            // Calculate turn power based on how far off we are
+            double turnPower = m_targetYaw * 0.015;  // P control gain
             
             // Limit max turn power for smooth movement
             turnPower = Math.max(-0.5, Math.min(0.5, turnPower));
@@ -172,15 +156,15 @@ public class BallTargetingCommand extends Command {
             // Apply turn power
             m_drive.arcadeDrive(0, turnPower);
             
-            // Check if we're aligned with target
-            if (Math.abs(m_targetYaw) < 3.0) { // Within 3 degrees
-                // We're aligned! Move to approach
-                changeState(TargetingState.APPROACHING);
+            // Check if we're aligned (within 3 degrees)
+            if (Math.abs(m_targetYaw) < 3.0) {
+                // We're aligned! Move to approach state
+                changeState(TrackingState.APPROACHING);
             }
         } else {
-            // We lost the target!
-            m_drive.arcadeDrive(0, 0); // Stop turning
-            changeState(TargetingState.SEARCHING); // Go back to search
+            // Lost sight of target!
+            m_drive.arcadeDrive(0, 0);  // Stop turning
+            changeState(TrackingState.SEARCHING);  // Go back to search
         }
     }
     
@@ -193,14 +177,14 @@ public class BallTargetingCommand extends Command {
             m_targetYaw = m_vision.getBestTarget().getYaw();
             m_targetDistance = m_vision.getTargetDistance();
             
-            // Calculate turn correction to stay aligned while driving
-            double turnPower = m_targetYaw * 0.015; // P gain
+            // Calculate turn correction to stay aligned
+            double turnPower = m_targetYaw * 0.015;  // P control gain
             
-            // Calculate drive speed - slow down as we get closer
-            double forwardSpeed = 0.4; // Base speed
+            // Calculate forward speed - slow down as we get closer
+            double forwardSpeed = 0.4;  // Base speed
             
             if (m_targetDistance < 1.0) {
-                // Slow down when we're under 1 meter
+                // Slow down when closer than 1 meter
                 forwardSpeed = 0.3;
             }
             
@@ -213,21 +197,21 @@ public class BallTargetingCommand extends Command {
             m_drive.arcadeDrive(forwardSpeed, turnPower);
             
             // Check if we're close enough to collect
-            if (m_targetDistance < 0.3) { // 30cm
-                m_drive.arcadeDrive(0, 0); // Full stop
-                changeState(TargetingState.COLLECTING);
+            if (m_targetDistance < 0.3) {  // 30cm
+                m_drive.arcadeDrive(0, 0);  // Stop
+                changeState(TrackingState.COLLECTING);
             }
         } else {
             // Lost sight of the ball!
-            m_drive.arcadeDrive(0, 0); // Stop
+            m_drive.arcadeDrive(0, 0);  // Stop
             
             // Did we lose it because we're too close?
             if (m_targetDistance < 0.4) {
                 // Probably close enough - try to collect
-                changeState(TargetingState.COLLECTING);
+                changeState(TrackingState.COLLECTING);
             } else {
                 // Actually lost it - go back to searching
-                changeState(TargetingState.SEARCHING);
+                changeState(TrackingState.SEARCHING);
             }
         }
     }
@@ -239,23 +223,23 @@ public class BallTargetingCommand extends Command {
         // Stop the drivetrain
         m_drive.arcadeDrive(0, 0);
         
-        // First frame in this state?
+        // Just entered this state?
         long timeInState = System.currentTimeMillis() - m_stateStartTime;
-        if (timeInState < 100) { // Just entered this state
+        if (timeInState < 100) {  // First 100ms in this state
             // Deploy the arm
             m_arm.pickupPosition();
             
             // Start the intake
             m_arm.setGripper(Constants.BALL_GRIPPER_INTAKE_SPEED);
             
-            System.out.println("🦾 ARM DEPLOYED! NOMNOM TIME!");
+            System.out.println("🦾 ARM DEPLOYED! GRABBING BALL!");
         }
         
-        // Do we have the ball yet?
+        // Did we get the ball?
         if (m_arm.hasBall()) {
-            // YES! Ball acquired
+            // Success! Ball acquired
             m_arm.setGripper(Constants.BALL_GRIPPER_HOLD_SPEED);
-            changeState(TargetingState.RETURNING);
+            changeState(TrackingState.RETURNING);
             
             System.out.println("✅ BALL ACQUIRED! MISSION SUCCESSFUL!");
         }
@@ -268,41 +252,41 @@ public class BallTargetingCommand extends Command {
         // Return arm to safe position
         m_arm.homeArm();
         
-        // Return to original orientation (if appropriate)
+        // Get current angle from gyro
         double currentAngle = m_drive.getGyroAngle();
         
-        // If we're way off from our original heading, turn back
+        // If we're significantly off from original heading, turn back
         if (Math.abs(currentAngle) > 45) {
-            double turnPower = -currentAngle * 0.01;
+            double turnPower = -currentAngle * 0.01;  // P control gain
             
             // Limit turn power
             turnPower = Math.max(-0.3, Math.min(0.3, turnPower));
             
             m_drive.arcadeDrive(0, turnPower);
             
-            // Are we close enough to original heading?
+            // Close enough to original heading?
             if (Math.abs(currentAngle) < 5) {
-                m_drive.arcadeDrive(0, 0);
-                changeState(TargetingState.COMPLETE);
+                m_drive.arcadeDrive(0, 0);  // Stop
+                changeState(TrackingState.COMPLETE);
             }
         } else {
             // We didn't turn much, just finish
-            changeState(TargetingState.COMPLETE);
+            changeState(TrackingState.COMPLETE);
         }
     }
     
     /**
      * Change to a new state
      */
-    private void changeState(TargetingState newState) {
+    private void changeState(TrackingState newState) {
         // Record when we entered this state
         m_stateStartTime = System.currentTimeMillis();
         
         // Update the state
         m_state = newState;
         
-        // Print cool status message with ASCII art
-        System.out.println("\n" + STATE_ART[m_state.ordinal()]);
+        // Log state change
+        System.out.println("🔄 TRACKING STATE: " + m_state);
     }
     
     /**
@@ -330,13 +314,12 @@ public class BallTargetingCommand extends Command {
                 timeoutLimit = RETURN_TIMEOUT;
                 break;
             case COMPLETE:
-                return; // No timeout for COMPLETE state
+                return;  // No timeout for COMPLETE state
         }
         
         // Check if we've timed out
         if (timeInState > timeoutLimit) {
-            System.out.println("⚠️ STATE TIMEOUT: " + m_state + 
-                               " after " + timeInState + "ms");
+            System.out.println("⚠️ STATE TIMEOUT: " + m_state);
             
             // Handle timeout based on state
             switch (m_state) {
@@ -344,18 +327,18 @@ public class BallTargetingCommand extends Command {
                     // If collecting times out, stop intake and return
                     m_arm.setGripper(0);
                     m_arm.homeArm();
-                    changeState(TargetingState.RETURNING);
+                    changeState(TrackingState.RETURNING);
                     break;
                     
                 case RETURNING:
                     // If returning times out, just finish
-                    changeState(TargetingState.COMPLETE);
+                    changeState(TrackingState.COMPLETE);
                     break;
                     
                 default:
                     // For other states, signal timeout and finish
                     m_hasTimedOut = true;
-                    changeState(TargetingState.COMPLETE);
+                    changeState(TrackingState.COMPLETE);
                     break;
             }
         }
@@ -369,7 +352,7 @@ public class BallTargetingCommand extends Command {
         // Return arm to safe position
         m_arm.homeArm();
         
-        // Restore normal driving mode
+        // Return to normal driving mode
         m_drive.disableDriveModes();
         
         // Re-enable manual control
@@ -377,17 +360,17 @@ public class BallTargetingCommand extends Command {
         
         // Status message
         if (interrupted) {
-            System.out.println("🛑 BALL TARGETING INTERRUPTED BY DRIVER");
+            System.out.println("🛑 BALL TRACKING INTERRUPTED");
         } else if (m_hasTimedOut) {
-            System.out.println("⏱️ BALL TARGETING TIMED OUT");
+            System.out.println("⏱️ BALL TRACKING TIMED OUT");
         } else {
-            System.out.println("🎯 BALL TARGETING COMPLETED SUCCESSFULLY");
+            System.out.println("🎯 BALL TRACKING COMPLETED SUCCESSFULLY");
         }
     }
     
     @Override
     public boolean isFinished() {
-        // Only finish when state machine reaches COMPLETE
-        return m_state == TargetingState.COMPLETE;
+        // Only finish when we reach COMPLETE state
+        return m_state == TrackingState.COMPLETE;
     }
 }
