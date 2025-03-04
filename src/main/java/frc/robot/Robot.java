@@ -164,12 +164,12 @@ public void robotPeriodic() {
 
     @Override
     public void disabledInit() {
-        System.out.println("⚠️ ROBOT DISABLED");
+        System.out.println(">> ROBOT DISABLED");
     }
 
     @Override
     public void autonomousInit() {
-        System.out.println("🤖 AUTONOMOUS MODE STARTED");
+        System.out.println(">> AUTONOMOUS MODE STARTED");
 
         m_autonomousCommand = autonChooser.getSelected();
         
@@ -183,7 +183,7 @@ public void robotPeriodic() {
 
     @Override
     public void teleopInit() {
-        System.out.println("👾 TELEOP MODE STARTED");
+        System.out.println(">> TELEOP MODE STARTED");
 
         if (m_autonomousCommand != null) {
             m_autonomousCommand.cancel();
@@ -196,9 +196,9 @@ public void robotPeriodic() {
         Optional<Alliance> ally = DriverStation.getAlliance();
         if (ally.isPresent()) {
             if (ally.get() == Alliance.Red) {
-                System.out.println("🔴 Red Alliance");
+                System.out.println(">> Red Alliance");
             } else {
-                System.out.println("🔵 Blue Alliance");
+                System.out.println(">> Blue Alliance");
             }
         }
 
@@ -225,7 +225,7 @@ public void robotPeriodic() {
     @Override
     public void testInit() {
         CommandScheduler.getInstance().cancelAll();
-        System.out.println("🧪 TEST MODE STARTED");
+        System.out.println(">> TEST MODE STARTED");
     }
 
     private void configureButtonBindings() {
@@ -236,12 +236,12 @@ public void robotPeriodic() {
                 turboModeEnabled = true;
                 precisionModeEnabled = false;
                 m_driveSubsystem.enableTurboMode();
-                System.out.println("🔥 TURBO MODE ACTIVATED");
+                System.out.println(">> TURBO MODE ACTIVATED");
             }))
             .onFalse(new InstantCommand(() -> {
                 turboModeEnabled = false;
                 m_driveSubsystem.disableDriveModes();
-                System.out.println("🔥 TURBO MODE DEACTIVATED");
+                System.out.println(">> TURBO MODE DEACTIVATED");
             }));
         
         // Precision mode (left bumper)
@@ -250,12 +250,12 @@ public void robotPeriodic() {
                 precisionModeEnabled = true;
                 turboModeEnabled = false;
                 m_driveSubsystem.enablePrecisionMode();
-                System.out.println("🔍 PRECISION MODE ACTIVATED");
+                System.out.println(">> PRECISION MODE ACTIVATED");
             }))
             .onFalse(new InstantCommand(() -> {
                 precisionModeEnabled = false;
                 m_driveSubsystem.disableDriveModes();
-                System.out.println("🔍 PRECISION MODE DEACTIVATED");
+                System.out.println(">> PRECISION MODE DEACTIVATED");
             }));
         
         // ==== OPERATOR CONTROLS ====
