@@ -31,7 +31,6 @@ public class Robot extends TimedRobot {
 
     Command m_autonomousCommand;
 SendableChooser<Command> autonChooser = new SendableChooser<Command>();
-autonChooser.addOption("Ball Collection Auto", new BallCollectionAuto());
 
     public static boolean manualDriveControl = true;
 
@@ -56,13 +55,14 @@ autonChooser.addOption("Ball Collection Auto", new BallCollectionAuto());
 new Trigger(() -> operatorController.getXButton())
     .onTrue(new BallTargetingCommand());
     
-   // Left Bumper + Right Bumper together - Emergency stop all systems
+  // Left Bumper + Right Bumper together - Emergency stop all systems
 new Trigger(() -> operatorController.getLeftBumper() && operatorController.getRightBumper())
     .onTrue(new InstantCommand(() -> {
         m_ballArmSubsystem.emergencyStop();
         m_hookSubsystem.emergencyStop();
         m_driveSubsystem.stop();
         System.out.println("!!! EMERGENCY STOP ACTIVATED !!!");
+    }));
     
    // Back Button - Extend hook
 new Trigger(() -> operatorController.getBackButton())
@@ -96,6 +96,7 @@ new Trigger(() -> operatorController.getPOV() == 90)
         autonChooser.addOption("Square Autonomous", new SquareAutonomous());
         autonChooser.addOption("Ball Pickup Auto", createBallPickupAuto());
         SmartDashboard.putData("Auto Mode", autonChooser);
+        autonChooser.addOption("Ball Collection Auto", new BallCollectionAuto());
 
         // Zero gyro and reset encoders
         m_driveSubsystem.zeroGyro();
