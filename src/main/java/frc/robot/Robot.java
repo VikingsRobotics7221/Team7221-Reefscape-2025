@@ -1,6 +1,4 @@
-// Author: UMN Robotics Ri3D
-// Last Updated: January 2025
-
+// Updated Robot.java with Ball Control System integration
 package frc.robot;
 
 import edu.wpi.first.wpilibj.TimedRobot;
@@ -12,223 +10,268 @@ import java.util.Optional;
 
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
-import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
-import edu.wpi.first.wpilibj2.command.button.POVButton;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.RunCommand;
 import frc.robot.commands.autonomous.example_basic_auto.Drive1MeterAuto;
 import frc.robot.commands.autonomous.example_basic_auto.SquareAutonomous;
+import frc.robot.commands.BallControlCommands;
 import frc.robot.subsystems.DriveSubsystem;
+import frc.robot.subsystems.BallArmSubsystem;
 
-/**
- * The VM is configured to automatically run this class, and to call the functions corresponding to
- * each mode, as described in the TimedRobot documentation. If you change the name of this class or
- * the package after creating this project, you must also update the build.gradle file in the
- * project.
- */
 public class Robot extends TimedRobot {
 
-  Command m_autonomousCommand;
-	SendableChooser<Command> autonChooser = new SendableChooser<Command>(); // Create a chooser to select an autonomous command
+    Command m_autonomousCommand;
+    SendableChooser<Command> autonChooser = new SendableChooser<Command>(); 
 
-  public static boolean manualDriveControl = true;
+    public static boolean manualDriveControl = true;
 
-  public static XboxController driveController = new XboxController(0);
+    // Controllers
+    public static XboxController driveController = new XboxController(Constants.CONTROLLER_USB_PORT_ID);
+    public static XboxController operatorController = new XboxController(Constants.OPERATOR_CONTROLLER_USB_PORT_ID);
 
-  //public static final GenericHID controller = new GenericHID(Constants.CONTROLLER_USB_PORT_ID); // Instantiate our controller at the specified USB port
-
-  public static final DriveSubsystem m_driveSubsystem = new DriveSubsystem(); // Drivetrain subsystem
-  
-  double goalAngle;
-
-  /**
-   * This function is run when the robot is first started up and should be used for any
-   * initialization code.
-   */
-  @Override
-  public void robotInit() {
-
-
-    configureButtonBindings(); // Bind our commands to physical buttons on a controller
-
-    // Add our Autonomous Routines to the chooser //
-		autonChooser.setDefaultOption("Do Nothing", new InstantCommand());
-    autonChooser.addOption("Drive 1 Meter", new Drive1MeterAuto());
-    autonChooser.addOption("Square Autonomous", new SquareAutonomous());
-		SmartDashboard.putData("Auto Mode", autonChooser);
-
-    // Zero the gyroscope and reset the drive encoders
-    m_driveSubsystem.zeroGyro();
-    m_driveSubsystem.resetEncoders();
-  }
-
-  /**
-   * This function is called every robot packet, no matter the mode. Use this for items like
-   * diagnostics that you want ran during disabled, autonomous, teleoperated and test.
-   *
-   * This runs after the mode specific periodic functions, but before LiveWindow and
-   * SmartDashboard integrated updating.
-   */
-  @Override
-  public void robotPeriodic() {
-    // Runs the Scheduler.  This is responsible for polling buttons, adding newly-scheduled
-    // commands, running already-scheduled commands, removing finished or interrupted commands,
-    // and running subsystem periodic() methods. This must be called from the robot's periodic
-    // block in order for anything in the Command-based framework to work.
-    CommandScheduler.getInstance().run();
-    SmartDashboard.putNumber("Gyroscope Pitch", m_driveSubsystem.getPitch());
-    SmartDashboard.putNumber("Gyroscope Yaw", m_driveSubsystem.getYaw());
-    SmartDashboard.putNumber("Gyroscope Roll", m_driveSubsystem.getRoll());
-  }
-
-  /** This function is called once each time the robot enters Disabled mode. */
-  @Override
-  public void disabledInit() {
-    System.out.println("ROBOT DISABLED");
-  }
-
-  /** This function is called continuously after the robot enters Disabled mode. */
-  @Override
-  public void disabledPeriodic() {
-
-  }
-
-  /** This autonomous runs the autonomous command selected by your {@link RobotContainer} class. */
-  @Override
-  public void autonomousInit() {
-    System.out.println("AUTONOMOUS MODE STARTED");
-
-    m_autonomousCommand = new RunCommand(
-      () -> m_driveSubsystem.driveCartesian(0.2, 0, 0), m_driveSubsystem).withTimeout(1.5);
+    // Subsystems
+    public static final DriveSubsystem m_driveSubsystem = new DriveSubsystem();
+    public static final BallArmSubsystem m_ballArmSubsystem = new BallArmSubsystem();
     
-    // Zero the gyrodcope and reset the drive encoders
-    m_driveSubsystem.zeroGyro();
-    m_driveSubsystem.resetEncoders();
+    double goalAngle;
+    boolean turboModeEnabled = false;
+    boolean precisionModeEnabled = false;
 
-    // schedule the selected autonomous command
-    if (m_autonomousCommand != null) {
-      m_autonomousCommand.schedule();
+    @Override
+    public void robotInit() {
+        configureButtonBindings();
+
+        // Setup autonomous chooser
+        autonChooser.setDefaultOption("Do Nothing", new InstantCommand());
+        autonChooser.addOption("Drive 1 Meter", new Drive1MeterAuto());
+        autonChooser.addOption("Square Autonomous", new SquareAutonomous());
+        autonChooser.addOption("Ball Pickup Auto", createBallPickupAuto());
+        SmartDashboard.putData("Auto Mode", autonChooser);
+
+        // Zero gyro and reset encoders
+        m_driveSubsystem.zeroGyro();
+        m_driveSubsystem.resetEncoders();
+        
+        // Set default commands
+        setDefaultCommands();
+        
+        // Dashboard info
+        SmartDashboard.putString("Robot Name", "Team 7221 Reefscape Robot");
+        SmartDashboard.putString("Status", "Ready to Dominate!");
     }
 
-    // Set the LED pattern for autonomous mode
-
-    // Set Elevator/End Effector inital preset
-  }
-
-  /** This function is called periodically during autonomous. */
-  @Override
-  public void autonomousPeriodic() {}
-
-  @Override
-  public void teleopInit() {
-    System.out.println("TELEOP MODE STARTED");
-
-    // This makes sure that the autonomous stops running when
-    // teleop starts running. If you want the autonomous to
-    // continue until interrupted by another command, remove
-    // this if statement or comment it out.
-    if (m_autonomousCommand != null) {
-      m_autonomousCommand.cancel();
+    private void setDefaultCommands() {
+        // Set default drive command to arcade drive with controller inputs
+        m_driveSubsystem.setDefaultCommand(
+            new RunCommand(
+                () -> {
+                    if (manualDriveControl) {
+                        double throttle = -driveController.getRawAxis(Constants.LEFT_VERTICAL_JOYSTICK_AXIS);
+                        double turn = -driveController.getRawAxis(Constants.RIGHT_HORIZONTAL_JOYSTICK_AXIS);
+                        
+                        // Apply deadband to prevent drift
+                        throttle = Math.abs(throttle) < 0.05 ? 0 : throttle;
+                        turn = Math.abs(turn) < 0.05 ? 0 : turn;
+                        
+                        // Apply speed limiters
+                        if (turboModeEnabled) {
+                            // No limiting in turbo mode
+                        } else if (precisionModeEnabled) {
+                            throttle *= 0.4; // 40% speed in precision mode
+                            turn *= 0.3;     // 30% turning in precision mode
+                        } else {
+                            throttle *= 0.8; // 80% speed in normal mode
+                            turn *= 0.6;     // 60% turning in normal mode
+                        }
+                        
+                        m_driveSubsystem.arcadeDrive(throttle, turn);
+                    }
+                },
+                m_driveSubsystem
+            )
+        );
     }
 
-    // Zero the gyroscope and reset the drive encoders
-    m_driveSubsystem.zeroGyro();
-    m_driveSubsystem.resetEncoders();
-
-    Optional<Alliance> ally = DriverStation.getAlliance();
-    if (ally.isPresent()) {
-      if (ally.get() == Alliance.Red) {
-        // Set the LED pattern for teleop mode
-
-      }
-      if (ally.get() == Alliance.Blue) {
-      }
+    @Override
+    public void robotPeriodic() {
+        CommandScheduler.getInstance().run();
+        
+        // Log gyro data
+        SmartDashboard.putNumber("Gyroscope Pitch", m_driveSubsystem.getPitch());
+        SmartDashboard.putNumber("Gyroscope Yaw", m_driveSubsystem.getYaw());
+        SmartDashboard.putNumber("Gyroscope Roll", m_driveSubsystem.getRoll());
+        
+        // Log battery voltage
+        SmartDashboard.putNumber("Battery Voltage", DriverStation.getBatteryVoltage());
     }
 
-    goalAngle = m_driveSubsystem.getGyroAngle();
+    @Override
+    public void disabledInit() {
+        System.out.println("⚠️ ROBOT DISABLED");
+    }
 
-    // // Set Elevator/End Effector inital preset
-    // m_CoralElevatorSubsystem.climbNeutral();
-    // m_CoralElevatorSubsystem.armInitial();
+    @Override
+    public void autonomousInit() {
+        System.out.println("🤖 AUTONOMOUS MODE STARTED");
 
-    // m_intakeSubsystem.setDefaultCommand(new IntakeManualControl());
-  }
+        m_autonomousCommand = autonChooser.getSelected();
+        
+        m_driveSubsystem.zeroGyro();
+        m_driveSubsystem.resetEncoders();
 
-  /** This function is called periodically during operator control. */
-  @Override
-  public void teleopPeriodic() {
-    // Log controller inputs to SmartDashboard
-    // SmartDashboard.putNumber("Controller: Right Trigger", controller.getRawAxis(Constants.RIGHT_TRIGGER_AXIS));
-    // SmartDashboard.putNumber("Controller: Left Trigger", controller.getRawAxis(Constants.LEFT_TRIGGER_AXIS));
-    // SmartDashboard.putBoolean("Controller: Right Bumper", controller.getRawButton(Constants.RIGHT_BUMPER));
-    // SmartDashboard.putBoolean("Controller: Left Bumper", controller.getRawButton(Constants.LEFT_BUMPER));
-    // SmartDashboard.putBoolean("Controller: X Button", controller.getRawButton(Constants.X_BUTTON));
-    // SmartDashboard.putBoolean("Controller: Y Button", controller.getRawButton(Constants.Y_BUTTON));
-    // SmartDashboard.putBoolean("Controller: B Button", controller.getRawButton(Constants.B_BUTTON));
-    // SmartDashboard.putBoolean("Controller: A Button", controller.getRawButton(Constants.A_BUTTON));
-     SmartDashboard.putNumber("Controller: Left Joystick X Ais", driveController.getRawAxis(Constants.LEFT_HORIZONTAL_JOYSTICK_AXIS));
-     SmartDashboard.putNumber("Controller: Left Joystick Y Axis", driveController.getRawAxis(Constants.LEFT_VERTICAL_JOYSTICK_AXIS));
-     SmartDashboard.putNumber("Controller: Right Joystick X Axis", driveController.getRawAxis(Constants.RIGHT_HORIZONTAL_JOYSTICK_AXIS));
-     SmartDashboard.putNumber("Controller: Right Joystick Y Axis", driveController.getRawAxis(Constants.RIGHT_VERTICAL_JOYSTICK_AXIS));
+        if (m_autonomousCommand != null) {
+            m_autonomousCommand.schedule();
+        }
+    }
 
-  if (Robot.manualDriveControl) {
-    double ySpeed = driveController.getRawAxis(Constants.LEFT_VERTICAL_JOYSTICK_AXIS);
-    double xSpeed = -driveController.getRawAxis(Constants.LEFT_HORIZONTAL_JOYSTICK_AXIS);
-    double zSpeed = -driveController.getRawAxis(Constants.RIGHT_HORIZONTAL_JOYSTICK_AXIS);
+    @Override
+    public void teleopInit() {
+        System.out.println("👾 TELEOP MODE STARTED");
+
+        if (m_autonomousCommand != null) {
+            m_autonomousCommand.cancel();
+        }
+
+        m_driveSubsystem.zeroGyro();
+        m_driveSubsystem.resetEncoders();
+        
+        // Get alliance color for LEDs
+        Optional<Alliance> ally = DriverStation.getAlliance();
+        if (ally.isPresent()) {
+            if (ally.get() == Alliance.Red) {
+                System.out.println("🔴 Red Alliance");
+            } else {
+                System.out.println("🔵 Blue Alliance");
+            }
+        }
+
+        goalAngle = m_driveSubsystem.getGyroAngle();
+        
+        // Reset drive modes
+        turboModeEnabled = false;
+        precisionModeEnabled = false;
+        m_driveSubsystem.disableDriveModes();
+    }
+
+    @Override
+    public void teleopPeriodic() {
+        // Controller input logging
+        SmartDashboard.putNumber("Left Y", driveController.getRawAxis(Constants.LEFT_VERTICAL_JOYSTICK_AXIS));
+        SmartDashboard.putNumber("Right X", driveController.getRawAxis(Constants.RIGHT_HORIZONTAL_JOYSTICK_AXIS));
+        
+        // Update goal angle for gyro assistance
+        if (Math.abs(driveController.getRawAxis(Constants.RIGHT_HORIZONTAL_JOYSTICK_AXIS)) > 0.1) {
+            goalAngle = m_driveSubsystem.getGyroAngle();
+        }
+    }
+
+    @Override
+    public void testInit() {
+        CommandScheduler.getInstance().cancelAll();
+        System.out.println("🧪 TEST MODE STARTED");
+    }
+
+    private void configureButtonBindings() {
+        // ==== DRIVER CONTROLS ====
+        // Turbo mode (right bumper)
+        new Trigger(() -> driveController.getRightBumper())
+            .onTrue(new InstantCommand(() -> {
+                turboModeEnabled = true;
+                precisionModeEnabled = false;
+                m_driveSubsystem.enableTurboMode();
+                System.out.println("🔥 TURBO MODE ACTIVATED");
+            }))
+            .onFalse(new InstantCommand(() -> {
+                turboModeEnabled = false;
+                m_driveSubsystem.disableDriveModes();
+                System.out.println("🔥 TURBO MODE DEACTIVATED");
+            }));
+        
+        // Precision mode (left bumper)
+        new Trigger(() -> driveController.getLeftBumper())
+            .onTrue(new InstantCommand(() -> {
+                precisionModeEnabled = true;
+                turboModeEnabled = false;
+                m_driveSubsystem.enablePrecisionMode();
+                System.out.println("🔍 PRECISION MODE ACTIVATED");
+            }))
+            .onFalse(new InstantCommand(() -> {
+                precisionModeEnabled = false;
+                m_driveSubsystem.disableDriveModes();
+                System.out.println("🔍 PRECISION MODE DEACTIVATED");
+            }));
+        
+        // ==== OPERATOR CONTROLS ====
+        // A Button - Pickup sequence
+        new Trigger(() -> operatorController.getAButton())
+            .onTrue(new BallControlCommands.PickupSequence(m_ballArmSubsystem));
+        
+        // Y Button - Score sequence
+        new Trigger(() -> operatorController.getYButton())
+            .onTrue(new BallControlCommands.ScoreSequence(m_ballArmSubsystem));
+            
+        // B Button - Home position
+        new Trigger(() -> operatorController.getBButton())
+            .onTrue(new InstantCommand(() -> m_ballArmSubsystem.homeArm()));
+            
+        // Manual arm control - Left joystick Y axis
+        m_ballArmSubsystem.setDefaultCommand(
+            new RunCommand(() -> {
+                double armSpeed = -operatorController.getRawAxis(Constants.LEFT_VERTICAL_JOYSTICK_AXIS);
+                
+                // Apply deadband and scale
+                if (Math.abs(armSpeed) < 0.1) {
+                    armSpeed = 0;
+                } else {
+                    // Scale to safe speed
+                    armSpeed *= Constants.BALL_ARM_MAX_SPEED;
+                }
+                
+                m_ballArmSubsystem.moveArm(armSpeed);
+            }, m_ballArmSubsystem)
+        );
+        
+        // Manual gripper control
+        new Trigger(() -> operatorController.getRightTriggerAxis() > 0.1)
+            .whileTrue(new RunCommand(() -> 
+                m_ballArmSubsystem.setGripper(operatorController.getRightTriggerAxis() * 
+                    Constants.BALL_GRIPPER_INTAKE_SPEED)
+            ));
+            
+        new Trigger(() -> operatorController.getLeftTriggerAxis() > 0.1)
+            .whileTrue(new RunCommand(() -> 
+                m_ballArmSubsystem.setGripper(-operatorController.getLeftTriggerAxis() * 
+                    Constants.BALL_GRIPPER_RELEASE_SPEED)
+            ));
+    }
     
-    // Speed limits
-    ySpeed = Math.max(Math.min(ySpeed, 0.4), -0.4);
-    xSpeed = Math.max(Math.min(xSpeed, 0.4), -0.4);
-    zSpeed = Math.max(Math.min(zSpeed, 0.4), -0.4);
-
-    if (Math.abs(zSpeed) > 0.01) { // If we are telling the robot to rotate, then let it rotate
-			// m_driveSubsystem.driveCartesian(ySpeed, xSpeed, zSpeed, m_driveSubsystem.getRotation2d()); // field-relative
-      m_driveSubsystem.driveCartesian(ySpeed, xSpeed, zSpeed); // robot-relative
-			goalAngle = m_driveSubsystem.getGyroAngle();
-		}
-		else { // Otherwise, use the gyro to maintain our current angle
-			double error = m_driveSubsystem.getGyroAngle() - goalAngle;
-			
-			double correction = Constants.GYRO_TURN_KP * error;
-      if (Math.abs(correction) > Constants.MAX_POWER_GYRO) { // Maximum value we want
-        correction = Math.copySign(Constants.MAX_POWER_GYRO, correction);
-      }
-			
-			// m_driveSubsystem.driveCartesian(ySpeed, xSpeed, -1 * correction, m_driveSubsystem.getRotation2d()); // field-relative
-      m_driveSubsystem.driveCartesian(ySpeed, xSpeed, -1 * correction); // robot-relative
-      }
-    } else {
-      goalAngle = m_driveSubsystem.getGyroAngle();
-		}
-  }
-
-  @Override
-  public void testInit() {
-    // Cancels all running commands at the start of test mode.
-    CommandScheduler.getInstance().cancelAll();
-    System.out.println("TEST MODE STARTED");
-  }
-
-  /** This function is called periodically during test mode. */
-  @Override
-  public void testPeriodic() {}
-
-  /**
-   * Use this method to define your button->command mappings. Buttons can be created by
-   * instantiating a {@link GenericHID} or onse of its subclasses ({@link edu.wpi.first.wpilibj.Joystick} 
-   * or {@link XboxController}), and then passing it to a {@link edu.wpi.first.wpilibj2.command.button.Trigger}.
-   */
-  private void configureButtonBindings() {
-    // Intake Controls //
-    // new Trigger(() -> controller.getRawButton(Constants.RIGHT_BUMPER)).whileTrue(new IntakeSetBarPowerCommand(Constants.INTAKE_BAR_SPEED)); // Intake 
-
-    // new Trigger(() -> controller.getRawButton(Constants.A_BUTTON)).onTrue(new IntakeSetArmPositionCommand(Constants.HOLD_ALGAE_POSITION)); // Set arm position
-    // new Trigger(() -> controller.getRawButton(Constants.B_BUTTON)).onTrue(new IntakeSetArmPositionCommand(Constants.HOLD_CORAL_POSITION)); // Set arm position
-    // new Trigger(() -> controller.getRawButton(Constants.Y_BUTTON)).onTrue(new IntakeSetArmPositionCommand(Constants.PICK_UP_ALGAE_POSITION)); // Set arm position
-    // new Trigger(() -> controller.getRawButton(Constants.X_BUTTON)).onTrue(new IntakeSetArmPositionCommand(Constants.PICK_UP_CORAL_POSITION)); // Set arm position
-
-  }
+    // Create a custom autonomous routine
+    private Command createBallPickupAuto() {
+        return new SequentialCommandGroup(
+            // Move forward to approach ball
+            new RunCommand(() -> m_driveSubsystem.arcadeDrive(0.3, 0), m_driveSubsystem)
+                .withTimeout(1.5),
+                
+            // Stop driving
+            new InstantCommand(() -> m_driveSubsystem.stop()),
+            
+            // Run pickup sequence
+            new BallControlCommands.PickupSequence(m_ballArmSubsystem),
+            
+            // Turn around (180 degrees)
+            new RunCommand(() -> m_driveSubsystem.arcadeDrive(0, 0.6), m_driveSubsystem)
+                .withTimeout(2.0),
+                
+            // Drive back to starting position
+            new RunCommand(() -> m_driveSubsystem.arcadeDrive(0.3, 0), m_driveSubsystem)
+                .withTimeout(1.5),
+                
+            // Stop and score
+            new InstantCommand(() -> m_driveSubsystem.stop()),
+            new BallControlCommands.ScoreSequence(m_ballArmSubsystem)
+        );
+    }
 }
