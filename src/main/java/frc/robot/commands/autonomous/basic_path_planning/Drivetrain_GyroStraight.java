@@ -1,5 +1,5 @@
-// Author: UMN Robotics Ri3D
-// Last Updated: January 2025
+// Author: Team 7221
+// Last Updated: March 2025
 
 package frc.robot.commands.autonomous.basic_path_planning;
 
@@ -9,23 +9,33 @@ import frc.robot.Robot;
 
 import frc.robot.subsystems.DriveSubsystem;
 
-/** Drivetrain Gyro Straight **************************************************
- * Command for driving straight using gyroscope feedback. */
+/**
+ * Drivetrain_GyroStraight
+ * 
+ * TIME-BASED DRIVE STRAIGHT COMMAND (NO GYRO NEEDED!)
+ * Makes the robot drive forward a specific distance using encoder feedback
+ * without relying on a gyro for straight line correction.
+ * 
+ * coded by paysean
+ */
 public class Drivetrain_GyroStraight extends Command {
-	/** Configuration Constants ***********************************************/
-	private static final double kP = Constants.GYRO_TURN_KP;
+	// Configuration Constants
 	private static final double CIRCUMFRENCE = Constants.WHEEL_DIAMETER * Math.PI;
-	private static final double MAX_CORRECTION = Constants.MAX_POWER_GYRO;
 	
-	/** Instance Variables ****************************************************/
+	// Instance Variables
 	DriveSubsystem drivetrain = Robot.m_driveSubsystem;
-	double forwardPower, goalAngle, goalDistance;
+	double forwardPower, goalDistance;
 	
-	/** Drivetrain Gyro Straight **********************************************
-	 * Required subsystems will cancel commands when this command is run.
-	 * distance is given in physical units matching the wheel diameter unit
-	 * speed is given in physical units per second. The physical units should 
-	 * match that of the Wheel diameter. */
+	// Variables for time-based driving
+	private long startTime;
+	
+	/**
+	 * Creates a command that drives straight without gyro!
+	 * Uses encoder feedback to go the right distance.
+	 * 
+	 * @param distance Distance to drive in meters
+	 * @param power Power level (0 to 1.0)
+	 */
 	public Drivetrain_GyroStraight(double distance, double power) {
 		forwardPower = power;
 		
@@ -33,39 +43,52 @@ public class Drivetrain_GyroStraight extends Command {
 		goalDistance = distance / CIRCUMFRENCE;
 
 		addRequirements(drivetrain);
+		
+		System.out.println(">> CREATING DRIVE STRAIGHT COMMAND - DISTANCE: " + 
+		                  distance + "m, POWER: " + power);
 	}
 	
-	/** initialize ************************************************************
-	 * Called just before this Command runs the first time */
+	@Override
 	public void initialize() {
-		drivetrain.arcadeDrive(0, 0); // FIXED: Changed from driveCartesian to arcadeDrive
-		goalAngle = drivetrain.getGyroAngle();
+		System.out.println(">> STARTING DRIVE STRAIGHT!");
+		drivetrain.arcadeDrive(0, 0);
 		drivetrain.resetEncoders();
+		startTime = System.currentTimeMillis();
 	}
 
-	/** execute ***************************************************************
-	 * Called repeatedly when this Command is scheduled to run */
+	@Override
 	public void execute() {
-		double error = goalAngle - drivetrain.getGyroAngle();
+		// Just drive straight with no correction!
+		// Since we don't have a gyro, we're relying on balanced motor power
+		drivetrain.arcadeDrive(forwardPower, 0);
 		
-		double correction = kP * error;
-
-		correction = Math.min(MAX_CORRECTION, correction);
-		correction = Math.max(-MAX_CORRECTION, correction);
-		
-		drivetrain.arcadeDrive(forwardPower, -1 * correction); // FIXED: Changed from driveCartesian to arcadeDrive
+		// Debug info
+		if (System.currentTimeMillis() - startTime > 500 && 
+		   (System.currentTimeMillis() - startTime) % 500 < 20) {
+			System.out.println(">> DRIVING: " + 
+			                  (Math.abs(drivetrain.getLeftFrontPosition()) / goalDistance * 100) + 
+			                  "% complete");
+		}
 	}
 	
-	/** isFinished ************************************************************	
-	 * Make this return true when this Command no longer needs to run execute() */
+	@Override
 	public boolean isFinished() {
 		boolean leftFrontGoalReached = Math.abs(drivetrain.getLeftFrontPosition()) >= goalDistance;
 		boolean rightFrontGoalReached = Math.abs(drivetrain.getRightFrontPosition()) >= goalDistance;
-		return leftFrontGoalReached || rightFrontGoalReached;
+		
+		// We're done when either side reaches the goal
+		if (leftFrontGoalReached || rightFrontGoalReached) {
+			System.out.println(">> DRIVE STRAIGHT COMPLETE!");
+			return true;
+		}
+		return false;
 	}
 
-	// Called once the command ends or is interrupted.
+	@Override
 	public void end(boolean interrupted) {
-		drivetrain.arcadeDrive(0, 0); // FIXED: Changed from driveCartesian to arcadeDrive
+		drivetrain.arcadeDrive(0, 0);
+		if (interrupted) {
+			System.out.println(">> DRIVE STRAIGHT INTERRUPTED!");
+		}
 	}
 }
