@@ -151,7 +151,8 @@ Ultrasonic.setAutomaticMode(true); // Multiple sensors can run at once!
         motor.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
         
         // Make sure current limits are set to PROTECT OUR PRECIOUS MOTORS
-        motor.setSmartCurrentLimit(30); // 30 amps is PLENTY
+// FIXED: Using setCurrentLimit instead of setSmartCurrentLimit
+motor.setCurrentLimit(30); // 30 amps is PLENTY
     }
     
     /**
