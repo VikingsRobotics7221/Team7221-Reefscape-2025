@@ -1,255 +1,206 @@
-// Author: UMN Robotics Ri3D
-// Last Updated: January 2025
-
+// src/main/java/frc/robot/subsystems/BallArmSubsystem.java
 package frc.robot.subsystems;
 
-import frc.robot.Constants;
-
-import com.studica.frc.AHRS;
-
 import com.revrobotics.spark.SparkMax;
+import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
-import com.revrobotics.spark.SparkLowLevel.MotorType;
 
-import edu.wpi.first.math.filter.SlewRateLimiter;
-import edu.wpi.first.wpilibj.drive.MecanumDrive;
+import edu.wpi.first.wpilibj.DigitalInput;
+import edu.wpi.first.wpilibj.Ultrasonic;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import edu.wpi.first.math.controller.PIDController;
-import edu.wpi.first.math.controller.SimpleMotorFeedforward;
-import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Translation2d;
-import edu.wpi.first.math.kinematics.MecanumDriveKinematics;
-import edu.wpi.first.math.kinematics.MecanumDriveOdometry;
-import edu.wpi.first.math.kinematics.MecanumDriveWheelPositions;
-import edu.wpi.first.math.kinematics.MecanumDriveWheelSpeeds;
-import edu.wpi.first.math.trajectory.TrapezoidProfile;
+import frc.robot.Constants;
 
-/** Drivetrain ****************************************************************
- * The mecanum drivetrain subsystem of the robot. */
-public class DriveSubsystem extends SubsystemBase {
-  
-	// Drivetrain Motor Controllers
-	private static SparkMax m_leftFrontMotor; // NEO motor
-	private static SparkMax m_rightFrontMotor; // NEO motor
-	private static SparkMax m_leftBackMotor; // NEO motor
-	private static SparkMax m_rightBackMotor; // NEO motor
-
-	SlewRateLimiter rightFilter;
-	SlewRateLimiter leftFilter;
-
-	private double DRIVE_GEAR_RATIO = Constants.DRIVE_GEAR_RATIO;
-
-	private AHRS navx = new AHRS(AHRS.NavXComType.kUSB1); // Instantiate a NavX Gyroscope connected to a roboRIO USB port
-
-	double leftFrontPositionZero, rightFrontPositionZero, leftBackPositionZero, rightBackPositionZero = 0.0;
-
-	private static final double TRACK_WIDTH = Constants.TRACK_WIDTH;
-	private static final double WHEEL_BASE = Constants.WHEEL_BASE;
-
-	private static final SimpleMotorFeedforward kFeedforward = new SimpleMotorFeedforward(0.17472, 2.7572, 0.45109); // kS, kV, kA Characterization Constants
-	private static final TrapezoidProfile.Constraints kThetaControllerConstraints = new TrapezoidProfile.Constraints(Constants.kMAX_ANGULAR_SPEED_RADIANS_PER_SECOND, Constants.kMAX_ANGULAR_ACCELERATION_RADIANS_PER_SECOND_SQUARED);
-	private final PIDController frontLeftPIDController = new PIDController(Constants.kP_FRONT_LEFT_VELOCITY, 0, 0);
-  	private final PIDController frontRightPIDController = new PIDController(Constants.kP_FRONT_RIGHT_VELOCITY, 0, 0);
-  	private final PIDController backLeftPIDController = new PIDController(Constants.kP_BACK_LEFT_VELOCITY, 0, 0);
-  	private final PIDController backRightPIDController = new PIDController(Constants.kP_BACK_RIGHT_VELOCITY, 0, 0);
-
-	private static final MecanumDriveKinematics kDriveKinematics =
-		new MecanumDriveKinematics(new Translation2d(WHEEL_BASE / 2, TRACK_WIDTH / 2), 
-								   new Translation2d(WHEEL_BASE / 2, -TRACK_WIDTH / 2), 
-								   new Translation2d(-WHEEL_BASE / 2, TRACK_WIDTH / 2), 
-								   new Translation2d(-WHEEL_BASE / 2, -TRACK_WIDTH / 2));
-
-	private static MecanumDrive robotDrive;
-	private static MecanumDriveOdometry odometry;
-  
-  /** Subsystem for controlling the Drivetrain and accessing the NavX Gyroscope */
-  public DriveSubsystem() {
-    // Instantiate the Drivetrain motor controllers
-    m_leftFrontMotor = new SparkMax(Constants.LEFT_FRONT_DRIVE_MOTOR_ID, MotorType.kBrushless);
-    m_rightFrontMotor = new SparkMax(Constants.RIGHT_FRONT_DRIVE_MOTOR_ID, MotorType.kBrushless);
-    m_leftBackMotor = new SparkMax(Constants.LEFT_REAR_DRIVE_MOTOR_ID, MotorType.kBrushless);
-    m_rightBackMotor = new SparkMax(Constants.RIGHT_REAR_DRIVE_MOTOR_ID, MotorType.kBrushless);
-
-	robotDrive = new MecanumDrive(m_leftFrontMotor, m_leftBackMotor, m_rightFrontMotor, m_rightBackMotor);
-	odometry = new MecanumDriveOdometry(kDriveKinematics, navx.getRotation2d(), getWheelPositions());	
-
-    // Configure the Spark MAX motor controllers using the new 2025 method
-    configureSparkMAX(m_leftFrontMotor, Constants.REVERSE_LEFT_FRONT_MOTOR);
-    configureSparkMAX(m_leftBackMotor, Constants.REVERSE_LEFT_BACK_MOTOR);
-    configureSparkMAX(m_rightBackMotor, Constants.REVERSE_RIGHT_FRONT_MOTOR);
-    configureSparkMAX(m_rightFrontMotor, Constants.REVERSE_RIGHT_BACK_MOTOR);
-
-    resetEncoders(); // Zero the drive encoders
-
-    rightFilter = new SlewRateLimiter(5);
-    leftFilter = new SlewRateLimiter(5);
-
-    System.out.println("NavX Connected: " + navx.isConnected());
-  }
-
-	private void configureSparkMAX(SparkMax max, boolean reverse) {
-		SparkMaxConfig config = new SparkMaxConfig();
-		config.inverted(reverse).idleMode(IdleMode.kBrake);
-		max.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
-	}
-
-	public void stop() {
-		m_leftFrontMotor.set(0);
-		m_rightFrontMotor.set(0);
-		m_leftBackMotor.set(0);
-		m_rightBackMotor.set(0);
-	}
-
-	// NavX Gyroscope Methods //
-	public void zeroGyro() {
-		navx.reset();
-	}
-	public double getYaw() {
-		return navx.getYaw();
-	}
-	public double getPitch() {
-		return navx.getPitch();
-	}
-	public double getRoll() {
-		return navx.getRoll();
-	}
-	public double getGyroAngle() { // Returns the heading of the robot
-		return navx.getAngle();
-	}
-	public double getTurnRate() { // Returns the turn rate of the robot
-		return -navx.getRate();
-	}
-
-	/** Odometry Methods *******************************************************/
-	public Rotation2d getRotation2d() {
-		return Rotation2d.fromDegrees(navx.getAngle());
-	}
-	public void resetOdometry(Pose2d pose) {
-		odometry.resetPosition(this.getRotation2d(), getWheelPositions(), pose);
-	}
-	public Pose2d getPose() {
-		return odometry.getPoseMeters();
-	}
-	public MecanumDriveKinematics getkDriveKinematics() {
-		return kDriveKinematics;	
-	}
-	public TrapezoidProfile.Constraints getkThetaControllerConstraints() {
-		return kThetaControllerConstraints;
-	}
-
-	@Override
-	public void periodic() {
-		// Update the odometry in the periodic block
-		odometry.update(this.getRotation2d(), getWheelPositions());
-
-		SmartDashboard.putNumber("Left Front Position", getLeftFrontPosition());
-		SmartDashboard.putNumber("Right Front Position", getRightFrontPosition());
-		SmartDashboard.putNumber("Left Back Position", getLeftBackPosition());
-		SmartDashboard.putNumber("Right Back Position", getRightBackPosition());
-	}
-
-	//Not Field-Oriented (aka Robot-Oriented)
-	public void driveCartesian(double ySpeed, double xSpeed, double zRotation) {
-		robotDrive.driveCartesian(ySpeed, xSpeed, zRotation);
-	}
-	// Field-Oriented
-	public void driveCartesian(double ySpeed, double xSpeed, double zRotation, Rotation2d currentAngle) {
-		robotDrive.driveCartesian(ySpeed, xSpeed, zRotation, currentAngle);
-	}
-
-	/** Get the encoder positions or speeds **************************************/
-	public double getLeftFrontPosition() { // Position is returned in units of revolutions
-		return (m_leftFrontMotor.getEncoder().getPosition() / DRIVE_GEAR_RATIO - leftFrontPositionZero); // DRIVE_GEAR_RATIO : 1 is our drivetrain gear ratio
-	}
-	public double getRightFrontPosition() { // Position is returned in units of revolutions
-		return -1 * (m_rightFrontMotor.getEncoder().getPosition() / DRIVE_GEAR_RATIO - rightFrontPositionZero); // DRIVE_GEAR_RATIO : 1 is our drivetrain gear ratio
-	}
-	public double getLeftBackPosition() { // Position is returned in units of revolutions
-		return -1 * (m_leftBackMotor.getEncoder().getPosition() / DRIVE_GEAR_RATIO - leftBackPositionZero); // DRIVE_GEAR_RATIO : 1 is our drivetrain gear ratio
-	}
-	public double getRightBackPosition() { // Position is returned in units of revolutions
-		return (m_rightBackMotor.getEncoder().getPosition() / DRIVE_GEAR_RATIO - rightBackPositionZero); // DRIVE_GEAR_RATIO : 1 is our drivetrain gear ratio
-	}
-	public double getLeftFrontSpeed() { // Speed is returned in units of RPM (revolutions per minute)
-		return (m_leftFrontMotor.getEncoder().getVelocity() / DRIVE_GEAR_RATIO); // DRIVE_GEAR_RATIO : 1 is our drivetrain gear ratio
-	}
-	public double getRightFrontSpeed() { // Speed is returned in units of RPM (revolutions per minute)
-		return -1 * (m_rightFrontMotor.getEncoder().getVelocity() / DRIVE_GEAR_RATIO); // DRIVE_GEAR_RATIO : 1 is our drivetrain gear ratio
-	}
-	public double getLeftBackSpeed() { // Speed is returned in units of RPM (revolutions per minute)
-		return -1 * (m_leftBackMotor.getEncoder().getVelocity() / DRIVE_GEAR_RATIO); // DRIVE_GEAR_RATIO : 1 is our drivetrain gear ratio
-	}
-	public double getRightBackSpeed() { // Speed is returned in units of RPM (revolutions per minute)
-		return (m_rightBackMotor.getEncoder().getVelocity() / DRIVE_GEAR_RATIO); // DRIVE_GEAR_RATIO : 1 is our drivetrain gear ratio
-	}
-
-	// Zero the drivetrain encoders
-	public void resetEncoders() {
-		leftFrontPositionZero = m_leftFrontMotor.getEncoder().getPosition() / DRIVE_GEAR_RATIO; // DRIVE_GEAR_RATIO : 1 is our drivetrain gear ratio
-		leftBackPositionZero = m_leftBackMotor.getEncoder().getPosition() / DRIVE_GEAR_RATIO; // DRIVE_GEAR_RATIO : 1 is our drivetrain gear ratio
-		rightFrontPositionZero = m_rightFrontMotor.getEncoder().getPosition() / DRIVE_GEAR_RATIO; // DRIVE_GEAR_RATIO : 1 is our drivetrain gear ratio
-		rightBackPositionZero = m_rightBackMotor.getEncoder().getPosition() / DRIVE_GEAR_RATIO; // DRIVE_GEAR_RATIO : 1 is our drivetrain gear ratio
-	}
-
-	// Speed will be measured in meters/second
-	public double getLeftSpeed() {
-		return speedToMeters(getLeftFrontSpeed()) + speedToMeters(getLeftBackSpeed()) / 2;
-	}
-	public double getRightSpeed() {
-		return speedToMeters(getRightFrontSpeed()) + speedToMeters(getRightBackSpeed()) / 2;
-	}
-	public double getAverageEncoderSpeed() {
-		return (getLeftSpeed() + getRightSpeed()) / 2;
-	}
-
-	public void setWheelSpeeds(MecanumDriveWheelSpeeds speeds) {
-		speeds.frontRightMetersPerSecond *= -7.0;
-		speeds.rearLeftMetersPerSecond *= -7.0;
-
-		final double frontLeftFeedforward = kFeedforward.calculate(speeds.frontLeftMetersPerSecond);
-		final double frontRightFeedforward = kFeedforward.calculate(speeds.frontRightMetersPerSecond);
-		final double backLeftFeedforward = kFeedforward.calculate(speeds.rearLeftMetersPerSecond);
-		final double backRightFeedforward = kFeedforward.calculate(speeds.rearRightMetersPerSecond);
-
-		final double frontLeftOutput =
-			frontLeftPIDController.calculate(speedToMeters(getLeftFrontSpeed()), speeds.frontLeftMetersPerSecond);
-		final double frontRightOutput =
-			frontRightPIDController.calculate(speedToMeters(getRightFrontSpeed()), speeds.frontRightMetersPerSecond);
-		final double backLeftOutput =
-			backLeftPIDController.calculate(speedToMeters(getLeftBackSpeed()), speeds.rearLeftMetersPerSecond);
-		final double backRightOutput =
-			backRightPIDController.calculate(speedToMeters(getRightBackSpeed()), speeds.rearRightMetersPerSecond);
-
-		m_leftFrontMotor.setVoltage(frontLeftOutput + frontLeftFeedforward);
-		m_rightFrontMotor.setVoltage(frontRightOutput + frontRightFeedforward);
-		m_leftBackMotor.setVoltage(backLeftOutput + backLeftFeedforward);
-		m_rightBackMotor.setVoltage(backRightOutput + backRightFeedforward);
-  }
-
-  // Methods for getting the speeds and positions of the drivetrain wheels
-  public MecanumDriveWheelPositions getWheelPositions() {
-		return new MecanumDriveWheelPositions(positionToMeters(getLeftFrontPosition()), 
-											  positionToMeters(getRightFrontPosition()), 
-											  positionToMeters(getLeftBackPosition()), 
-											  positionToMeters(getRightBackPosition()));
-  }
-  public MecanumDriveWheelSpeeds getWheelSpeeds() {
-		return new MecanumDriveWheelSpeeds(speedToMeters(getLeftFrontSpeed()), 
-											speedToMeters(getRightFrontSpeed()), 
-											speedToMeters(getLeftBackSpeed()), 
-											speedToMeters(getRightBackSpeed()));
-  }
-
-	// Conversion Methods: Convert position & speed to Meters
-	public double positionToMeters(double position) {
-		return position * Math.PI * Constants.WHEEL_DIAMETER;
-	}
-	public double speedToMeters(double speed) {
-		return speed / 60 * Math.PI * Constants.WHEEL_DIAMETER;
-	}
+/**
+ * Ball Control Arm Subsystem
+ * Controls the mechanism for trapping, holding, and releasing game pieces
+ */
+public class BallArmSubsystem extends SubsystemBase {
+    // Motors
+    private final SparkMax m_armMotor;
+    private final SparkMax m_gripperMotor;
+    
+    // Sensors
+    private final DigitalInput m_upperLimitSwitch;
+    private final DigitalInput m_lowerLimitSwitch;
+    private final Ultrasonic m_ballDetector;
+    
+    // State tracking
+    private boolean m_hasBall = false;
+    private double m_armPositionZero = 0.0;
+    
+    /**
+     * Creates a new BallArmSubsystem
+     */
+    public BallArmSubsystem() {
+        // Initialize motors
+        m_armMotor = new SparkMax(Constants.BALL_ARM_MOTOR_ID, MotorType.kBrushless);
+        m_gripperMotor = new SparkMax(Constants.BALL_GRIPPER_MOTOR_ID, MotorType.kBrushless);
+        
+        // Configure motors
+        configureSparkMAX(m_armMotor, Constants.BALL_ARM_MOTOR_INVERTED);
+        configureSparkMAX(m_gripperMotor, Constants.BALL_GRIPPER_MOTOR_INVERTED);
+        
+        // Initialize sensors
+        m_upperLimitSwitch = new DigitalInput(Constants.BALL_ARM_UPPER_LIMIT_SWITCH_PORT);
+        m_lowerLimitSwitch = new DigitalInput(Constants.BALL_ARM_LOWER_LIMIT_SWITCH_PORT);
+        
+        // Setup ultrasonic sensor for ball detection
+        m_ballDetector = new Ultrasonic(
+            Constants.BALL_DETECTOR_PING_PORT,
+            Constants.BALL_DETECTOR_ECHO_PORT
+        );
+        m_ballDetector.setAutomaticMode(true); // Enable automatic mode for multiple ultrasonics
+        
+        // Reset encoder position
+        resetArmEncoder();
+    }
+    
+    /**
+     * Configure a SparkMAX motor controller
+     */
+    private void configureSparkMAX(SparkMax motor, boolean inverted) {
+        SparkMaxConfig config = new SparkMaxConfig();
+        config.inverted(inverted).idleMode(IdleMode.kBrake);
+        motor.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+    }
+    
+    /**
+     * Reset the arm encoder position
+     */
+    public void resetArmEncoder() {
+        m_armPositionZero = m_armMotor.getEncoder().getPosition();
+    }
+    
+    /**
+     * Get the arm position in rotations
+     */
+    public double getArmPosition() {
+        return m_armMotor.getEncoder().getPosition() - m_armPositionZero;
+    }
+    
+    /**
+     * Move the arm to pick up or score a ball
+     * @param speed Speed to move the arm (-1.0 to 1.0)
+     */
+    public void moveArm(double speed) {
+        // Check limit switches before moving
+        if ((speed > 0 && !m_upperLimitSwitch.get()) || 
+            (speed < 0 && !m_lowerLimitSwitch.get())) {
+            m_armMotor.set(speed);
+        } else {
+            m_armMotor.set(0);
+        }
+    }
+    
+    /**
+     * Set the gripper to trap or release a ball
+     * @param speed Speed to run the gripper (-1.0 to 1.0)
+     */
+    public void setGripper(double speed) {
+        m_gripperMotor.set(speed);
+    }
+    
+    /**
+     * Check if a ball is detected in the gripper
+     * @return true if ball is detected
+     */
+    public boolean hasBall() {
+        // Get the range in inches from the ultrasonic sensor
+        double rangeInches = m_ballDetector.getRangeInches();
+        
+        // If the distance is less than the threshold, a ball is present
+        return rangeInches < Constants.BALL_DETECTION_THRESHOLD_INCHES;
+    }
+    
+    /**
+     * Move arm to a specific position using PID control
+     * @param targetPosition Target position in rotations
+     */
+    public void setArmPosition(double targetPosition) {
+        double currentPosition = getArmPosition();
+        double error = targetPosition - currentPosition;
+        
+        // Simple P controller
+        double output = Constants.BALL_ARM_KP * error;
+        
+        // Clamp the output
+        if (output > Constants.BALL_ARM_MAX_SPEED) {
+            output = Constants.BALL_ARM_MAX_SPEED;
+        } else if (output < -Constants.BALL_ARM_MAX_SPEED) {
+            output = -Constants.BALL_ARM_MAX_SPEED;
+        }
+        
+        // Add a small feed-forward to counteract gravity
+        if (currentPosition > Constants.BALL_ARM_HORIZONTAL_POSITION) {
+            output += Constants.BALL_ARM_GRAVITY_FF;
+        } else {
+            output -= Constants.BALL_ARM_GRAVITY_FF;
+        }
+        
+        moveArm(output);
+    }
+    
+    /**
+     * Move the arm to the home position
+     */
+    public void homeArm() {
+        setArmPosition(Constants.BALL_ARM_HOME_POSITION);
+    }
+    
+    /**
+     * Move the arm to the pickup position
+     */
+    public void pickupPosition() {
+        setArmPosition(Constants.BALL_ARM_PICKUP_POSITION);
+    }
+    
+    /**
+     * Move the arm to the scoring position
+     */
+    public void scorePosition() {
+        setArmPosition(Constants.BALL_ARM_SCORE_POSITION);
+    }
+    
+    /**
+     * Automatically intake a ball
+     */
+    public void intakeBall() {
+        // If we don't have a ball, run the gripper to intake
+        if (!m_hasBall) {
+            setGripper(Constants.BALL_GRIPPER_INTAKE_SPEED);
+        } else {
+            // If we have a ball, stop the gripper
+            setGripper(Constants.BALL_GRIPPER_HOLD_SPEED);
+        }
+    }
+    
+    /**
+     * Release the ball
+     */
+    public void releaseBall() {
+        setGripper(Constants.BALL_GRIPPER_RELEASE_SPEED);
+    }
+    
+    @Override
+    public void periodic() {
+        // Check if we have a ball and update the status
+        boolean currentBallStatus = hasBall();
+        
+        // If the ball status has changed, log it
+        if (currentBallStatus != m_hasBall) {
+            m_hasBall = currentBallStatus;
+            System.out.println("Ball status changed: " + (m_hasBall ? "Ball detected" : "No ball detected"));
+        }
+        
+        // Update SmartDashboard with arm status
+        SmartDashboard.putNumber("Arm Position", getArmPosition());
+        SmartDashboard.putBoolean("Upper Limit", !m_upperLimitSwitch.get());
+        SmartDashboard.putBoolean("Lower Limit", !m_lowerLimitSwitch.get());
+        SmartDashboard.putBoolean("Has Ball", m_hasBall);
+        SmartDashboard.putNumber("Ball Distance", m_ballDetector.getRangeInches());
+    }
 }
