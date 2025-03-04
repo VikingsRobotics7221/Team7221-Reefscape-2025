@@ -300,4 +300,35 @@ public class DriveSubsystem extends SubsystemBase {
         SmartDashboard.putBoolean("Turbo Mode", false);
         SmartDashboard.putBoolean("Precision Mode", false);
     }
+
+    /**
+    * Cartesian drive method for holonomic-like control on a tank drive
+    * This allows for "strafing" by simulating it with tank drive
+    * 
+    * @param xSpeed Speed along X axis (left/right)
+    * @param ySpeed Speed along Y axis (forward/backward)
+    * @param zRotation Rotation rate around Z axis
+    */
+public void driveCartesian(double xSpeed, double ySpeed, double zRotation) {
+    // For tank drive, we can't strafe, so we prioritize
+    // either forward/backward or rotation depending on inputs
+    
+    // If we're mostly trying to drive forward/backward
+    if (Math.abs(ySpeed) > Math.abs(xSpeed) && Math.abs(ySpeed) > Math.abs(zRotation)) {
+        arcadeDrive(ySpeed, 0);
+    }
+    // If we're mostly trying to rotate
+    else if (Math.abs(zRotation) > Math.abs(xSpeed)) {
+        arcadeDrive(0, zRotation);
+    }
+    // If we're mostly trying to strafe (which we can't really do)
+    // We'll simulate it by using a tank-turning approach
+    else if (Math.abs(xSpeed) > 0.1) {
+        // This is a rough approximation
+        tankDrive(xSpeed, -xSpeed);
+    }
+    // If all inputs are very small, just stop
+    else {
+        stop();
+    }
 }
