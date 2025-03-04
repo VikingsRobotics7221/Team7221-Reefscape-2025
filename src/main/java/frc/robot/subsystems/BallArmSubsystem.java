@@ -116,11 +116,12 @@ public class BallArmSubsystem extends SubsystemBase {
         m_lowerLimitSwitch = new DigitalInput(Constants.BALL_ARM_LOWER_LIMIT_SWITCH_PORT);
         
         // ULTRASONIC SENSOR FOR BALL DETECTION!!
-        m_ballDetector = new Ultrasonic(
-            Constants.BALL_DETECTOR_PING_PORT,
-            Constants.BALL_DETECTOR_ECHO_PORT
-        );
-        m_ballDetector.setAutomaticMode(true); // Multiple sensors can run at once!
+m_ballDetector = new Ultrasonic(
+    Constants.BALL_DETECTOR_PING_PORT,
+    Constants.BALL_DETECTOR_ECHO_PORT
+);
+// FIXED: Changed to static method call
+Ultrasonic.setAutomaticMode(true); // Multiple sensors can run at once!
         
         // RESET THE ARM ENCODER!
         resetArmEncoder();
