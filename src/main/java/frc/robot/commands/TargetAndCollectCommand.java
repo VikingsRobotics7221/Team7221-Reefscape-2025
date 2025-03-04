@@ -88,7 +88,7 @@ public class TargetAndCollectCommand extends Command {
         
         // Debug output
         System.out.println(STATE_ASCII[m_currentState.ordinal()]);
-        System.out.println("🔍 SCANNING FOR BALLS... 🔍");
+        System.out.println(">> SCANNING FOR BALLS... >>");
     }
     
     @Override
@@ -136,8 +136,8 @@ public class TargetAndCollectCommand extends Command {
             // Move to approaching state
             transitionToState(State.APPROACHING);
             
-            System.out.println("🔍 BALL DETECTED AT DISTANCE: " + m_ballDistance + "m");
-            System.out.println("🔄 ANGLE TO BALL: " + m_ballAngle + "°");
+            System.out.println(">> BALL DETECTED AT DISTANCE: " + m_ballDistance + "m");
+            System.out.println(">> ANGLE TO BALL: " + m_ballAngle + "°");
             
         } else {
             // No ball found yet, keep spinning slowly to look around
@@ -176,7 +176,7 @@ public class TargetAndCollectCommand extends Command {
             
         } else {
             // Lost sight of the ball!
-            System.out.println("⚠️ LOST VISUAL ON TARGET!");
+            System.out.println(">> LOST VISUAL ON TARGET!");
             
             // Stop and go back to searching
             m_driveSubsystem.arcadeDrive(0, 0);
@@ -198,7 +198,7 @@ public class TargetAndCollectCommand extends Command {
             m_ballArmSubsystem.pickupPosition();
             m_ballArmSubsystem.setGripper(Constants.BALL_GRIPPER_INTAKE_SPEED);
             
-            System.out.println("🦾 ARM DEPLOYED! GRABBING BALL!");
+            System.out.println(">> ARM DEPLOYED! GRABBING BALL!");
         }
         
         // Check if we've successfully collected a ball
@@ -207,7 +207,7 @@ public class TargetAndCollectCommand extends Command {
             m_ballArmSubsystem.setGripper(Constants.BALL_GRIPPER_HOLD_SPEED);
             transitionToState(State.RETURNING);
             
-            System.out.println("✅ BALL ACQUIRED! RETURNING TO HOME POSITION!");
+            System.out.println(">> BALL ACQUIRED! RETURNING TO HOME POSITION!");
         }
         
         // If we've been in this state too long without getting a ball
@@ -217,7 +217,7 @@ public class TargetAndCollectCommand extends Command {
             m_ballArmSubsystem.homeArm();
             transitionToState(State.SEARCHING);
             
-            System.out.println("⏱️ COLLECTION TIMEOUT - RETURNING TO SEARCH");
+            System.out.println(">> COLLECTION TIMEOUT - RETURNING TO SEARCH");
         }
     }
     
@@ -244,7 +244,7 @@ public class TargetAndCollectCommand extends Command {
             m_driveSubsystem.arcadeDrive(0, 0);
             transitionToState(State.COMPLETE);
             
-            System.out.println("🎯 MISSION COMPLETE! READY FOR DRIVER CONTROL!");
+            System.out.println(">> MISSION COMPLETE! READY FOR DRIVER CONTROL!");
         }
     }
     
@@ -260,7 +260,7 @@ public class TargetAndCollectCommand extends Command {
             if (timeInState > 10000) { // 10 seconds max per state
                 m_hasTimeout = true;
                 
-                System.out.println("⚠️ STATE TIMEOUT - COMMAND ENDING");
+                System.out.println(">> STATE TIMEOUT - COMMAND ENDING");
                 m_currentState = State.COMPLETE;
             }
         }
@@ -290,11 +290,11 @@ public class TargetAndCollectCommand extends Command {
         Robot.manualDriveControl = true;
         
         if (interrupted) {
-            System.out.println("❌ BALL TARGETING INTERRUPTED BY DRIVER");
+            System.out.println(">> BALL TARGETING INTERRUPTED BY DRIVER");
         } else if (m_hasTimeout) {
-            System.out.println("⏱️ BALL TARGETING ENDED DUE TO TIMEOUT");
+            System.out.println(">> BALL TARGETING ENDED DUE TO TIMEOUT");
         } else {
-            System.out.println("✅ BALL TARGETING COMPLETED SUCCESSFULLY");
+            System.out.println(">> BALL TARGETING COMPLETED SUCCESSFULLY");
         }
     }
     
