@@ -11,7 +11,7 @@
  * 
  * TEAM 7221 HOOK COMMANDS - FOR MAXIMUM BARGE DOMINATION
  * 
- *   🪝  🪝  🪝  🪝  🪝  🪝  🪝  🪝  🪝  🪝  🪝  🪝
+ *   |--|  |--|  |--|  |--|  |--|  |--|  |--|  |--|  |--|  |--|  |--|  |--|
  */
 
 package frc.robot.commands.hook;
@@ -46,7 +46,7 @@ public class HookCommands {
         
         @Override
         public void initialize() {
-            System.out.println("🪝 EXTENDING HOOK - RELEASE THE KRAKEN! 🪝");
+            System.out.println(">> EXTENDING HOOK - RELEASE THE KRAKEN! <<");
         }
         
         @Override
