@@ -1,9 +1,6 @@
-// Modified from document 14
 package frc.robot.subsystems;
 
 import frc.robot.Constants;
-
-import com.studica.frc.AHRS;
 
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
@@ -26,8 +23,14 @@ import edu.wpi.first.math.kinematics.DifferentialDriveOdometry;
 import edu.wpi.first.math.kinematics.DifferentialDriveWheelSpeeds;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 
-/** Drivetrain ****************************************************************
- * The tank drive subsystem of the robot with arcade control. */
+/** 
+ * Drivetrain - TEAM 7221 TANK DRIVE SUBSYSTEM
+ * 
+ * The heart of our robot - tank drive with arcade control for MAXIMUM MANEUVERABILITY!
+ * Handles motor control, encoder tracking, and driver assists.
+ * 
+ * coded by paysean
+ */
 public class DriveSubsystem extends SubsystemBase {
   
     // Drivetrain Motor Controllers
@@ -43,14 +46,19 @@ public class DriveSubsystem extends SubsystemBase {
     // Differential drive for tank drive with arcade control
     private DifferentialDrive m_drive;
 
+    // Slew rate limiters for SMOOTH acceleration (no jerky movements!)
     SlewRateLimiter throttleFilter;
     SlewRateLimiter turnFilter;
 
+    // Drive constants
     private double DRIVE_GEAR_RATIO = Constants.DRIVE_GEAR_RATIO;
 
-    private AHRS navx = new AHRS(AHRS.NavXComType.kUSB1); // NavX gyro on USB
-
+    // Variables for encoder tracking
     double leftFrontPositionZero, rightFrontPositionZero, leftBackPositionZero, rightBackPositionZero = 0.0;
+    
+    // Variables for turn simulation (replacing gyro)
+    private double m_simulatedAngle = 0.0;
+    private long m_lastUpdateTime = 0;
 
     private static final double TRACK_WIDTH = Constants.TRACK_WIDTH;
 
@@ -68,43 +76,50 @@ public class DriveSubsystem extends SubsystemBase {
 
     private static DifferentialDriveOdometry odometry;
   
-  /** Subsystem for controlling the Drivetrain and accessing the NavX Gyroscope */
-  public DriveSubsystem() {
-    // Instantiate the Drivetrain motor controllers
-    m_leftFrontMotor = new SparkMax(Constants.LEFT_FRONT_DRIVE_MOTOR_ID, MotorType.kBrushless);
-    m_rightFrontMotor = new SparkMax(Constants.RIGHT_FRONT_DRIVE_MOTOR_ID, MotorType.kBrushless);
-    m_leftBackMotor = new SparkMax(Constants.LEFT_REAR_DRIVE_MOTOR_ID, MotorType.kBrushless);
-    m_rightBackMotor = new SparkMax(Constants.RIGHT_REAR_DRIVE_MOTOR_ID, MotorType.kBrushless);
+    /** 
+     * Creates THE BEAST - our drivetrain subsystem!
+     */
+    public DriveSubsystem() {
+        System.out.println(">> INITIALIZING DRIVETRAIN - TEAM 7221 POWER SYSTEM <<");
+        
+        // Instantiate the Drivetrain motor controllers
+        m_leftFrontMotor = new SparkMax(Constants.LEFT_FRONT_DRIVE_MOTOR_ID, MotorType.kBrushless);
+        m_rightFrontMotor = new SparkMax(Constants.RIGHT_FRONT_DRIVE_MOTOR_ID, MotorType.kBrushless);
+        m_leftBackMotor = new SparkMax(Constants.LEFT_REAR_DRIVE_MOTOR_ID, MotorType.kBrushless);
+        m_rightBackMotor = new SparkMax(Constants.RIGHT_REAR_DRIVE_MOTOR_ID, MotorType.kBrushless);
 
-    // Configure the Spark MAX motor controllers
-    configureSparkMAX(m_leftFrontMotor, Constants.REVERSE_LEFT_FRONT_MOTOR);
-    configureSparkMAX(m_leftBackMotor, Constants.REVERSE_LEFT_BACK_MOTOR);
-    configureSparkMAX(m_rightBackMotor, Constants.REVERSE_RIGHT_BACK_MOTOR);
-    configureSparkMAX(m_rightFrontMotor, Constants.REVERSE_RIGHT_FRONT_MOTOR);
+        // Configure the Spark MAX motor controllers
+        configureSparkMAX(m_leftFrontMotor, Constants.REVERSE_LEFT_FRONT_MOTOR);
+        configureSparkMAX(m_leftBackMotor, Constants.REVERSE_LEFT_BACK_MOTOR);
+        configureSparkMAX(m_rightBackMotor, Constants.REVERSE_RIGHT_BACK_MOTOR);
+        configureSparkMAX(m_rightFrontMotor, Constants.REVERSE_RIGHT_FRONT_MOTOR);
 
-    // Create motor controller groups for tank drive
-    m_leftMotors = new MotorControllerGroup(m_leftFrontMotor, m_leftBackMotor);
-    m_rightMotors = new MotorControllerGroup(m_rightFrontMotor, m_rightBackMotor);
+        // Create motor controller groups for tank drive
+        m_leftMotors = new MotorControllerGroup(m_leftFrontMotor, m_leftBackMotor);
+        m_rightMotors = new MotorControllerGroup(m_rightFrontMotor, m_rightBackMotor);
 
-    // Create differential drive (tank drive)
-    m_drive = new DifferentialDrive(m_leftMotors, m_rightMotors);
-    
-    // Set dead band to reduce small unwanted movements from joystick noise
-    m_drive.setDeadband(0.05);
+        // Create differential drive (tank drive)
+        m_drive = new DifferentialDrive(m_leftMotors, m_rightMotors);
+        
+        // Set dead band to reduce small unwanted movements from joystick noise
+        m_drive.setDeadband(0.05);
 
-    // Create odometry
-    odometry = new DifferentialDriveOdometry(
-        navx.getRotation2d(),
-        0, 0);
+        // Create odometry without gyro - using encoder-only odometry
+        odometry = new DifferentialDriveOdometry(
+            new Rotation2d(),  // No gyro, so use dummy rotation
+            0, 0);
 
-    resetEncoders(); // Zero the drive encoders
+        resetEncoders(); // Zero the drive encoders
 
-    // Create slew rate limiters for smooth acceleration
-    throttleFilter = new SlewRateLimiter(3.0); // Units per second
-    turnFilter = new SlewRateLimiter(3.0);     // Units per second
+        // Create slew rate limiters for smooth acceleration
+        throttleFilter = new SlewRateLimiter(3.0); // Units per second
+        turnFilter = new SlewRateLimiter(3.0);     // Units per second
+        
+        // Initialize the timestamp for gyro simulation
+        m_lastUpdateTime = System.currentTimeMillis();
 
-    System.out.println("NavX Connected: " + navx.isConnected());
-  }
+        System.out.println(">> DRIVETRAIN ONLINE - WHEELS READY TO ROLL!!! <<");
+    }
 
     private void configureSparkMAX(SparkMax max, boolean reverse) {
         SparkMaxConfig config = new SparkMaxConfig();
@@ -116,40 +131,52 @@ public class DriveSubsystem extends SubsystemBase {
         m_drive.stopMotor();
     }
 
-    // NavX Gyroscope Methods //
+    // GYRO REPLACEMENT METHODS - These simulate a gyro using encoder data
     public void zeroGyro() {
-        navx.reset();
+        // Reset our simulated angle
+        m_simulatedAngle = 0.0;
     }
+    
     public double getYaw() {
-        return navx.getYaw();
+        return 0.0; // No real gyro, return zero
     }
+    
     public double getPitch() {
-        return navx.getPitch();
+        return 0.0; // No real gyro, return zero
     }
+    
     public double getRoll() {
-        return navx.getRoll();
+        return 0.0; // No real gyro, return zero
     }
-    public double getGyroAngle() { // Returns the heading of the robot
-        return navx.getAngle();
+    
+    // This simulates a gyro angle based on differential encoder readings
+    public double getGyroAngle() {
+        // Update simulated angle based on encoder differential
+        return m_simulatedAngle;
     }
-    public double getTurnRate() { // Returns the turn rate of the robot
-        return -navx.getRate();
+    
+    public double getTurnRate() {
+        return 0.0; // No real gyro, return zero
     }
 
     /** Odometry Methods *******************************************************/
     public Rotation2d getRotation2d() {
-        return Rotation2d.fromDegrees(navx.getAngle());
+        return Rotation2d.fromDegrees(m_simulatedAngle);
     }
+    
     public void resetOdometry(Pose2d pose) {
         resetEncoders();
         odometry.resetPosition(this.getRotation2d(), getLeftPosition(), getRightPosition(), pose);
     }
+    
     public Pose2d getPose() {
         return odometry.getPoseMeters();
     }
+    
     public DifferentialDriveKinematics getkDriveKinematics() {
         return kDriveKinematics;    
     }
+    
     public TrapezoidProfile.Constraints getkThetaControllerConstraints() {
         return kThetaControllerConstraints;
     }
@@ -158,6 +185,9 @@ public class DriveSubsystem extends SubsystemBase {
     public void periodic() {
         // Update the odometry in the periodic block
         odometry.update(this.getRotation2d(), getLeftPosition(), getRightPosition());
+
+        // Update our simulated gyro based on differential wheel movement
+        updateSimulatedGyro();
 
         // Log drive information to SmartDashboard
         SmartDashboard.putNumber("Left Front Position", getLeftFrontPosition());
@@ -168,6 +198,37 @@ public class DriveSubsystem extends SubsystemBase {
         // Also log velocities for tuning and debugging
         SmartDashboard.putNumber("Left Speed (m/s)", getLeftSpeed());
         SmartDashboard.putNumber("Right Speed (m/s)", getRightSpeed());
+        
+        // Log simulated angle for debugging
+        SmartDashboard.putNumber("Simulated Angle", m_simulatedAngle);
+    }
+    
+    // This method estimates rotation based on differential wheel speeds
+    private void updateSimulatedGyro() {
+        long currentTime = System.currentTimeMillis();
+        double deltaTime = (currentTime - m_lastUpdateTime) / 1000.0; // seconds
+        
+        if (deltaTime > 0) {
+            // Get current wheel speeds
+            double leftSpeed = getLeftSpeed();
+            double rightSpeed = getRightSpeed();
+            
+            // Calculate turn rate based on speed differential
+            double turnRate = (rightSpeed - leftSpeed) / TRACK_WIDTH; // rad/s
+            
+            // Update simulated angle
+            m_simulatedAngle += Math.toDegrees(turnRate * deltaTime);
+            
+            // Normalize to -180 to 180
+            m_simulatedAngle = m_simulatedAngle % 360;
+            if (m_simulatedAngle > 180) {
+                m_simulatedAngle -= 360;
+            } else if (m_simulatedAngle < -180) {
+                m_simulatedAngle += 360;
+            }
+            
+            m_lastUpdateTime = currentTime;
+        }
     }
 
     /**
@@ -309,26 +370,27 @@ public class DriveSubsystem extends SubsystemBase {
     * @param ySpeed Speed along Y axis (forward/backward)
     * @param zRotation Rotation rate around Z axis
     */
-public void driveCartesian(double xSpeed, double ySpeed, double zRotation) {
-    // For tank drive, we can't strafe, so we prioritize
-    // either forward/backward or rotation depending on inputs
-    
-    // If we're mostly trying to drive forward/backward
-    if (Math.abs(ySpeed) > Math.abs(xSpeed) && Math.abs(ySpeed) > Math.abs(zRotation)) {
-        arcadeDrive(ySpeed, 0);
-    }
-    // If we're mostly trying to rotate
-    else if (Math.abs(zRotation) > Math.abs(xSpeed)) {
-        arcadeDrive(0, zRotation);
-    }
-    // If we're mostly trying to strafe (which we can't really do)
-    // We'll simulate it by using a tank-turning approach
-    else if (Math.abs(xSpeed) > 0.1) {
-        // This is a rough approximation
-        tankDrive(xSpeed, -xSpeed);
-    }
-    // If all inputs are very small, just stop
-    else {
-        stop();
+    public void driveCartesian(double xSpeed, double ySpeed, double zRotation) {
+        // For tank drive, we can't strafe, so we prioritize
+        // either forward/backward or rotation depending on inputs
+        
+        // If we're mostly trying to drive forward/backward
+        if (Math.abs(ySpeed) > Math.abs(xSpeed) && Math.abs(ySpeed) > Math.abs(zRotation)) {
+            arcadeDrive(ySpeed, 0);
+        }
+        // If we're mostly trying to rotate
+        else if (Math.abs(zRotation) > Math.abs(xSpeed)) {
+            arcadeDrive(0, zRotation);
+        }
+        // If we're mostly trying to strafe (which we can't really do)
+        // We'll simulate it by using a tank-turning approach
+        else if (Math.abs(xSpeed) > 0.1) {
+            // This is a rough approximation
+            tankDrive(xSpeed, -xSpeed);
+        }
+        // If all inputs are very small, just stop
+        else {
+            stop();
+        }
     }
 }
