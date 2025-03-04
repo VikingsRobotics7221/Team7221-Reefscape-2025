@@ -14,7 +14,7 @@ import frc.robot.commands.autonomous.basic_path_planning.Drivetrain_GyroTurn;
  * 
  * This auto routine is our secret weapon! We drive around the field,
  * collect as many balls as possible, then bring them back to our zone.
- * It's basically like stealing all the candy at Halloween! 😈
+ * It's basically like stealing all the candy at Halloween! >>
  * 
  * coded by paysean
  */
@@ -23,7 +23,7 @@ public class BallHoardingAuto extends SequentialCommandGroup {
     public BallHoardingAuto() {
         addCommands(
             // ===== PHASE 1: FIRST BALL =====
-            new InstantCommand(() -> System.out.println("🤖 BEGINNING OPERATION BALL HOARD")),
+            new InstantCommand(() -> System.out.println(">> BEGINNING OPERATION BALL HOARD")),
             
             // Drive to first ball
             new Drivetrain_GyroStraight(1.2, 0.4),
@@ -80,7 +80,7 @@ public class BallHoardingAuto extends SequentialCommandGroup {
             // Safety - return arm to home position
             new InstantCommand(() -> {
                 Robot.m_ballArmSubsystem.homeArm();
-                System.out.println("✅ BALL HOARDING MISSION COMPLETE");
+                System.out.println(">> BALL HOARDING MISSION COMPLETE");
             })
         );
     }
