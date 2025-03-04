@@ -1,5 +1,5 @@
-// Author: UMN Robotics Ri3D
-// Last Updated: January 2025
+// Author: Team 7221
+// Last Updated: March 2025
 
 package frc.robot.commands.autonomous.basic_path_planning;
 
@@ -9,63 +9,86 @@ import frc.robot.Robot;
 
 import frc.robot.subsystems.DriveSubsystem;
 
-/** Drivetrain Gyro Strafe **************************************************
- * Command for driving sideways using gyroscope feedback. */
-public class Drivetrain_GyroStrafe extends Command {
-  
-  	/** Configuration Constants ***********************************************/
-	private static final double kP = Constants.GYRO_TURN_KP;
+/**
+ * Drivetrain_GyroStraight
+ * 
+ * TIME-BASED DRIVE STRAIGHT COMMAND (NO GYRO NEEDED!)
+ * Makes the robot drive forward a specific distance using encoder feedback
+ * without relying on a gyro for straight line correction.
+ * 
+ * coded by paysean
+ */
+public class Drivetrain_GyroStraight extends Command {
+	// Configuration Constants
 	private static final double CIRCUMFRENCE = Constants.WHEEL_DIAMETER * Math.PI;
-	private static final double MAX_CORRECTION = Constants.MAX_POWER_GYRO;
 	
-	/** Instance Variables ****************************************************/
+	// Instance Variables
 	DriveSubsystem drivetrain = Robot.m_driveSubsystem;
-	double strafePower, goalAngle, goalDistance;
-
-  	/** Creates a new Drivetrain_GyroStrafe. */
-  	public Drivetrain_GyroStrafe(double distance, double power) {
-		strafePower = power;
+	double forwardPower, goalDistance;
+	
+	// Variables for time-based driving
+	private long startTime;
+	
+	/**
+	 * Creates a command that drives straight without gyro!
+	 * Uses encoder feedback to go the right distance.
+	 * 
+	 * @param distance Distance to drive in meters
+	 * @param power Power level (0 to 1.0)
+	 */
+	public Drivetrain_GyroStraight(double distance, double power) {
+		forwardPower = power;
 		
 		// convert distance to revolutions
 		goalDistance = distance / CIRCUMFRENCE;
 
 		addRequirements(drivetrain);
-  	}
-
-  // Called when the command is initially scheduled.
-  @Override
-  public void initialize() {
-		drivetrain.arcadeDrive(0, 0); // FIXED: Changed from driveCartesian to arcadeDrive
-		goalAngle = drivetrain.getGyroAngle();
+		
+		System.out.println(">> CREATING DRIVE STRAIGHT COMMAND - DISTANCE: " + 
+		                  distance + "m, POWER: " + power);
+	}
+	
+	@Override
+	public void initialize() {
+		System.out.println(">> STARTING DRIVE STRAIGHT!");
+		drivetrain.arcadeDrive(0, 0);
 		drivetrain.resetEncoders();
-  	}
+		startTime = System.currentTimeMillis();
+	}
 
-  // Called every time the scheduler runs while the command is scheduled.
-  @Override
-  public void execute() {
-    double error = goalAngle - drivetrain.getGyroAngle();
+	@Override
+	public void execute() {
+		// Just drive straight with no correction!
+		// Since we don't have a gyro, we're relying on balanced motor power
+		drivetrain.arcadeDrive(forwardPower, 0);
 		
-		double correction = kP * error;
-
-		correction = Math.min(MAX_CORRECTION, correction);
-		correction = Math.max(-MAX_CORRECTION, correction);
+		// Debug info
+		if (System.currentTimeMillis() - startTime > 500 && 
+		   (System.currentTimeMillis() - startTime) % 500 < 20) {
+			System.out.println(">> DRIVING: " + 
+			                  (Math.abs(drivetrain.getLeftFrontPosition()) / goalDistance * 100) + 
+			                  "% complete");
+		}
+	}
+	
+	@Override
+	public boolean isFinished() {
+		boolean leftFrontGoalReached = Math.abs(drivetrain.getLeftFrontPosition()) >= goalDistance;
+		boolean rightFrontGoalReached = Math.abs(drivetrain.getRightFrontPosition()) >= goalDistance;
 		
-		// Since we can't actually strafe with tank drive, we'll simulate it with tank drive
-		// This creates a tank turn in place to roughly approximate strafing
-		// Super smart trick for tank drives!!!
-		drivetrain.tankDrive(strafePower - correction, -(strafePower + correction));
- 	 }
+		// We're done when either side reaches the goal
+		if (leftFrontGoalReached || rightFrontGoalReached) {
+			System.out.println(">> DRIVE STRAIGHT COMPLETE!");
+			return true;
+		}
+		return false;
+	}
 
-  // Returns true when the command should end.
-  @Override
-  public boolean isFinished() {
-    boolean rightFrontGoalReached = Math.abs(drivetrain.getRightFrontPosition()) >= goalDistance;
-		boolean rightBackGoalReached = Math.abs(drivetrain.getRightBackPosition()) >= goalDistance;
-		return rightFrontGoalReached || rightBackGoalReached;
-  	}
-
-    // Called once the command ends or is interrupted.
+	@Override
 	public void end(boolean interrupted) {
-		drivetrain.arcadeDrive(0, 0); // FIXED: Changed from driveCartesian to arcadeDrive
+		drivetrain.arcadeDrive(0, 0);
+		if (interrupted) {
+			System.out.println(">> DRIVE STRAIGHT INTERRUPTED!");
+		}
 	}
 }
