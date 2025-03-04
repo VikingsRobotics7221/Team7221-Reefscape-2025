@@ -51,9 +51,9 @@ SendableChooser<Command> autonChooser = new SendableChooser<Command>();
     @Override
     public void robotInit() {
         configureButtonBindings();
-   // X Button - Auto Ball Targeting
+   // X Button - Auto Ball Tracking
 new Trigger(() -> operatorController.getXButton())
-    .onTrue(new BallTargetingCommand());
+    .onTrue(new BallTrackingCommand());
     
   // Left Bumper + Right Bumper together - Emergency stop all systems
 new Trigger(() -> operatorController.getLeftBumper() && operatorController.getRightBumper())
