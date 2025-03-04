@@ -20,6 +20,10 @@ import frc.robot.commands.autonomous.example_basic_auto.SquareAutonomous;
 import frc.robot.commands.BallControlCommands;
 import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.subsystems.BallArmSubsystem;
+import frc.robot.commands.TargetAndCollectCommand;
+import frc.robot.subsystems.VisionSubsystem;
+import frc.robot.subsystems.HookSubsystem;
+import frc.robot.commands.hook.HookCommands;
 
 public class Robot extends TimedRobot {
 
@@ -35,6 +39,8 @@ public class Robot extends TimedRobot {
     // Subsystems
     public static final DriveSubsystem m_driveSubsystem = new DriveSubsystem();
     public static final BallArmSubsystem m_ballArmSubsystem = new BallArmSubsystem();
+    public static final VisionSubsystem m_visionSubsystem = new VisionSubsystem();
+    public static final HookSubsystem m_hookSubsystem = new HookSubsystem();
     
     double goalAngle;
     boolean turboModeEnabled = false;
@@ -43,7 +49,31 @@ public class Robot extends TimedRobot {
     @Override
     public void robotInit() {
         configureButtonBindings();
-
+// X Button - Automatic ball targeting and collection
+new Trigger(() -> operatorController.getXButton())
+    .onTrue(new TargetAndCollectCommand());
+    
+// Left Bumper + Right Bumper together - Emergency stop all systems
+new Trigger(() -> operatorController.getLeftBumper() && operatorController.getRightBumper())
+    .onTrue(new InstantCommand(() -> {
+        m_ballArmSubsystem.emergencyStop();
+        m_hookSubsystem.emergencyStop();
+        m_driveSubsystem.stop();
+        System.out.println("!!! EMERGENCY STOP ACTIVATED !!!");
+    }));
+    
+// Back Button - Extend hook
+new Trigger(() -> operatorController.getBackButton())
+    .onTrue(new HookCommands.ExtendHookCommand(m_hookSubsystem));
+    
+// Start Button - Retract hook
+new Trigger(() -> operatorController.getStartButton())
+    .onTrue(new HookCommands.RetractHookCommand(m_hookSubsystem));
+    
+// Right Stick Button - Run full hook cycle
+new Trigger(() -> operatorController.getRightStickButton())
+    .onTrue(new HookCommands.HookCycleCommand(m_hookSubsystem));
+        
         // Setup autonomous chooser
         autonChooser.setDefaultOption("Do Nothing", new InstantCommand());
         autonChooser.addOption("Drive 1 Meter", new Drive1MeterAuto());
