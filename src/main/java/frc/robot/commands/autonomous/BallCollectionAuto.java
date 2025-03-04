@@ -3,11 +3,10 @@ package frc.robot.commands.autonomous;
 
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
-import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 
 import frc.robot.Robot;
-import frc.robot.commands.BallTargetingCommand;
+import frc.robot.commands.BallTrackingCommand; // FIXED: Changed from BallTargetingCommand
 import frc.robot.commands.BallControlCommands;
 import frc.robot.commands.autonomous.basic_path_planning.Drivetrain_GyroStraight;
 import frc.robot.commands.autonomous.basic_path_planning.Drivetrain_GyroTurn;
@@ -50,7 +49,7 @@ public class BallCollectionAuto extends SequentialCommandGroup {
             
             // ===== PHASE 3: COLLECT FIRST BALL =====
             // Run vision-based ball targeting sequence
-            new BallTargetingCommand(),
+            new BallTrackingCommand(), // FIXED: Changed from BallTargetingCommand
             
             // Make sure arm is safely stowed after collection
             new InstantCommand(() -> Robot.m_ballArmSubsystem.homeArm()),
@@ -83,7 +82,7 @@ public class BallCollectionAuto extends SequentialCommandGroup {
             new Drivetrain_GyroStraight(1.3, 0.6),
             
             // Collect second ball
-            new BallTargetingCommand(),
+            new BallTrackingCommand(), // FIXED: Changed from BallTargetingCommand
             
             // ===== PHASE 7: WRAP UP =====
             // Make sure everything is in safe position at end
