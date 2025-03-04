@@ -35,7 +35,7 @@ public class Drivetrain_GyroStrafe extends Command {
   // Called when the command is initially scheduled.
   @Override
   public void initialize() {
-		drivetrain.driveCartesian(0, 0, 0);
+		drivetrain.arcadeDrive(0, 0); // FIXED: Changed from driveCartesian to arcadeDrive
 		goalAngle = drivetrain.getGyroAngle();
 		drivetrain.resetEncoders();
   	}
@@ -50,7 +50,10 @@ public class Drivetrain_GyroStrafe extends Command {
 		correction = Math.min(MAX_CORRECTION, correction);
 		correction = Math.max(-MAX_CORRECTION, correction);
 		
-		drivetrain.driveCartesian(strafePower, 0, -1 * correction);
+		// Since we can't actually strafe with tank drive, we'll simulate it with tank drive
+		// This creates a tank turn in place to roughly approximate strafing
+		// Super smart trick for tank drives!!!
+		drivetrain.tankDrive(strafePower - correction, -(strafePower + correction));
  	 }
 
   // Returns true when the command should end.
@@ -63,6 +66,6 @@ public class Drivetrain_GyroStrafe extends Command {
 
     // Called once the command ends or is interrupted.
 	public void end(boolean interrupted) {
-		drivetrain.driveCartesian(0, 0, 0);
+		drivetrain.arcadeDrive(0, 0); // FIXED: Changed from driveCartesian to arcadeDrive
 	}
 }
