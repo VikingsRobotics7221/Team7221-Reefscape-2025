@@ -58,9 +58,9 @@ public class HookCommands {
         public void end(boolean interrupted) {
             m_hookSubsystem.stopHook();
             if (interrupted) {
-                System.out.println("⚠️ HOOK EXTENSION INTERRUPTED!");
+                System.out.println(">> HOOK EXTENSION INTERRUPTED!");
             } else {
-                System.out.println("✅ HOOK FULLY EXTENDED!");
+                System.out.println(">> HOOK FULLY EXTENDED!");
             }
         }
         
@@ -83,7 +83,7 @@ public class HookCommands {
         
         @Override
         public void initialize() {
-            System.out.println("🔄 RETRACTING HOOK - COMING HOME!");
+            System.out.println(">> RETRACTING HOOK - COMING HOME!");
         }
         
         @Override
@@ -95,9 +95,9 @@ public class HookCommands {
         public void end(boolean interrupted) {
             m_hookSubsystem.stopHook();
             if (interrupted) {
-                System.out.println("⚠️ HOOK RETRACTION INTERRUPTED!");
+                System.out.println(">> HOOK RETRACTION INTERRUPTED!");
             } else {
-                System.out.println("✅ HOOK FULLY RETRACTED!");
+                System.out.println(">> HOOK FULLY RETRACTED!");
             }
         }
         
@@ -116,8 +116,8 @@ public class HookCommands {
                 // Start with cool announcement
                 new InstantCommand(() -> {
                     System.out.println("");
-                    System.out.println("🚨🚨🚨 INITIATING FULL HOOK CYCLE! 🚨🚨🚨");
-                    System.out.println("🚨🚨🚨 PREPARE FOR BARGE CAPTURE! 🚨🚨🚨");
+                    System.out.println(">>>>>> INITIATING FULL HOOK CYCLE! >>>>>>");
+                    System.out.println(">>>>>> PREPARE FOR BARGE CAPTURE! >>>>>>");
                     System.out.println("");
                 }),
                 
@@ -126,8 +126,8 @@ public class HookCommands {
                 
                 // Wait for barge connection (operator will press button to continue)
                 new InstantCommand(() -> {
-                    System.out.println("⏳ WAITING FOR BARGE CONNECTION!");
-                    System.out.println("⏳ PRESS CONFIRM WHEN CONNECTED!");
+                    System.out.println(">> WAITING FOR BARGE CONNECTION!");
+                    System.out.println(">> PRESS CONFIRM WHEN CONNECTED!");
                 }),
                 
                 // This would normally be replaced by a button press to continue
@@ -140,8 +140,8 @@ public class HookCommands {
                 // Finish with success message
                 new InstantCommand(() -> {
                     System.out.println("");
-                    System.out.println("🎉🎉🎉 BARGE CAPTURED SUCCESSFULLY! 🎉🎉🎉");
-                    System.out.println("🎉🎉🎉 HOOK CYCLE COMPLETE! 🎉🎉🎉");
+                    System.out.println(">>>>>> BARGE CAPTURED SUCCESSFULLY! >>>>>>");
+                    System.out.println(">>>>>> HOOK CYCLE COMPLETE! >>>>>>");
                     System.out.println("");
                 })
             );
