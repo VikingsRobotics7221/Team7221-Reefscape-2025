@@ -1,5 +1,5 @@
-// Author: UMN Robotics Ri3D
-// Last Updated: January 2025
+// Author: Team 7221
+// Last Updated: March 2025
 
 package frc.robot.commands.autonomous.basic_path_planning;
 
@@ -9,69 +9,100 @@ import frc.robot.Robot;
 
 import frc.robot.subsystems.DriveSubsystem;
 
-/** Drivetrain Gyro Turn ******************************************************
- * Command for turning in place to a set angle. */
+/** 
+ * Drivetrain_GyroTurn
+ * 
+ * TIME-BASED TURN COMMAND (NO GYRO NEEDED!)
+ * Makes the robot turn in place using a time-based approach
+ * since we don't have a gyro to measure our angle.
+ * 
+ * It uses a simple time calculation to estimate when we've turned enough.
+ * 
+ * coded by paysean
+ */
 public class Drivetrain_GyroTurn extends Command {
-	/** Configuration Constants ***********************************************/
-	private static final double kP = Constants.GYRO_TURN_KP;
-	private static final double kI = 0.0; // Not currently using this
-	private static final double kD = 0.0; // Not currently using this
-	private static final double TURNING_THRESHOLD_DEGREES = Constants.TURNING_THRESHOLD_DEGREES;
+	// Configuration Constants
 	private static final double MAX_POWER = Constants.MAX_POWER_GYRO;
 	
-	/** Instance Variables ****************************************************/
-	DriveSubsystem drivetrain = Robot.m_driveSubsystem;
-	double lastError, integralError, goalAngle;
+	// Time-based turning constants
+	private static final double DEGREES_PER_SECOND_AT_FULL_POWER = 120.0; // ~120° per second at full power
 	
-	/** Drivetrain Gyro Turn ************************************************** 
-	 * Required subsystems will cancel commands when this command is run.
-	 * distance is given in physical units matching the wheel diameter unit
-	 * speed is given in physical units per second. The physical units should 
-	 * match that of the Wheel diameter.
-	 * @param angle (degrees) */
+	// Instance Variables
+	DriveSubsystem drivetrain = Robot.m_driveSubsystem;
+	double goalAngle;
+	private long startTime;
+	private long turnDurationMs;
+	
+	/** 
+	 * Creates a turn command that works without a gyro!
+	 * Uses time-based estimation to turn approximately the right amount.
+	 * 
+	 * @param angle Angle to turn in degrees (positive = clockwise)
+	 */
 	public Drivetrain_GyroTurn(double angle) {
 		goalAngle = angle;
 		addRequirements(drivetrain);
+		
+		System.out.println(">> CREATING TURN COMMAND - TARGET: " + angle + "°");
 	}
 	
-	/** initialize ************************************************************
-	 * Called just before this Command runs the first time */
+	@Override
 	public void initialize() {
-		drivetrain.driveCartesian(0, 0, 0);
-		lastError = 0.0;
-		integralError = 0.0;
-		drivetrain.zeroGyro();
+		System.out.println(">> STARTING TURN: " + goalAngle + "°");
+		drivetrain.arcadeDrive(0, 0);
+		startTime = System.currentTimeMillis();
+		
+		// Calculate how long we need to turn based on the angle
+		// Adjust power based on turn size
+		double turnPower = MAX_POWER;
+		if (Math.abs(goalAngle) < 45) {
+			// Use lower power for small turns
+			turnPower = MAX_POWER * 0.7;
+		}
+		
+		// Calculate turn duration
+		double degreesPerSecond = DEGREES_PER_SECOND_AT_FULL_POWER * turnPower;
+		turnDurationMs = (long)(Math.abs(goalAngle) / degreesPerSecond * 1000);
+		
+		System.out.println(">> ESTIMATED TURN TIME: " + turnDurationMs + "ms");
 	}
 
-	/** execute ***************************************************************
-	 * Called repeatedly when this Command is scheduled to run */
+	@Override
 	public void execute() {
-		double error = goalAngle - drivetrain.getGyroAngle();
-		integralError += error;
-		double deltaError = error - lastError;
+		// Calculate direction of turn
+		double turnDirection = Math.signum(goalAngle);
 		
-		double Pterm = kP * error;
-		double Iterm = kI * integralError;
-		double Dterm = kD * deltaError;
+		// Apply turn power
+		drivetrain.arcadeDrive(0, -turnDirection * MAX_POWER);
 		
-		double correction = Pterm + Iterm + Dterm;
-		
-		correction = Math.min(MAX_POWER, correction);
-		correction = Math.max(-MAX_POWER, correction);
-	
-		drivetrain.driveCartesian(0, 0, -1 * correction);		
-		
-		lastError = error;
+		// Debug info
+		if (System.currentTimeMillis() - startTime > 250 && 
+		    (System.currentTimeMillis() - startTime) % 250 < 20) {
+			
+			long elapsed = System.currentTimeMillis() - startTime;
+			int percentComplete = (int)(elapsed * 100 / turnDurationMs);
+			System.out.println(">> TURNING: " + percentComplete + "% complete");
+		}
 	}
 	
-	/** isFinished ************************************************************	
-	 * Make this return true when this Command no longer needs to run execute() */
+	@Override
 	public boolean isFinished() {
-		return Math.abs(lastError) < TURNING_THRESHOLD_DEGREES;
+		// We're done when we've turned for the calculated amount of time
+		boolean timeComplete = (System.currentTimeMillis() - startTime) >= turnDurationMs;
+		
+		if (timeComplete) {
+			System.out.println(">> TURN COMPLETE!");
+		}
+		
+		return timeComplete;
 	}
 
-	// Called once the command ends or is interrupted.
+	@Override
 	public void end(boolean interrupted) {
-		drivetrain.driveCartesian(0, 0, 0);
+		drivetrain.arcadeDrive(0, 0);
+		
+		if (interrupted) {
+			System.out.println(">> TURN INTERRUPTED!");
+		}
 	}
 }
