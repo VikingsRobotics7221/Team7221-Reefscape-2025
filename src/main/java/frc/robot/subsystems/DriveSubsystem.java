@@ -292,7 +292,7 @@ public class DriveSubsystem extends SubsystemBase {
     public void enablePrecisionMode() {
         setMaxOutput(Constants.DRIVE_PRECISION_SPEED);
         SmartDashboard.putBoolean("Precision Mode", true);
-        System.out.println("🔍 Precision Mode Engaged");
+        System.out.println(">> Precision Mode Engaged");
     }
     
     public void disableDriveModes() {
