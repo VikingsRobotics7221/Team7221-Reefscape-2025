@@ -1,206 +1,303 @@
-// src/main/java/frc/robot/subsystems/BallArmSubsystem.java
+// Modified from document 14
 package frc.robot.subsystems;
 
+import frc.robot.Constants;
+
+import com.studica.frc.AHRS;
+
 import com.revrobotics.spark.SparkMax;
-import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
+import com.revrobotics.spark.SparkLowLevel.MotorType;
 
-import edu.wpi.first.wpilibj.DigitalInput;
-import edu.wpi.first.wpilibj.Ultrasonic;
+import edu.wpi.first.math.filter.SlewRateLimiter;
+import edu.wpi.first.wpilibj.drive.DifferentialDrive;
+import edu.wpi.first.wpilibj.motorcontrol.MotorControllerGroup;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import frc.robot.Constants;
+import edu.wpi.first.math.controller.PIDController;
+import edu.wpi.first.math.controller.SimpleMotorFeedforward;
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.kinematics.DifferentialDriveKinematics;
+import edu.wpi.first.math.kinematics.DifferentialDriveOdometry;
+import edu.wpi.first.math.kinematics.DifferentialDriveWheelSpeeds;
+import edu.wpi.first.math.trajectory.TrapezoidProfile;
 
-/**
- * Ball Control Arm Subsystem
- * Controls the mechanism for trapping, holding, and releasing game pieces
- */
-public class BallArmSubsystem extends SubsystemBase {
-    // Motors
-    private final SparkMax m_armMotor;
-    private final SparkMax m_gripperMotor;
+/** Drivetrain ****************************************************************
+ * The tank drive subsystem of the robot with arcade control. */
+public class DriveSubsystem extends SubsystemBase {
+  
+    // Drivetrain Motor Controllers
+    private static SparkMax m_leftFrontMotor; // NEO motor
+    private static SparkMax m_rightFrontMotor; // NEO motor
+    private static SparkMax m_leftBackMotor; // NEO motor
+    private static SparkMax m_rightBackMotor; // NEO motor
+
+    // Motor controller groups for left and right sides
+    private MotorControllerGroup m_leftMotors;
+    private MotorControllerGroup m_rightMotors;
+
+    // Differential drive for tank drive with arcade control
+    private DifferentialDrive m_drive;
+
+    SlewRateLimiter throttleFilter;
+    SlewRateLimiter turnFilter;
+
+    private double DRIVE_GEAR_RATIO = Constants.DRIVE_GEAR_RATIO;
+
+    private AHRS navx = new AHRS(AHRS.NavXComType.kUSB1); // NavX gyro on USB
+
+    double leftFrontPositionZero, rightFrontPositionZero, leftBackPositionZero, rightBackPositionZero = 0.0;
+
+    private static final double TRACK_WIDTH = Constants.TRACK_WIDTH;
+
+    private static final SimpleMotorFeedforward kFeedforward = new SimpleMotorFeedforward(0.17472, 2.7572, 0.45109);
+    private static final TrapezoidProfile.Constraints kThetaControllerConstraints = 
+        new TrapezoidProfile.Constraints(
+            Constants.kMAX_ANGULAR_SPEED_RADIANS_PER_SECOND, 
+            Constants.kMAX_ANGULAR_ACCELERATION_RADIANS_PER_SECOND_SQUARED);
     
-    // Sensors
-    private final DigitalInput m_upperLimitSwitch;
-    private final DigitalInput m_lowerLimitSwitch;
-    private final Ultrasonic m_ballDetector;
+    private final PIDController leftPIDController = new PIDController(Constants.kP_FRONT_LEFT_VELOCITY, 0, 0);
+    private final PIDController rightPIDController = new PIDController(Constants.kP_FRONT_RIGHT_VELOCITY, 0, 0);
+
+    private static final DifferentialDriveKinematics kDriveKinematics =
+        new DifferentialDriveKinematics(TRACK_WIDTH);
+
+    private static DifferentialDriveOdometry odometry;
+  
+  /** Subsystem for controlling the Drivetrain and accessing the NavX Gyroscope */
+  public DriveSubsystem() {
+    // Instantiate the Drivetrain motor controllers
+    m_leftFrontMotor = new SparkMax(Constants.LEFT_FRONT_DRIVE_MOTOR_ID, MotorType.kBrushless);
+    m_rightFrontMotor = new SparkMax(Constants.RIGHT_FRONT_DRIVE_MOTOR_ID, MotorType.kBrushless);
+    m_leftBackMotor = new SparkMax(Constants.LEFT_REAR_DRIVE_MOTOR_ID, MotorType.kBrushless);
+    m_rightBackMotor = new SparkMax(Constants.RIGHT_REAR_DRIVE_MOTOR_ID, MotorType.kBrushless);
+
+    // Configure the Spark MAX motor controllers
+    configureSparkMAX(m_leftFrontMotor, Constants.REVERSE_LEFT_FRONT_MOTOR);
+    configureSparkMAX(m_leftBackMotor, Constants.REVERSE_LEFT_BACK_MOTOR);
+    configureSparkMAX(m_rightBackMotor, Constants.REVERSE_RIGHT_BACK_MOTOR);
+    configureSparkMAX(m_rightFrontMotor, Constants.REVERSE_RIGHT_FRONT_MOTOR);
+
+    // Create motor controller groups for tank drive
+    m_leftMotors = new MotorControllerGroup(m_leftFrontMotor, m_leftBackMotor);
+    m_rightMotors = new MotorControllerGroup(m_rightFrontMotor, m_rightBackMotor);
+
+    // Create differential drive (tank drive)
+    m_drive = new DifferentialDrive(m_leftMotors, m_rightMotors);
     
-    // State tracking
-    private boolean m_hasBall = false;
-    private double m_armPositionZero = 0.0;
-    
-    /**
-     * Creates a new BallArmSubsystem
-     */
-    public BallArmSubsystem() {
-        // Initialize motors
-        m_armMotor = new SparkMax(Constants.BALL_ARM_MOTOR_ID, MotorType.kBrushless);
-        m_gripperMotor = new SparkMax(Constants.BALL_GRIPPER_MOTOR_ID, MotorType.kBrushless);
-        
-        // Configure motors
-        configureSparkMAX(m_armMotor, Constants.BALL_ARM_MOTOR_INVERTED);
-        configureSparkMAX(m_gripperMotor, Constants.BALL_GRIPPER_MOTOR_INVERTED);
-        
-        // Initialize sensors
-        m_upperLimitSwitch = new DigitalInput(Constants.BALL_ARM_UPPER_LIMIT_SWITCH_PORT);
-        m_lowerLimitSwitch = new DigitalInput(Constants.BALL_ARM_LOWER_LIMIT_SWITCH_PORT);
-        
-        // Setup ultrasonic sensor for ball detection
-        m_ballDetector = new Ultrasonic(
-            Constants.BALL_DETECTOR_PING_PORT,
-            Constants.BALL_DETECTOR_ECHO_PORT
-        );
-        m_ballDetector.setAutomaticMode(true); // Enable automatic mode for multiple ultrasonics
-        
-        // Reset encoder position
-        resetArmEncoder();
-    }
-    
-    /**
-     * Configure a SparkMAX motor controller
-     */
-    private void configureSparkMAX(SparkMax motor, boolean inverted) {
+    // Set dead band to reduce small unwanted movements from joystick noise
+    m_drive.setDeadband(0.05);
+
+    // Create odometry
+    odometry = new DifferentialDriveOdometry(
+        navx.getRotation2d(),
+        0, 0);
+
+    resetEncoders(); // Zero the drive encoders
+
+    // Create slew rate limiters for smooth acceleration
+    throttleFilter = new SlewRateLimiter(3.0); // Units per second
+    turnFilter = new SlewRateLimiter(3.0);     // Units per second
+
+    System.out.println("NavX Connected: " + navx.isConnected());
+  }
+
+    private void configureSparkMAX(SparkMax max, boolean reverse) {
         SparkMaxConfig config = new SparkMaxConfig();
-        config.inverted(inverted).idleMode(IdleMode.kBrake);
-        motor.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+        config.inverted(reverse).idleMode(IdleMode.kBrake);
+        max.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
     }
-    
-    /**
-     * Reset the arm encoder position
-     */
-    public void resetArmEncoder() {
-        m_armPositionZero = m_armMotor.getEncoder().getPosition();
+
+    public void stop() {
+        m_drive.stopMotor();
     }
-    
-    /**
-     * Get the arm position in rotations
-     */
-    public double getArmPosition() {
-        return m_armMotor.getEncoder().getPosition() - m_armPositionZero;
+
+    // NavX Gyroscope Methods //
+    public void zeroGyro() {
+        navx.reset();
     }
-    
-    /**
-     * Move the arm to pick up or score a ball
-     * @param speed Speed to move the arm (-1.0 to 1.0)
-     */
-    public void moveArm(double speed) {
-        // Check limit switches before moving
-        if ((speed > 0 && !m_upperLimitSwitch.get()) || 
-            (speed < 0 && !m_lowerLimitSwitch.get())) {
-            m_armMotor.set(speed);
-        } else {
-            m_armMotor.set(0);
-        }
+    public double getYaw() {
+        return navx.getYaw();
     }
-    
-    /**
-     * Set the gripper to trap or release a ball
-     * @param speed Speed to run the gripper (-1.0 to 1.0)
-     */
-    public void setGripper(double speed) {
-        m_gripperMotor.set(speed);
+    public double getPitch() {
+        return navx.getPitch();
     }
-    
-    /**
-     * Check if a ball is detected in the gripper
-     * @return true if ball is detected
-     */
-    public boolean hasBall() {
-        // Get the range in inches from the ultrasonic sensor
-        double rangeInches = m_ballDetector.getRangeInches();
-        
-        // If the distance is less than the threshold, a ball is present
-        return rangeInches < Constants.BALL_DETECTION_THRESHOLD_INCHES;
+    public double getRoll() {
+        return navx.getRoll();
     }
-    
-    /**
-     * Move arm to a specific position using PID control
-     * @param targetPosition Target position in rotations
-     */
-    public void setArmPosition(double targetPosition) {
-        double currentPosition = getArmPosition();
-        double error = targetPosition - currentPosition;
-        
-        // Simple P controller
-        double output = Constants.BALL_ARM_KP * error;
-        
-        // Clamp the output
-        if (output > Constants.BALL_ARM_MAX_SPEED) {
-            output = Constants.BALL_ARM_MAX_SPEED;
-        } else if (output < -Constants.BALL_ARM_MAX_SPEED) {
-            output = -Constants.BALL_ARM_MAX_SPEED;
-        }
-        
-        // Add a small feed-forward to counteract gravity
-        if (currentPosition > Constants.BALL_ARM_HORIZONTAL_POSITION) {
-            output += Constants.BALL_ARM_GRAVITY_FF;
-        } else {
-            output -= Constants.BALL_ARM_GRAVITY_FF;
-        }
-        
-        moveArm(output);
+    public double getGyroAngle() { // Returns the heading of the robot
+        return navx.getAngle();
     }
-    
-    /**
-     * Move the arm to the home position
-     */
-    public void homeArm() {
-        setArmPosition(Constants.BALL_ARM_HOME_POSITION);
+    public double getTurnRate() { // Returns the turn rate of the robot
+        return -navx.getRate();
     }
-    
-    /**
-     * Move the arm to the pickup position
-     */
-    public void pickupPosition() {
-        setArmPosition(Constants.BALL_ARM_PICKUP_POSITION);
+
+    /** Odometry Methods *******************************************************/
+    public Rotation2d getRotation2d() {
+        return Rotation2d.fromDegrees(navx.getAngle());
     }
-    
-    /**
-     * Move the arm to the scoring position
-     */
-    public void scorePosition() {
-        setArmPosition(Constants.BALL_ARM_SCORE_POSITION);
+    public void resetOdometry(Pose2d pose) {
+        resetEncoders();
+        odometry.resetPosition(this.getRotation2d(), getLeftPosition(), getRightPosition(), pose);
     }
-    
-    /**
-     * Automatically intake a ball
-     */
-    public void intakeBall() {
-        // If we don't have a ball, run the gripper to intake
-        if (!m_hasBall) {
-            setGripper(Constants.BALL_GRIPPER_INTAKE_SPEED);
-        } else {
-            // If we have a ball, stop the gripper
-            setGripper(Constants.BALL_GRIPPER_HOLD_SPEED);
-        }
+    public Pose2d getPose() {
+        return odometry.getPoseMeters();
     }
-    
-    /**
-     * Release the ball
-     */
-    public void releaseBall() {
-        setGripper(Constants.BALL_GRIPPER_RELEASE_SPEED);
+    public DifferentialDriveKinematics getkDriveKinematics() {
+        return kDriveKinematics;    
     }
-    
+    public TrapezoidProfile.Constraints getkThetaControllerConstraints() {
+        return kThetaControllerConstraints;
+    }
+
     @Override
     public void periodic() {
-        // Check if we have a ball and update the status
-        boolean currentBallStatus = hasBall();
+        // Update the odometry in the periodic block
+        odometry.update(this.getRotation2d(), getLeftPosition(), getRightPosition());
+
+        // Log drive information to SmartDashboard
+        SmartDashboard.putNumber("Left Front Position", getLeftFrontPosition());
+        SmartDashboard.putNumber("Right Front Position", getRightFrontPosition());
+        SmartDashboard.putNumber("Left Back Position", getLeftBackPosition());
+        SmartDashboard.putNumber("Right Back Position", getRightBackPosition());
         
-        // If the ball status has changed, log it
-        if (currentBallStatus != m_hasBall) {
-            m_hasBall = currentBallStatus;
-            System.out.println("Ball status changed: " + (m_hasBall ? "Ball detected" : "No ball detected"));
-        }
+        // Also log velocities for tuning and debugging
+        SmartDashboard.putNumber("Left Speed (m/s)", getLeftSpeed());
+        SmartDashboard.putNumber("Right Speed (m/s)", getRightSpeed());
+    }
+
+    /**
+     * Arcade drive method for tank drive hardware.
+     * @param xSpeed The robot's speed along the X axis [-1.0..1.0]. Forward is positive.
+     * @param zRotation The robot's rotation rate around the Z axis [-1.0..1.0]. Counterclockwise is positive.
+     */
+    public void arcadeDrive(double xSpeed, double zRotation) {
+        // Apply filtering for smooth acceleration
+        xSpeed = throttleFilter.calculate(xSpeed);
+        zRotation = turnFilter.calculate(zRotation);
         
-        // Update SmartDashboard with arm status
-        SmartDashboard.putNumber("Arm Position", getArmPosition());
-        SmartDashboard.putBoolean("Upper Limit", !m_upperLimitSwitch.get());
-        SmartDashboard.putBoolean("Lower Limit", !m_lowerLimitSwitch.get());
-        SmartDashboard.putBoolean("Has Ball", m_hasBall);
-        SmartDashboard.putNumber("Ball Distance", m_ballDetector.getRangeInches());
+        m_drive.arcadeDrive(xSpeed, zRotation, true); // Square inputs for finer control
+    }
+
+    /**
+     * Tank drive method for direct control of left and right sides.
+     * @param leftSpeed Left side speed
+     * @param rightSpeed Right side speed
+     */
+    public void tankDrive(double leftSpeed, double rightSpeed) {
+        // Apply filtering for smooth acceleration
+        leftSpeed = throttleFilter.calculate(leftSpeed);
+        rightSpeed = throttleFilter.calculate(rightSpeed);
+        
+        m_drive.tankDrive(leftSpeed, rightSpeed, true); // Square inputs for finer control
+    }
+
+    /** Get the encoder positions or speeds **************************************/
+    public double getLeftFrontPosition() { // Position is returned in units of revolutions
+        return (m_leftFrontMotor.getEncoder().getPosition() / DRIVE_GEAR_RATIO - leftFrontPositionZero);
+    }
+    public double getRightFrontPosition() { // Position is returned in units of revolutions
+        return -1 * (m_rightFrontMotor.getEncoder().getPosition() / DRIVE_GEAR_RATIO - rightFrontPositionZero);
+    }
+    public double getLeftBackPosition() { // Position is returned in units of revolutions
+        return -1 * (m_leftBackMotor.getEncoder().getPosition() / DRIVE_GEAR_RATIO - leftBackPositionZero);
+    }
+    public double getRightBackPosition() { // Position is returned in units of revolutions
+        return (m_rightBackMotor.getEncoder().getPosition() / DRIVE_GEAR_RATIO - rightBackPositionZero);
+    }
+    public double getLeftFrontSpeed() { // Speed is returned in units of RPM (revolutions per minute)
+        return (m_leftFrontMotor.getEncoder().getVelocity() / DRIVE_GEAR_RATIO);
+    }
+    public double getRightFrontSpeed() { // Speed is returned in units of RPM (revolutions per minute)
+        return -1 * (m_rightFrontMotor.getEncoder().getVelocity() / DRIVE_GEAR_RATIO);
+    }
+    public double getLeftBackSpeed() { // Speed is returned in units of RPM (revolutions per minute)
+        return -1 * (m_leftBackMotor.getEncoder().getVelocity() / DRIVE_GEAR_RATIO);
+    }
+    public double getRightBackSpeed() { // Speed is returned in units of RPM (revolutions per minute)
+        return (m_rightBackMotor.getEncoder().getVelocity() / DRIVE_GEAR_RATIO);
+    }
+
+    // Combined positions for odometry
+    public double getLeftPosition() {
+        return (getLeftFrontPosition() + getLeftBackPosition()) / 2.0;
+    }
+
+    public double getRightPosition() {
+        return (getRightFrontPosition() + getRightBackPosition()) / 2.0;
+    }
+
+    // Zero the drivetrain encoders
+    public void resetEncoders() {
+        leftFrontPositionZero = m_leftFrontMotor.getEncoder().getPosition() / DRIVE_GEAR_RATIO;
+        leftBackPositionZero = m_leftBackMotor.getEncoder().getPosition() / DRIVE_GEAR_RATIO;
+        rightFrontPositionZero = m_rightFrontMotor.getEncoder().getPosition() / DRIVE_GEAR_RATIO;
+        rightBackPositionZero = m_rightBackMotor.getEncoder().getPosition() / DRIVE_GEAR_RATIO;
+    }
+
+    // Speed will be measured in meters/second
+    public double getLeftSpeed() {
+        return (speedToMeters(getLeftFrontSpeed()) + speedToMeters(getLeftBackSpeed())) / 2;
+    }
+    public double getRightSpeed() {
+        return (speedToMeters(getRightFrontSpeed()) + speedToMeters(getRightBackSpeed())) / 2;
+    }
+    public double getAverageEncoderSpeed() {
+        return (getLeftSpeed() + getRightSpeed()) / 2;
+    }
+
+    public void setWheelSpeeds(DifferentialDriveWheelSpeeds speeds) {
+        final double leftFeedforward = kFeedforward.calculate(speeds.leftMetersPerSecond);
+        final double rightFeedforward = kFeedforward.calculate(speeds.rightMetersPerSecond);
+
+        final double leftOutput =
+            leftPIDController.calculate(getLeftSpeed(), speeds.leftMetersPerSecond);
+        final double rightOutput =
+            rightPIDController.calculate(getRightSpeed(), speeds.rightMetersPerSecond);
+
+        m_leftMotors.setVoltage(leftOutput + leftFeedforward);
+        m_rightMotors.setVoltage(rightOutput + rightFeedforward);
+    }
+
+    // Conversion Methods: Convert position & speed to Meters
+    public double positionToMeters(double position) {
+        return position * Math.PI * Constants.WHEEL_DIAMETER;
+    }
+    
+    public double speedToMeters(double speed) {
+        return speed / 60 * Math.PI * Constants.WHEEL_DIAMETER;
+    }
+    
+    // Returns true if the robot is moving too fast (useful for safety checks)
+    public boolean isMovingTooFast() {
+        return Math.abs(getAverageEncoderSpeed()) > Constants.MAX_SAFE_SPEED;
+    }
+    
+    // Set the maximum output of the drive system for safety
+    public void setMaxOutput(double maxOutput) {
+        m_drive.setMaxOutput(maxOutput);
+    }
+    
+    // Methods for turbo and precision modes
+    public void enableTurboMode() {
+        setMaxOutput(Constants.DRIVE_TURBO_SPEED);
+        SmartDashboard.putBoolean("Turbo Mode", true);
+        System.out.println("🔥🔥🔥 TURBO MODE ACTIVATED! 🔥🔥🔥");
+    }
+    
+    public void enablePrecisionMode() {
+        setMaxOutput(Constants.DRIVE_PRECISION_SPEED);
+        SmartDashboard.putBoolean("Precision Mode", true);
+        System.out.println("🔍 Precision Mode Engaged");
+    }
+    
+    public void disableDriveModes() {
+        setMaxOutput(Constants.DRIVE_NORMAL_SPEED);
+        SmartDashboard.putBoolean("Turbo Mode", false);
+        SmartDashboard.putBoolean("Precision Mode", false);
     }
 }
