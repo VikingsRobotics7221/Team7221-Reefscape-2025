@@ -47,14 +47,15 @@ public class VisionSubsystem extends SubsystemBase {
         setPipeline(0);
         
         System.out.println("\n" +
-                           "  👁️👁️👁️👁️👁️👁️👁️👁️👁️👁️👁️👁️👁️👁️\n" +
-                           "  👁️  VISION SYSTEM ONLINE  👁️\n" +
-                           "  👁️👁️👁️👁️👁️👁️👁️👁️👁️👁️👁️👁️👁️👁️");
+                           "  ======================================\n" +
+                           "  |       VISION SYSTEM ONLINE        |\n" +
+                           "  ======================================");
     }
     
     @Override
     public void periodic() {
         // Get the latest vision processing results
+        // NOTE: Using deprecated method but required for our camera
         m_latestResult = m_camera.getLatestResult();
         
         // Push data to SmartDashboard
@@ -161,7 +162,7 @@ public class VisionSubsystem extends SubsystemBase {
         
         // Print which vision mode we're in
         String pipelineName = (pipelineIndex == 0) ? "BALL TRACKING" : "APRILTAG DETECTION";
-        System.out.println("👁️ VISION MODE: " + pipelineName);
+        System.out.println("| VISION MODE: " + pipelineName + " |");
     }
     
     /**
