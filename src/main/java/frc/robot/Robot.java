@@ -58,7 +58,7 @@ SendableChooser<Command> autonChooser = new SendableChooser<Command>();
         configureButtonBindings();
    // X Button - Auto Ball Tracking
 new Trigger(() -> operatorController.getXButton())
-    .onTrue(new BallTrackingCommand());
+    .onTrue(new BallTrackingCommand()); // Previously: .onTrue(new BallTargetingCommand());
     
   // Left Bumper + Right Bumper together - Emergency stop all systems
 new Trigger(() -> operatorController.getLeftBumper() && operatorController.getRightBumper())
