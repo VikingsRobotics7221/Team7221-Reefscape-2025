@@ -97,8 +97,8 @@ public class HookSubsystem extends SubsystemBase {
         m_hookMotor.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
         
        // Set current limit to protect our precious actuator
-// FIXED: Using setCurrentLimit instead of setSmartCurrentLimit
-m_hookMotor.setCurrentLimit(20); // 20 amps max
+m_hookMotor.setSmartCurrentLimit(20); // 20 amps max
+
         
         // Initialize limit switches
         m_extendedLimitSwitch = new DigitalInput(Constants.HOOK_EXTENDED_LIMIT_SWITCH_PORT);
