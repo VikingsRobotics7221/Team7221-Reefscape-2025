@@ -151,8 +151,8 @@ Ultrasonic.setAutomaticMode(true); // Multiple sensors can run at once!
         motor.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
         
         // For REV Spark MAX 2025 API:
-motor.getOutputCurrentLimitConfigs().enable = true;
-motor.getOutputCurrentLimitConfigs().currentLimit = 30;
+motor.setSmartCurrentLimit(30); // 30 amps is PLENTY
+
     }
     
     /**
