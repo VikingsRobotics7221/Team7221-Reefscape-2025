@@ -286,7 +286,7 @@ public class DriveSubsystem extends SubsystemBase {
     public void enableTurboMode() {
         setMaxOutput(Constants.DRIVE_TURBO_SPEED);
         SmartDashboard.putBoolean("Turbo Mode", true);
-        System.out.println("🔥🔥🔥 TURBO MODE ACTIVATED! 🔥🔥🔥");
+        System.out.println(">>>>>> TURBO MODE ACTIVATED! <<<<<<");
     }
     
     public void enablePrecisionMode() {
