@@ -141,7 +141,7 @@ m_hookMotor.setSmartCurrentLimit(20); // 20 amps max
             
             if (!m_isExtended && m_extendedLimitSwitch.get()) {
                 m_isExtended = true;
-                System.out.println("✅ HOOK FULLY EXTENDED! READY TO GRAB BARGES!!!");
+                System.out.println(">> HOOK FULLY EXTENDED! READY TO GRAB BARGES!!!");
             }
             
             m_lastExtendTime = 0;
@@ -163,7 +163,7 @@ m_hookMotor.setSmartCurrentLimit(20); // 20 amps max
             
             if (m_isRetracting && m_retractedLimitSwitch.get()) {
                 m_isRetracting = false;
-                System.out.println("✅ HOOK FULLY RETRACTED! READY FOR NEXT DEPLOYMENT!");
+                System.out.println(">> HOOK FULLY RETRACTED! READY FOR NEXT DEPLOYMENT!");
             }
         }
         
@@ -176,7 +176,7 @@ m_hookMotor.setSmartCurrentLimit(20); // 20 amps max
     public void stopHook() {
         m_hookMotor.set(0);
         m_lastExtendTime = 0;
-        System.out.println("🛑 HOOK STOPPED!");
+        System.out.println(">> HOOK STOPPED!");
     }
     
     /**
@@ -226,7 +226,7 @@ m_hookMotor.setSmartCurrentLimit(20); // 20 amps max
         
         // Safety check - if current is too high, stop motor
         if (m_hookMotor.getOutputCurrent() > Constants.HOOK_MAX_CURRENT) {
-            System.out.println("⚠️⚠️⚠️ HOOK CURRENT TOO HIGH! EMERGENCY STOP! ⚠️⚠️⚠️");
+            System.out.println(">>>>>> HOOK CURRENT TOO HIGH! EMERGENCY STOP! >>>>>>");
             stopHook();
         }
     }
