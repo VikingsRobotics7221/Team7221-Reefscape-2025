@@ -97,6 +97,8 @@ new Trigger(() -> operatorController.getPOV() == 90)
         autonChooser.addOption("Ball Pickup Auto", createBallPickupAuto());
         SmartDashboard.putData("Auto Mode", autonChooser);
         autonChooser.addOption("Ball Collection Auto", new BallCollectionAuto());
+        autonChooser.addOption("Ball Hoarding Auto", new BallHoardingAuto());
+
 
         // Zero gyro and reset encoders
         m_driveSubsystem.zeroGyro();
