@@ -24,6 +24,7 @@ import frc.robot.commands.TargetAndCollectCommand;
 import frc.robot.subsystems.VisionSubsystem;
 import frc.robot.subsystems.HookSubsystem;
 import frc.robot.commands.hook.HookCommands;
+import frc.robot.commands.BallTargetingCommand;
 
 public class Robot extends TimedRobot {
 
@@ -49,30 +50,43 @@ public class Robot extends TimedRobot {
     @Override
     public void robotInit() {
         configureButtonBindings();
-// X Button - Automatic ball targeting and collection
+   // X Button - Auto Ball Targeting
 new Trigger(() -> operatorController.getXButton())
-    .onTrue(new TargetAndCollectCommand());
+    .onTrue(new BallTargetingCommand());
     
-// Left Bumper + Right Bumper together - Emergency stop all systems
+   // Left Bumper + Right Bumper together - Emergency stop all systems
 new Trigger(() -> operatorController.getLeftBumper() && operatorController.getRightBumper())
     .onTrue(new InstantCommand(() -> {
         m_ballArmSubsystem.emergencyStop();
         m_hookSubsystem.emergencyStop();
         m_driveSubsystem.stop();
         System.out.println("!!! EMERGENCY STOP ACTIVATED !!!");
-    }));
     
-// Back Button - Extend hook
+   // Back Button - Extend hook
 new Trigger(() -> operatorController.getBackButton())
     .onTrue(new HookCommands.ExtendHookCommand(m_hookSubsystem));
     
-// Start Button - Retract hook
+   // Start Button - Retract hook
 new Trigger(() -> operatorController.getStartButton())
     .onTrue(new HookCommands.RetractHookCommand(m_hookSubsystem));
     
-// Right Stick Button - Run full hook cycle
+   // Right Stick Button - Run full hook cycle
 new Trigger(() -> operatorController.getRightStickButton())
     .onTrue(new HookCommands.HookCycleCommand(m_hookSubsystem));
+   // POV Up - Switch vision to ball tracking
+new Trigger(() -> operatorController.getPOV() == 0)
+    .onTrue(new InstantCommand(() -> m_visionSubsystem.setPipeline(0)));
+
+   // POV Down - Switch vision to AprilTag
+new Trigger(() -> operatorController.getPOV() == 180)
+    .onTrue(new InstantCommand(() -> m_visionSubsystem.setPipeline(1)));
+
+   // POV Right - Toggle driver camera mode
+new Trigger(() -> operatorController.getPOV() == 90)
+    .onTrue(new InstantCommand(() -> {
+        boolean current = m_visionSubsystem.getCurrentPipeline() == 2;
+        m_visionSubsystem.setDriverMode(!current);
+    }));
         
         // Setup autonomous chooser
         autonChooser.setDefaultOption("Do Nothing", new InstantCommand());
