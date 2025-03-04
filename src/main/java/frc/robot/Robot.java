@@ -29,8 +29,8 @@ import frc.robot.commands.BallTargetingCommand;
 public class Robot extends TimedRobot {
 
     Command m_autonomousCommand;
-    SendableChooser<Command> autonChooser = new SendableChooser<Command>();
-    autonChooser.addOption("Ball Collection Auto", new BallCollectionAuto());
+SendableChooser<Command> autonChooser = new SendableChooser<Command>();
+autonChooser.addOption("Ball Collection Auto", new BallCollectionAuto());
 
     public static boolean manualDriveControl = true;
 
