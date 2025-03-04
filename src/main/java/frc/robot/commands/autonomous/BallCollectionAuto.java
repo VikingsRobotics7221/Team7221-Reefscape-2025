@@ -21,7 +21,7 @@ import frc.robot.commands.autonomous.basic_path_planning.Drivetrain_GyroTurn;
  * 4. Scores the ball
  * 5. Repeats for a second ball if time allows
  * 
- * Total autonomous domination! 🏆
+ * Total autonomous domination! >>
  * 
  * coded by paysean
  */
@@ -37,7 +37,7 @@ public class BallCollectionAuto extends SequentialCommandGroup {
                 // Set vision to ball detection pipeline
                 Robot.m_visionSubsystem.setPipeline(0);
                 
-                System.out.println("🚀 STARTING BALL COLLECTION AUTO");
+                System.out.println(">> STARTING BALL COLLECTION AUTO");
             }),
             
             // ===== PHASE 2: MOVE TO FIELD CENTER =====
@@ -88,7 +88,7 @@ public class BallCollectionAuto extends SequentialCommandGroup {
             // Make sure everything is in safe position at end
             new InstantCommand(() -> {
                 Robot.m_ballArmSubsystem.homeArm();
-                System.out.println("✅ BALL COLLECTION AUTO COMPLETE!");
+                System.out.println(">> BALL COLLECTION AUTO COMPLETE!");
             })
         );
     }
