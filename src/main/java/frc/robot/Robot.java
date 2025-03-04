@@ -159,7 +159,7 @@ public void robotPeriodic() {
     SmartDashboard.putNumber("Gyroscope Roll", m_driveSubsystem.getRoll());
     
     // Log battery voltage - FIXED: Using RobotController instead of DriverStation
-    SmartDashboard.putNumber("Battery Voltage", RobotController.getBatteryVoltage());
+SmartDashboard.putNumber("Battery Voltage", RobotController.getBatteryVoltage());
 }
 
     @Override
