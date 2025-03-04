@@ -25,7 +25,7 @@ public class BallControlCommands {
             addCommands(
                 // First move arm to pickup position
                 new InstantCommand(() -> {
-                    System.out.println("🏀 STARTING BALL PICKUP SEQUENCE!");
+                    System.out.println(">> STARTING BALL PICKUP SEQUENCE!");
                     ballArm.pickupPosition();
                 }),
                 
@@ -42,7 +42,7 @@ public class BallControlCommands {
                 new InstantCommand(() -> {
                     ballArm.setGripper(Constants.BALL_GRIPPER_HOLD_SPEED);
                     ballArm.homeArm();
-                    System.out.println("✅ PICKUP SEQUENCE COMPLETE!");
+                    System.out.println(">> PICKUP SEQUENCE COMPLETE!");
                 })
             );
         }
@@ -54,7 +54,7 @@ public class BallControlCommands {
             addCommands(
                 // Move arm to scoring position
                 new InstantCommand(() -> {
-                    System.out.println("🎯 STARTING SCORING SEQUENCE!");
+                    System.out.println(">> STARTING SCORING SEQUENCE!");
                     ballArm.scorePosition();
                 }),
                 
@@ -71,7 +71,7 @@ public class BallControlCommands {
                 new InstantCommand(() -> {
                     ballArm.setGripper(0);
                     ballArm.homeArm();
-                    System.out.println("🎊 SCORE SEQUENCE COMPLETE!");
+                    System.out.println(">> SCORE SEQUENCE COMPLETE!");
                 })
             );
         }
@@ -90,7 +90,7 @@ public class BallControlCommands {
         
         @Override
         public void initialize() {
-            System.out.println("🕹️ Manual arm control - Speed: " + m_speed);
+            System.out.println(">> Manual arm control - Speed: " + m_speed);
         }
         
         @Override
@@ -101,7 +101,7 @@ public class BallControlCommands {
         @Override
         public void end(boolean interrupted) {
             m_ballArm.moveArm(0);
-            System.out.println("🛑 Manual arm control stopped");
+            System.out.println(">> Manual arm control stopped");
         }
         
         @Override
@@ -123,7 +123,7 @@ public class BallControlCommands {
         
         @Override
         public void initialize() {
-            System.out.println("🔄 Manual gripper control - Speed: " + m_speed);
+            System.out.println(">> Manual gripper control - Speed: " + m_speed);
         }
         
         @Override
@@ -134,7 +134,7 @@ public class BallControlCommands {
         @Override
         public void end(boolean interrupted) {
             m_ballArm.setGripper(0);
-            System.out.println("🛑 Manual gripper control stopped");
+            System.out.println(">> Manual gripper control stopped");
         }
         
         @Override
@@ -157,7 +157,7 @@ public class BallControlCommands {
         
         @Override
         public void initialize() {
-            System.out.println("🎯 Moving arm to position: " + m_position);
+            System.out.println(">> Moving arm to position: " + m_position);
         }
         
         @Override
@@ -169,9 +169,9 @@ public class BallControlCommands {
         public void end(boolean interrupted) {
             // Keep arm at current position
             if (interrupted) {
-                System.out.println("⚠️ Arm position move interrupted!");
+                System.out.println(">> Arm position move interrupted!");
             } else {
-                System.out.println("✅ Arm at target position!");
+                System.out.println(">> Arm at target position!");
             }
         }
         
