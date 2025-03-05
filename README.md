@@ -1,17 +1,62 @@
 # 🔥🌊 TEAM 7221 REEFSCAPE 2025 🌊🔥
 
 ```
-           _____  __  __   ___   __   _____  _____  _____  _   _ 
-          |_   _||  \/  | / _ \  | | |  _  || ____|/ ___|| | | |
-            | |  | |\/| || | | | | | | |_| || |__  \___ \| | | |
-            | |  | |  | || |_| | | | |  _  ||  __|  ___) | |_| |
-            |_|  |_|  |_| \___/  |_| |_| |_||_|    |____/ \___/ 
- _____  _____  _____  _____  _____ _____  _____  ____  _____  _____      
-|  __ \|  ___|  ___|/ ____|/ ____|  _  ||  _  |/ __ \|  ___|  ___|     
-| |__) | |__  | |__ | |    | (___ | |_| || |_| | |  | | |__  | |__     
-|  _  /|  __| |  __|| |     \___ \|  _  ||  _  | |  | |  __| |  __|    
-| | \ \| |___ | |___| |____ ____) | | | || | | | |__| | |___ | |___    
-|_|  \_\_____|\_____/\_____/|_____/|_| |_||_| |_|\____/|_____|_____|   
+  /\\\\\\\\\\    /\\\\\\\\\\    /\\\\\\\\\    /\\\       /\\\   /\\\\\\\\\\    /\\\\\\\\\\    /\\\      
+ /\\\////////   /\\\\\\\\\\\\\  /\\\///////\\\ \/\\\     /\\\//  /\\\\\\\\\\\\\  /\\\///////\\\ \/\\\     
+/\\\//////////  /\\\/////////\\\/\\\     \/\\\ \/\\\    /\\\//  /\\\/////////\\\/\\\     \/\\\ \/\\\    
+/\\\\\\\\\\\\   \/\\\       \/\\\/\\\\\\\\\\\// \/\\\   /\\\//  \/\\\       \/\\\/\\\\\\\\\\\\  \/\\\   
+\///////////\\\  \/\\\\\\\\\\\\\/\\\//////\\\   \/\\\  /\\\//   \/\\\\\\\\\\\\\/\\\//////\\\   \/\\\  
+           /\\\  \/\\\/////////\\\/\\\    \//\\\  \/\\\ \\\//    \/\\\/////////\\\/\\\    \//\\\  \/\\\ 
+     /\\\  /\\\   \/\\\       \/\\\/\\\     \//\\\ \/\\\\\//     \/\\\       \/\\\/\\\     \//\\\ \/\\\
+     \//\\\\\\//   \/\\\       \/\\\/\\\      \//\\\ \/\\\\//     \/\\\       \/\\\/\\\      \//\\\ \/\\\\\\\\\\
+      \///////     \///        \///\///        \///  \////       \///        \///\///        \///  \////////// 
+```
+
+```
+                              .-=*#%@@@@@%#*=-.                              
+                          :+%@@@@@@@@@@@@@@@@@@@%+:                          
+                       .+@@@@@@@@@@@@@@@@@@@@@@@@@@@+.                       
+                     .#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@#.                     
+                    +@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@+                    
+                  .%@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@%.                  
+                 :@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@:                 
+                .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@.                
+                %@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@%                
+               *@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*               
+               @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@              
+              =@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@=              
+              %@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@%              
+              @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@              
+              @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@              
+     ________@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@________     
+    /        @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@        \    
+   /   _____/@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\_____    \   
+  /   /     \@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@/     \    \  
+ /   /  _/\__\@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@/__/\_   \    \ 
+|   |  |    | @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ |    |   |    |
+|   |  |____| @@@@@@@@@@/.---------------------------.\@@@@@@ |____|   |    |
+|   |         @@@@@@@@@/   TEAM 7221 - REEF DOMINATOR \@@@@@         |    |
+|   |         @@@@@@@@/____________________________-----\@@@@         |    |
+|   |  .----. @@@@@@/|   _____          __ |======|     \@@@ .----.  |    |
+|   |  |    | @@@@@| |  / ____|        / / |======|   () |@@ |    |  |    |
+|   |  |    | @@@@|| | | |     ___    / /  |======|      |@@ |    |  |    |
+|   |  |____| @@@||| | | |    / _ \  / /   |======|      |@@ |____|  |    |
+|   |         @@|||| | | |___| (_) |/ /    '------'      |@@         |    |
+|   |         @||||| |  \_____\___//_/     .======.      |@@         |    |
+|   |  .----. @||||| |        |_|_|_|      |======|      |@@ .----.  |    |
+|   |  |    | @||||| |      .-~     ~.     |======|      |@@ |    |  |    |
+|   |  |    | @||||| |     /     o    \    |======|      |@@ |    |  |    |
+|   |  |____| @||||| |    |    o       |   |======|      |@@ |____|  |    |
+|   |         @||||| |     \           /   '------'      |@@         |    |
+|   |         @||||| |      `-._____.-'     .----.       |@@         |    |
+|   |         @||||| |        |=====|       |====|       |@@         |    |
+|___|         @||||| |________|=====|_______|====|_______|@@         |____|
+                   ||/                                    \||              
+                   |/                                      \|             
+                   /                                        \            
+                  /                                          \           
+                 /            /|              |\              \          
+                /        ___/  |              |  \___          \         
 ```
 
 ![Team7221](https://img.shields.io/badge/Team-7221-blue)
@@ -26,6 +71,12 @@
 ---
 
 ## 📋 Table of Contents
+
+```
+  ╔══════════════════════════════════╗
+  ║ NAVIGATE THE VIKING BOT ARCHIVES ║
+  ╚══════════════════════════════════╝
+```
 
 - [🤖 Robot Overview](#-robot-overview)
 - [⚙️ Technical Specifications](#️-technical-specifications)
@@ -42,11 +93,42 @@
 
 ## 🤖 Robot Overview
 
+```
+ ╭─────────────────────────────────╮
+ │         REEF DOMINATOR          │
+ │   THE ULTIMATE BALL HARVESTER   │
+ ╰─────────────────────────────────╯
+      🛑──────┐  ┌───────🛑
+             _\_||_/_
+            /  \  /  \
+           |    \/    |
+       ____|___/\_____|____   
+      |                    |
+      |     /|    |\       |
+      |    / |    | \      |
+      |___/__|____|__\_____|
+          (o)      (o)
+```
+
 Our 2025 competition robot, **REEF DOMINATOR**, is a precision-engineered machine built to excel in FRC Reefscape. Combining defensive capability with offensive prowess, our bot features enhanced maneuverability, intelligent ball control, and a hook mechanism for endgame strategy.
 
 ### ✨ Key Features
 
 #### 🔄 DRIVETRAIN SYSTEM
+```
+     ╭─────────────╮
+     │ DRIVETRAIN  │
+     ╰─────────────╯
+    🔋──┐      ┌──NEO
+      __\/____/\__
+     /           /|
+    /__________/ |
+    |          | |
+    |    ⚙️    | |
+    |__________|/
+   (O)        (O)
+```
+
 - **Base Chassis**: Modified AM14U5 with 6-wheel tank drive
 - **Center Drop**: Improved traction and zero-turn capability
 - **Motor Setup**: 4x NEO brushless motors with 16:1 gear ratio (UPGRADED from 8.45:1)
@@ -57,6 +139,21 @@ Our 2025 competition robot, **REEF DOMINATOR**, is a precision-engineered machin
   - **PRECISION**: 35% power for fine control
 
 #### 🦾 BALL CONTROL ARM
+```
+     ╭─────────────╮
+     │ BALL SYSTEM │
+     ╰─────────────╯
+        ____
+       /    \
+      | BALL |
+       \____/
+         ||
+     ____||____
+    /          \
+   (   INTAKE   )
+    \__________/
+```
+
 - **Front-mounted**: Positioned for optimal ball acquisition
 - **Rotation**: 180° powered by NEO brushless motor
 - **Gripper**: Dual-wheel intake with variable speed control
@@ -67,12 +164,37 @@ Our 2025 competition robot, **REEF DOMINATOR**, is a precision-engineered machin
   - **SCORE**: Elevated position for ball release
 
 #### 🪝 HOOK SYSTEM
+```
+     ╭─────────────╮
+     │ HOOK SYSTEM │
+     ╰─────────────╯
+       ┌──────┐
+       │      │
+       │      │.──────⟶
+       │      ⦞ EXTEND
+       └──────┘
+        // \\
+       // . \\
+      //  .  \\
+```
+
 - **Mechanism**: Linear actuator with J-hook end effector
 - **Extension**: 6" stroke for optimal barge engagement
 - **Control**: Precision deployment with limit switch detection
 - **Safety**: Current-limiting and emergency stop capabilities
 
 #### 👁️ VISION SYSTEM
+```
+     ╭─────────────╮
+     │   VISION    │
+     ╰─────────────╯
+      ┌─────────┐
+      │ ◎───────┼─⟶ BALL
+      │ ⦿ CAMERA│
+      │ ◎───────┼─⟶ TAG
+      └─────────┘
+```
+
 - **Perception**: PhotonVision with ball tracking and AprilTag support
 - **Camera**: High-FPS USB camera with wide field of view
 - **Processing**: Real-time target acquisition and distance calculation
@@ -85,6 +207,23 @@ Our 2025 competition robot, **REEF DOMINATOR**, is a precision-engineered machin
 
 ## ⚙️ Technical Specifications
 
+```
+ ╭──────────────────────────────────╮
+ │      TECHNICAL BLUEPRINT         │
+ │        CONFIDENTIAL              │
+ ╰──────────────────────────────────╯
+      _____           _____
+     /     \         /     \
+    /       \_______/       \
+    |                       |
+    |                       |
+    |       TOP VIEW        |
+    |                       |
+    |                       |
+    \_______         _______/
+            \_______/
+```
+
 ### 📏 Physical Dimensions
 - **Width**: 27 inches (bumpers included)
 - **Length**: 32 inches (bumpers included)
@@ -92,6 +231,20 @@ Our 2025 competition robot, **REEF DOMINATOR**, is a precision-engineered machin
 - **Weight**: 119 lbs (with battery)
 
 ### ⚡ Electrical System
+```
+    ┌─────┐  ┌─────┐  ┌─────┐  ┌─────┐
+    │SPARK│  │SPARK│  │SPARK│  │SPARK│
+    │ MAX │  │ MAX │  │ MAX │  │ MAX │
+    └──┬──┘  └──┬──┘  └──┬──┘  └──┬──┘
+       │        │        │        │
+       └────┬───┴────┬───┴────┬───┘
+            │        │        │
+        ┌───┴──┐  ┌──┴───┐  ┌─┴────┐
+        │roboRIO│  │ REV  │  │BATTERY│
+        │  2.0  │  │ PDP  │  │ 12V   │
+        └───────┘  └──────┘  └───────┘
+```
+
 - **Control System**: roboRIO 2.0
 - **Motor Controllers**: 
   - 4x REV Spark MAX (drivetrain)
@@ -108,6 +261,22 @@ Our 2025 competition robot, **REEF DOMINATOR**, is a precision-engineered machin
   - 1x USB Camera (vision system)
 
 ### 💾 Software Stack
+```
+    ┌─────────────────────────────┐
+    │         Software            │
+    │          Stack              │
+    └─────────────────────────────┘
+    ┌─────────────────────────────┐
+    │           Java              │
+    └─────────────────────────────┘
+    ┌─────────────────────────────┐
+    │          WPILib             │
+    └─────────────────────────────┘
+    ┌──────────┐ ┌───────┐ ┌──────┐
+    │Commands  │ │Vision │ │ Auto │
+    └──────────┘ └───────┘ └──────┘
+```
+
 - **Language**: Java
 - **Framework**: WPILib 2025.3.1
 - **Architecture**: Command-based programming
@@ -122,6 +291,15 @@ Our 2025 competition robot, **REEF DOMINATOR**, is a precision-engineered machin
 ---
 
 ## 🏗️ System Architecture
+
+```
+   ╭───────────────────────────────────╮
+   │     SYSTEM ARCHITECTURE MAP       │
+   │ ┌─────────┐  ┌───────┐  ┌───────┐ │
+   │ │Commands │  │SubSys │  │Robot  │ │
+   │ └─────────┘  └───────┘  └───────┘ │
+   ╰───────────────────────────────────╯
+```
 
 Our robot code is structured using the command-based programming paradigm, separating robot functionality into Subsystems and Commands.
 
@@ -148,24 +326,78 @@ Our robot code is structured using the command-based programming paradigm, separ
 ### ⚡ Subsystems Overview
 
 #### 🚗 DriveSubsystem
+```
+      ⚡ DRIVE SUBSYSTEM ⚡
+    ┌───────────────────────┐
+    │  ┌───┐       ┌───┐   │
+    │  │NEO│       │NEO│   │
+    │  └───┘       └───┘   │
+    │     ↓Tank Drive↓     │
+    │  ┌───┐       ┌───┐   │
+    │  │NEO│       │NEO│   │
+    │  └───┘       └───┘   │
+    └───────────────────────┘
+```
+
 - Handles tank drive mechanics with arcade-style control
 - Implements encoder-based position tracking
 - Provides multiple drive modes (Turbo, Normal, Precision)
 - Uses slew rate limiting for smooth acceleration
 
 #### 🦾 BallArmSubsystem
+```
+       ⚡ ARM SUBSYSTEM ⚡
+     ┌────────────────────┐
+     │      ┌─────┐       │
+     │      │ NEO │       │
+     │      └──┬──┘       │
+     │   ┌─────┴──────┐   │
+     │   │    ARM     │   │
+     │   └─────┬──────┘   │
+     │   ┌─────┴──────┐   │
+     │   │  GRIPPER   │   │
+     │   └────────────┘   │
+     └────────────────────┘
+```
+
 - Controls arm position with PID feedback
 - Manages gripper for ball collection and release
 - Implements gravity compensation for smooth movement
 - Uses ultrasonic sensing for ball detection
 
 #### 🪝 HookSubsystem
+```
+      ⚡ HOOK SUBSYSTEM ⚡
+    ┌────────────────────┐
+    │                    │
+    │  ┌───┐    ┌───┐   │
+    │  │MOT│→→→→│ACT│   │
+    │  └───┘    └─┬─┘   │
+    │            ┌┴┐    │
+    │            │J│    │
+    │            └─┘    │
+    └────────────────────┘
+```
+
 - Controls linear actuator for hook extension/retraction
 - Implements limit switch detection for end positions
 - Provides current monitoring for motor protection
 - Offers emergency stop functionality
 
 #### 👁️ VisionSubsystem
+```
+     ⚡ VISION SUBSYSTEM ⚡
+    ┌────────────────────┐
+    │    ┌─────────┐     │
+    │    │ CAMERA  │     │
+    │    └────┬────┘     │
+    │     ┌───┴───┐      │
+    │     │PHOTON │      │
+    │     │VISION │      │
+    │     └───────┘      │
+    └────────────────────┘
+```
+
 - Integrates with PhotonVision for target processing
 - Manages multiple vision pipelines
 - Calculates target distance and position
@@ -175,6 +407,27 @@ Our robot code is structured using the command-based programming paradigm, separ
 
 ## 🚀 Getting Started
 
+```
+   ╭───────────────────────────────╮
+   │    LAUNCH SEQUENCE INITIATED  │
+   │          T-MINUS 10           │
+   ╰───────────────────────────────╯
+   
+          🚀
+         /|\
+        / | \
+       /__|__\
+      |  |_|  |
+      |__|_|__|
+      |_|___|_|
+      |___|___|
+     /|__|___|_\
+    / |___|___| \
+   /__|___|___|__\
+      |  |_|  |
+      |  |_|  |
+```
+
 ### Prerequisites
 - **Java Development Kit** (JDK) 17+
 - **WPILib 2025 Installation** (complete with VSCode)
@@ -183,6 +436,14 @@ Our robot code is structured using the command-based programming paradigm, separ
 - **PhotonVision** (for vision processing)
 
 ### Initial Setup
+
+```
+   ╭──────────────────────────────────╮
+   │     SYSTEM INSTALLATION MAP      │
+   │                                  │
+   │  [1]→[2]→[3]→[4]→[5]→ACTIVATE!  │
+   ╰──────────────────────────────────╯
+```
 
 1. **Clone the repository**
 ```bash
@@ -210,6 +471,16 @@ code .
      - PathPlanner (for autonomous routines)
 
 4. **Configure CAN IDs**
+```
+   ╭──────────────────────────────────╮
+   │        CAN BUS DIAGRAM           │
+   │                                  │
+   │  [1]→[2]→[3]→[4]→[5]→[6]→[7]    │
+   │   |   |   |   |   |   |   |      │
+   │  LF  RF  LB  RB ARM GRP HOOK     │
+   ╰──────────────────────────────────╯
+```
+
    - Using REV Hardware Client, ensure all motor controllers have unique CAN IDs:
      - Left Front Drive: ID 1
      - Right Front Drive: ID 2
@@ -229,6 +500,14 @@ code .
 ```
 
 ### Deploying to the Robot
+
+```
+   ╭────────────────────────────────╮
+   │      DEPLOYMENT SEQUENCE       │
+   │                                │
+   │  CONNECT → DEPLOY → VERIFY    │
+   ╰────────────────────────────────╯
+```
 
 1. **Connect to the robot**
    - Ensure you're connected to the robot's network
@@ -252,6 +531,19 @@ code .
 
 ## 🎮 Operating the Robot
 
+```
+   ╭────────────────────────────────────╮
+   │         CONTROL STATION            │
+   │                                    │
+   │    [LS]        [MENU]    [RS]      │
+   │     ↑            ○        ↑        │
+   │  ←  +  →       □   ×    ←  +  →    │
+   │     ↓          ∆   ◯       ↓       │
+   │   [LB]                  [RB]       │
+   │   [LT]                  [RT]       │
+   ╰────────────────────────────────────╯
+```
+
 ### Driver Controls (Main Controller)
 - **Left Joystick Y-Axis**: Forward/Backward Movement
 - **Right Joystick X-Axis**: Turning
@@ -260,6 +552,17 @@ code .
 - **Start Button**: Emergency Reset
 
 ### Operator Controls (Secondary Controller)
+```
+   ╭────────────────────────────────────╮
+   │      OPERATOR COMMAND CENTER       │
+   │                                    │
+   │    A: PICKUP     Y: SCORE          │
+   │    B: HOME       X: TRACK          │
+   │    LT: RELEASE   RT: INTAKE        │
+   │    BACK: EXTEND  START: RETRACT    │
+   ╰────────────────────────────────────╯
+```
+
 - **A Button**: Ball Pickup Sequence
 - **Y Button**: Ball Scoring Sequence
 - **B Button**: Arm Home Position
@@ -273,6 +576,16 @@ code .
 - **Left Bumper + Right Bumper**: Emergency Stop
 
 ### 🧠 Autonomous Modes
+```
+   ╭────────────────────────────────────╮
+   │        AUTONOMOUS MISSIONS         │
+   │                                    │
+   │  1. BALL COLLECTION   2. HOARDING  │
+   │  3. REEFSCAPE        4. DRIVE 1M   │
+   │  5. SQUARE TEST      6. STANDBY    │
+   ╰────────────────────────────────────╯
+```
+
 1. **Ball Collection Auto**: Navigates field to collect balls
 2. **Ball Hoarding Auto**: Collects multiple balls from field
 3. **Reefscape Auto**: Optimized routine for Reefscape game
@@ -285,6 +598,13 @@ Select the autonomous mode via the SmartDashboard before the match starts.
 ---
 
 ## 🛠️ Development Guide
+
+```
+   ╭────────────────────────────────────╮
+   │        CODE WARRIOR GUIDE          │
+   │        ✨ FOR VIKINGS ONLY ✨       │
+   ╰────────────────────────────────────╯
+```
 
 ### Coding Standards
 - **Package Structure**: Follow the existing package structure
@@ -299,57 +619,117 @@ Select the autonomous mode via the SmartDashboard before the match starts.
 
 #### 1. Create a new Subsystem (if needed)
 ```java
+/**
+ * NewSubsystem - AWESOME NEW FUNCTIONALITY!!
+ * 
+ * This subsystem controls our epic new feature that will
+ * totally dominate the competition!
+ * 
+ * coded by paysean
+ */
 public class NewSubsystem extends SubsystemBase {
-    // Define hardware
-    private final SparkMax m_motor;
+    // ===== HARDWARE COMPONENTS =====
+    private final SparkMax m_motor; // The BEAST that powers our system
     
-    // Constructor
+    // ===== TRACKING VARIABLES =====
+    private boolean m_isActivated = false;
+    
+    /**
+     * Creates a new EPIC subsystem!
+     */
     public NewSubsystem() {
+        // Initialize our hardware - MAX POWER!!
         m_motor = new SparkMax(Constants.NEW_MOTOR_ID, MotorType.kBrushless);
-        // Configure hardware
+        
+        // Configure for BEAST MODE
+        SparkMaxConfig config = new SparkMaxConfig();
+        config.inverted(false).idleMode(IdleMode.kBrake);
+        m_motor.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+        
+        System.out.println(">> NEW SUBSYSTEM ONLINE - READY TO DOMINATE! <<");
     }
     
-    // Methods
+    /**
+     * Makes the subsystem do something AWESOME!
+     */
     public void doSomething() {
-        // Implementation
+        // Implementation that will CRUSH THE COMPETITION!
+        m_motor.set(Constants.MAX_AWESOME_POWER);
+        m_isActivated = true;
+        System.out.println(">> ACTIVATING AWESOME MODE! <<");
     }
     
     @Override
     public void periodic() {
-        // Periodic updates (runs every 20ms)
+        // Runs every 20ms - keep it EFFICIENT!
+        SmartDashboard.putBoolean("Awesome Activated", m_isActivated);
+        SmartDashboard.putNumber("Awesome Current", m_motor.getOutputCurrent());
     }
 }
 ```
 
 #### 2. Create Commands for the subsystem
 ```java
+/**
+ * NewCommand - TRIGGERS AWESOME FUNCTIONALITY!
+ * 
+ * This command makes our epic new subsystem DO THE THING!
+ * When this runs, we'll be unstoppable on the field.
+ * 
+ * coded by paysean
+ */
 public class NewCommand extends Command {
+    // Track the subsystem we're controlling
     private final NewSubsystem m_subsystem;
     
+    // For timing and state tracking
+    private long m_startTime;
+    private boolean m_isCompleted = false;
+    
+    /**
+     * Creates a new command that will CRUSH THE COMPETITION!
+     */
     public NewCommand(NewSubsystem subsystem) {
         m_subsystem = subsystem;
-        addRequirements(subsystem);
+        addRequirements(subsystem); // Make sure we get exclusive control!
+        
+        System.out.println(">> NEW COMMAND CREATED - PREPARE FOR DOMINATION!");
     }
     
     @Override
     public void initialize() {
-        // Called once when command starts
+        // Called once when command starts - SET UP FOR SUCCESS!!
+        m_startTime = System.currentTimeMillis();
+        m_isCompleted = false;
+        System.out.println(">> STARTING EPIC SEQUENCE! >>");
     }
     
     @Override
     public void execute() {
-        // Called repeatedly during command execution
+        // Called repeatedly - DO THE AWESOME THING!!
+        m_subsystem.doSomething();
+        
+        // Log some cool status updates periodically
+        long timeRunning = System.currentTimeMillis() - m_startTime;
+        if (timeRunning > 500 && timeRunning % 500 < 20) {
+            System.out.println(">> STILL BEING AWESOME: " + (timeRunning / 1000.0) + " seconds!");
+        }
     }
     
     @Override
     public boolean isFinished() {
-        // Return true when command should end
-        return false;
+        // Are we done with our EPIC MISSION?
+        return m_isCompleted || (System.currentTimeMillis() - m_startTime > 5000);
     }
     
     @Override
     public void end(boolean interrupted) {
-        // Called once when command ends
+        // Safety first - clean up when we finish!
+        if (interrupted) {
+            System.out.println(">> EPIC SEQUENCE INTERRUPTED - STILL AWESOME THOUGH!");
+        } else {
+            System.out.println(">> EPIC SEQUENCE COMPLETED SUCCESSFULLY! DOMINATION COMPLETE!");
+        }
     }
 }
 ```
@@ -357,11 +737,31 @@ public class NewCommand extends Command {
 #### 3. Bind the command to controls in Robot.java
 ```java
 // Add to configureButtonBindings() method
+
+// A Button triggers our EPIC new command!
 new Trigger(() -> operatorController.getAButton())
     .onTrue(new NewCommand(m_newSubsystem));
+    
+// You can also create combined triggers for ADVANCED CONTROLS
+new Trigger(() -> 
+    operatorController.getLeftBumper() && 
+    operatorController.getRightBumper())
+    .onTrue(new InstantCommand(() -> {
+        // This runs when both bumpers are pressed together
+        System.out.println(">> SUPER SECRET COMBO MOVE ACTIVATED! <<");
+        m_newSubsystem.activateSecretMode();
+    }));
 ```
 
 ### Testing Your Code
+
+```
+   ╭────────────────────────────────────╮
+   │       TEST BEFORE COMPETITION      │
+   │                                    │
+   │    SIM → TEST → FIX → DOMINATE     │
+   ╰────────────────────────────────────╯
+```
 
 1. **Simulation**:
    - Use WPILib Simulation feature to test code without hardware
@@ -380,6 +780,20 @@ new Trigger(() -> operatorController.getAButton())
 
 ## 🏆 Competition Strategy
 
+```
+   ╭────────────────────────────────────╮
+   │     TOP SECRET BATTLE PLANS        │
+   │    🔒 CLASSIFIED INFORMATION 🔒    │
+   ╰────────────────────────────────────╯
+       
+          🤖     VS      👾👾👾
+       __/█\__           |  |
+      |      |         __|  |__
+      |______|        /        \
+      /|    |\       /|        |\
+     / |____|_\     /_|________|_\
+```
+
 ### Offensive Play
 1. **Ball Control**:
    - Use Auto Ball Tracking to quickly acquire game pieces
@@ -392,6 +806,17 @@ new Trigger(() -> operatorController.getAButton())
    - Coordinate with alliance partners for synchronized barge pulls
 
 ### Defensive Play
+```
+   ╭────────────────────────────────────╮
+   │       DEFENSIVE FORMATION          │
+   │                                    │
+   │      [US]       [ZONE]   [ENEMY]   │
+   │       █           □        ░░░     │
+   │       |           |         |      │
+   │      /█\         /□\       /░\     │
+   ╰────────────────────────────────────╯
+```
+
 1. **Area Denial**:
    - Position bot to block opponent scoring paths
    - Use precision mode for accurate blocking positions
@@ -403,6 +828,16 @@ new Trigger(() -> operatorController.getAButton())
    - Protect collected game pieces with defensive positioning
 
 ### Endgame Strategy
+```
+   ╭────────────────────────────────────╮
+   │       ENDGAME COUNTDOWN            │
+   │                                    │
+   │         T-MINUS 30 SECONDS         │
+   │                                    │
+   │  1. HOOK → 2. PULL → 3. POSITION   │
+   ╰────────────────────────────────────╯
+```
+
 1. **Barge Connection**:
    - Position near a barge with ~20 seconds remaining
    - Use hook deployment sequence for secure attachment
@@ -417,9 +852,43 @@ new Trigger(() -> operatorController.getAButton())
 
 ## ❓ Troubleshooting
 
+```
+   ╭────────────────────────────────────╮
+   │     EMERGENCY REPAIR MANUAL        │
+   │                                    │
+   │    ISSUE → DIAGNOSE → FIX → WIN    │
+   ╰────────────────────────────────────╯
+```
+
 ### Common Issues
 
 #### 1. Robot doesn't move
+```
+ ╔═══════════════════════════════════╗
+ ║  DRIVETRAIN DIAGNOSTIC FLOWCHART  ║
+ ╚═══════════════════════════════════╝
+      
+      START
+        │
+        ▼
+   [BATTERY OK?]───NO──→[REPLACE BATTERY]
+        │
+       YES
+        │
+        ▼
+   [BREAKERS OK?]───NO──→[RESET BREAKERS]
+        │
+       YES
+        │
+        ▼
+   [CAN BUS OK?]───NO──→[CHECK CONNECTIONS]
+        │
+       YES
+        │
+        ▼
+   [REBOOT ROBORIO]
+```
+
 - **Check**: Battery voltage (should be >12V)
 - **Check**: Breakers and PDP status
 - **Check**: CAN connections and motor controller LEDs
@@ -433,6 +902,23 @@ new Trigger(() -> operatorController.getAButton())
 - **Solution**: Re-zero arm encoder with `resetArmEncoder()` command
 
 #### 3. Ball detection problems
+```
+ ╔═══════════════════════════════════╗
+ ║   SENSOR DIAGNOSTIC PROCEDURES    ║
+ ╚═══════════════════════════════════╝
+      
+      BALL NOT DETECTED?
+             │
+      ┌──────┴──────┐
+      ▼             ▼
+  [WIRING OK?]  [DISTANCE READING OK?]
+      │             │
+      └──────┬──────┘
+             ▼
+      [ADJUST THRESHOLD]
+      
+```
+
 - **Check**: Ultrasonic sensor connections
 - **Check**: Distance readings in SmartDashboard
 - **Check**: Sensor mounting position
@@ -454,6 +940,20 @@ new Trigger(() -> operatorController.getAButton())
 
 ## 👥 Team Information
 
+```
+   ╭────────────────────────────────────╮
+   │            TEAM 7221               │
+   │        THE VIKINGS ROBOTICS        │
+   │                                    │
+   │          SINCE 2018                │
+   │                                    │
+   │      /|    |\        /|    |\      │
+   │     / |    | \      / |    | \     │
+   │    /__|____|__\    /__|____|__\    │
+   │       HORNS UP!      HORNS UP!     │
+   ╰────────────────────────────────────╯
+```
+
 ### Team 7221 - The Vikings Robotics
 - **High School**: North High School
 - **Location**: Minneapolis, MN
@@ -466,6 +966,15 @@ new Trigger(() -> operatorController.getAButton())
 - **GitHub**: https://github.com/Team7221
 
 ### Our Values
+```
+   ╭────────────────────────────────────╮
+   │         VIKING VALUES              │
+   │                                    │
+   │  INNOVATION - TEAMWORK - PASSION   │
+   │  EXCELLENCE - SPORTSMANSHIP        │
+   ╰────────────────────────────────────╯
+```
+
 - **Innovation**: We embrace creative solutions and cutting-edge technology
 - **Teamwork**: We succeed through collaboration and communication
 - **Excellence**: We strive for perfection in design and implementation
@@ -477,27 +986,52 @@ new Trigger(() -> operatorController.getAButton())
 ## 📸 Robot in Action
 
 ```
-   /\         _____        /\       
-  /  \       |  ___|      /  \      
- /    \      | |___      /    \     
-/      \     |  ___|    /      \    
-\      /     | |___     \      /    
- \    /      |_____|     \    /     
-  \  /                    \  /      
-   \/                      \/       
-⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜
-⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜
-⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜
-      _____                         
-     |_____|                        
-   ____|_|____                      
-  |    ___    |                     
-  |   |___|   |                     
-  |___________|                     
-     |     |                        
-    /|     |\                       
-   / |_____| \                      
-  /___________\                     
+                                                  _______
+                      __..--""``---.__           /       \\
+                 _.--'               `-.        |_________|
+               .'                        \      |TEAM 7221|
+              /                 __        \     |+-------+|
+             ;                .'{&}        :    ||       ||
+            ;                 :  "         ;    ||       ||
+            |                 '._.'        |    ||       ||
+            : ___             .=._=.       :    ||=======||
+       _.-'`'V 'v'\"-.._      '.=._,'    _.'    ||=======||
+     .'    _..,,.._   `-.              .'       ||=======||
+    / ,--'`        `-.   '-..____...-'         ||=======||
+   : |'\"\"\""""\"\"""\'\":    :               _____  ||=======||  _____
+   | | ARM       | |    |     ___...--'     `-||-------||.'     `--.
+   | |           | |    |    :                ||=======||            :
+   : :           : :    |    |                ||=======||            |
+    \ \         / /     |    | LIFT+ROTATE   ||=======||    CAMERA  |
+     `.`.     .'.'      :    :                ||=======||            :
+       `.`---'.'         \    `._            ||=======||           .'
+      .' \___/ '.         `-     ``--...____||-------||__.....--''
+    .'             `.            ____       |'~~~~~~~'|       ____
+   /    .--'''''--,  \          .'    `-.   ~~~~~~~~~   .-'    `.
+  :   .':         \'. :         |        :             :        |
+  |  | |           | |:         :       .'  VIKING BOT  `.       ;
+  |  : :           ; |:         `-..__.'                 `.__.-'
+  :   \ \         / / :                 ""-.._      _..--""
+   \   `.`.     .'.' /                       ``''''
+    \    `.`---'.'  /                           _______
+     :     \     /  :                         .'|-_-_-_|
+     |      \___/   |_____________________.'  .       .
+     |               |+-------------------+|  |  .   .|
+     | HOOK SYSTEM   ||                   || .|______|.
+     |               ||                   |.'         .'
+     :               ||                   ||         .|
+      \             .|'-------------------'|.        |:
+       \         .' .                     . `-.     / ;
+      ._`-------'_.'                       `. \| |`-._.'
+      |_________|  ||||||||||||||||||||||||| | |
+       \_______/    \|||||||||||||||||||||/.  |
+         |___|                          ||||  |
+        /     \     OMNI-DIRECTIONAL    ||||  |
+       |_______|    TANK DRIVE SYSTEM   ||||  |
+      /|       |\                      .|||||/
+     / |_______| \                    |_____/
+    /___\     /___\                  /|___|\
+   |_____|   |_____|                |_______|
 ```
 
 Watch our robot in action at the regional competitions:
@@ -506,6 +1040,14 @@ Watch our robot in action at the regional competitions:
 - 🎥 [Robot Testing & Development Process](https://youtube.com/teamvikings)
 
 ---
+
+```
+   ╭────────────────────────────────────╮
+   │       JOIN THE VIKING LEGACY       │
+   │                                    │
+   │        INNOVATE • BUILD • WIN      │
+   ╰────────────────────────────────────╯
+```
 
 > "This README represents our team's ongoing development. Code is continuously improved, and our robot evolves with each iteration. Join us on this journey as we push the boundaries of what's possible in FRC Reefscape!"
 
