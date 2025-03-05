@@ -16,7 +16,7 @@
  * these values to absolute perfection!
  * 
  * Last Updated: March 2025
- * Coded by paysean - The Viking's Master Programmer
+ * Coded by paysean - 
  */
 
 package frc.robot;
