@@ -156,7 +156,7 @@ public class DriveSubsystem extends SubsystemBase {
             // 30 amps is sufficient protection for NEO motors with 16:1 gearing
             max.setSmartCurrentLimit(30); 
         } catch (Exception e) {
-            System.out.println("⚠️ WARNING: Failed to set current limit! Protect your motors!");
+            System.out.println("!! WARNING: Failed to set current limit! Protect your motors!");
             e.printStackTrace();
         }
     }
