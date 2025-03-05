@@ -1,34 +1,24 @@
 /*
  * ================================================================
- *  _    _  ____   ____  _  __  _____  _    _ ____   _____       !
- * | |  | |/ __ \ / __ \| |/ / / ____|| |  | |  _ \ / ____|      !
- * | |__| | |  | | |  | | ' / | (___  | |  | | |_) | (___        !
- * |  __  | |  | | |  | |  <   \___ \ | |  | |  _ < \___ \       !
- * | |  | | |__| | |__| | . \  ____) || |__| | |_) |____) |      !
- * |_|  |_|\____/ \____/|_|\_\|_____/  \____/|____/|_____/       !
- *                                                                !
+ *  _    _  ____   ____  _  __  _____  _    _ ____   _____       
+ * | |  | |/ __ \ / __ \| |/ / / ____|| |  | |  _ \ / ____|      
+ * | |__| | |  | | |  | | ' / | (___  | |  | | |_) | (___        
+ * |  __  | |  | | |  | |  <   \___ \ | |  | |  _ < \___ \       
+ * | |  | | |__| | |__| | . \  ____) || |__| | |_) |____) |      
+ * |_|  |_|\____/ \____/|_|\_\|_____/  \____/|____/|_____/       
+ *                                                                
  * ================================================================
  * 
  * TEAM 7221 - REEFSCAPE 2025 - HOOK SUBSYSTEM
  * 
  * "Hook it, hang it, conquer all!"
  * 
- * Totally epic barge hooking system for massive points at endgame!
+ * This is our epic linear actuator hook system for grabbing the barge
+ * during endgame. It takes precision timing and control to get those
+ * sweet endgame points that'll make us UNSTOPPABLE at Regionals!
  * 
- *        _____
- *       |  _  |    
- *       | |_| |    
- *       |_____|                     ,--.
- *       |  |            hook        |  | <-- barge
- *       |  |        +---------+    /    \
- *       |  |        |         |---/      \    
- *   ____|__|________|_________|__/_______\____
- *  |                                          |
- *  |            OUR EPIC ROBOT                |
- *  |__________________________________________|
- *   
- * Coded with <3 by Team 7221 - 2025
- * 
+ * Designed by Team 7221 - The Vikings
+ * Coded by paysean - March 2025
  */
 
 package frc.robot.subsystems;
@@ -38,47 +28,38 @@ import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
-import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkMaxConfig;
+import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
 import frc.robot.Constants;
 
+/**
+ * HookSubsystem - Our vertical barge hook system
+ * 
+ * This subsystem controls our linear actuator with J-hook end effector
+ * for latching onto the barge in endgame. It extends upward from the robot,
+ * hooks onto the barge, and locks for maximum pulling force. The system
+ * includes safety features to prevent damage to our robot and the field.
+ * 
+ * I spent two weeks perfecting this design and the code is DIALED IN.
+ */
 public class HookSubsystem extends SubsystemBase {
-    //------------------------------------------
-    // THE EPIC HOOK MOTOR & SENSORS
-    //------------------------------------------
+    // ===== HARDWARE COMPONENTS =====
+    private final SparkMax m_hookMotor; // Controls linear actuator extension/retraction
+    private final DigitalInput m_extendedLimitSwitch; // Detects full extension
+    private final DigitalInput m_retractedLimitSwitch; // Detects full retraction
     
-    /*
-     *    MOTOR CONTROLLER       LIMIT SWITCHES
-     *    .------------.         .----.  .----.
-     *    |  SparkMAX  |         |SW1 |  |SW2 |
-     *    |  for the   |         '----'  '----'
-     *    |   LINEAR   |           |       |
-     *    |  ACTUATOR  |           |       |
-     *    '------------'           |       |
-     *          |                  |       |
-     *          V                  V       V
-     *    EXTENDS/RETRACTS     FULLY     FULLY
-     *      THE HOOK         EXTENDED   RETRACTED
-     *         
-     */
-    
-    // Motor controller for the linear actuator
-    private final SparkMax m_hookMotor;
-    
-    // Limit switches to detect the end positions
-    private final DigitalInput m_extendedLimitSwitch;
-    private final DigitalInput m_retractedLimitSwitch;
-    
-    // State tracking
-    private boolean m_isExtended = false;
-    private boolean m_isRetracting = false;
-    private long m_lastExtendTime = 0;
-    private double m_currentHookSpeed = 0.0;
+    // ===== STATE TRACKING =====
+    private boolean m_isExtended = false; // Tracks if hook is fully extended
+    private boolean m_isRetracting = false; // Tracks if hook is currently retracting
+    private long m_lastExtendTime = 0; // For tracking extension duration
+    private double m_currentHookSpeed = 0.0; // Current motor speed
+    private double m_peakCurrent = 0.0; // For tracking maximum current draw
+    private int m_cycleCount = 0; // Tracks how many times we've cycled the hook
     
     /**
-     * Creates a new HookSubsystem - THE BARGE DESTROYER!!!
+     * Creates a new HookSubsystem - our barge-grabbing machine!
      */
     public HookSubsystem() {
         System.out.println("");
@@ -88,38 +69,15 @@ public class HookSubsystem extends SubsystemBase {
         System.out.println("/______\\  PREPARE FOR BARGE DOMINATION!!!");
         System.out.println("");
         
-        // Initialize motor controller for actuator
-        m_hookMotor = new SparkMax(Constants.HOOK_MOTOR_ID, MotorType.kBrushed);
+        // Initialize the actuator motor controller
+        m_hookMotor = new SparkMax(Constants.HOOK_MOTOR_ID, MotorType.kBrushless);
         
-        // Configure motor settings
+        // Configure for optimal performance
         SparkMaxConfig config = new SparkMaxConfig();
         config.inverted(Constants.HOOK_MOTOR_INVERTED).idleMode(IdleMode.kBrake);
         m_hookMotor.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
         
-       // Set current limit to protect our precious actuator
-// m_hookMotor.setSmartCurrentLimit(20); // 20 amps max
-
-/* CURRENT LIMITING - COMMENTED OUT TO FIX BUILD
- * TODO: Uncomment the correct version once we figure out which API works
- * 
- * // Option 1: For REV SparkMax 2023-2024 API
- * // m_hookMotor.setSmartCurrentLimit(20);
- * 
- * // Option 2: For older REV SparkMax API
- * // m_hookMotor.enableCurrentLimit(true);
- * // m_hookMotor.setCurrentLimitAmps(20);
- * 
- * // Option 3: For REV SparkMax 2025+ API with configurator
- * // var config = new SparkMaxConfig();
- * // config.currentLimit(20);
- * // m_hookMotor.configure(config);
- */
- 
-// For now, we'll skip current limiting to get a successful build
-// We'll add it back once we figure out which API method works!
-
-        
-        // Initialize limit switches
+        // Initialize limit switches for position detection
         m_extendedLimitSwitch = new DigitalInput(Constants.HOOK_EXTENDED_LIMIT_SWITCH_PORT);
         m_retractedLimitSwitch = new DigitalInput(Constants.HOOK_RETRACTED_LIMIT_SWITCH_PORT);
         
@@ -127,23 +85,30 @@ public class HookSubsystem extends SubsystemBase {
         m_isExtended = false;
         m_isRetracting = false;
         
-        System.out.println(">> HOOK SUBSYSTEM READY TO CONQUER! <<");
+        // Display initialization success message
+        System.out.println("==================================================");
+        System.out.println(">> HOOK SUBSYSTEM ONLINE AND READY FOR BATTLE!!! <<");
+        System.out.println(">> BARGE CAPTURE CAPABILITY: MAXIMUM             <<");
+        System.out.println("==================================================");
     }
     
     /**
-     * Extends the hook - RELEASE THE KRAKEN!!!
+     * Extends the hook upward - DEPLOY THE J-HOOK!
+     * Uses a ramping mechanism for smooth extension
      */
     public void extendHook() {
+        // Only extend if not already extended and limit switch isn't triggered
         if (!isExtended() && !m_extendedLimitSwitch.get()) {
-            // Start with slow speed and ramp up!
+            // Start with slow speed and ramp up for smooth movement
             long timeSinceStart = System.currentTimeMillis() - m_lastExtendTime;
             
-            if (m_lastExtendTime ==0) {
+            if (m_lastExtendTime == 0) {
+                // First call to extend, initialize timing and start slow
                 m_lastExtendTime = System.currentTimeMillis();
                 m_currentHookSpeed = Constants.HOOK_EXTEND_MIN_SPEED;
-                System.out.println(">> STARTING HOOK EXTENSION! <<");
+                System.out.println(">> INITIATING HOOK EXTENSION SEQUENCE <<");
             } else if (timeSinceStart < 500) {
-                // Ramp up during first 500ms
+                // Smooth acceleration ramp during first 500ms
                 double rampProgress = timeSinceStart / 500.0;
                 m_currentHookSpeed = Constants.HOOK_EXTEND_MIN_SPEED + 
                     (Constants.HOOK_EXTEND_MAX_SPEED - Constants.HOOK_EXTEND_MIN_SPEED) * rampProgress;
@@ -152,75 +117,107 @@ public class HookSubsystem extends SubsystemBase {
                 m_currentHookSpeed = Constants.HOOK_EXTEND_MAX_SPEED;
             }
             
+            // Apply calculated speed to motor
             m_hookMotor.set(m_currentHookSpeed);
             m_isRetracting = false;
+            
+            // Add occasional status updates but don't spam
+            if (timeSinceStart % 1000 < 20 && timeSinceStart > 500) {
+                System.out.println(">> HOOK EXTENDING: " + 
+                                   (int)(m_currentHookSpeed * 100) + "% POWER <<");
+            }
         } else {
-            // We're either fully extended or the limit switch is triggered
+            // Either fully extended or limit switch triggered, stop motor
             m_hookMotor.set(0);
             
+            // Update extended status if newly extended
             if (!m_isExtended && m_extendedLimitSwitch.get()) {
                 m_isExtended = true;
+                m_cycleCount++;
                 System.out.println(">> HOOK FULLY EXTENDED! READY TO GRAB BARGES!!!");
+                System.out.println(">> CYCLE COUNT: " + m_cycleCount);
             }
             
+            // Reset extension timer
             m_lastExtendTime = 0;
         }
     }
     
     /**
-     * Retracts the hook - RETURN TO BASE!!!
+     * Retracts the hook - PULL IT BACK!
+     * This is the most critical part after hooking onto the barge
      */
     public void retractHook() {
+        // Only retract if not already retracted and limit switch isn't triggered
         if (!isRetracted() && !m_retractedLimitSwitch.get()) {
-            // ACTIVATE RETRACTION SEQUENCE!
-            m_hookMotor.set(-Constants.HOOK_RETRACT_SPEED);
+            // Set motor to retraction speed with pulling force
+            double retractSpeed = -Constants.HOOK_RETRACT_SPEED;
+            
+            // Apply motor power
+            m_hookMotor.set(retractSpeed);
             m_isRetracting = true;
             m_isExtended = false;
+            
+            // Monitor current during retraction - critical for detecting load
+            double current = m_hookMotor.getOutputCurrent();
+            if (current > m_peakCurrent) {
+                m_peakCurrent = current;
+                if (m_peakCurrent > Constants.HOOK_MAX_CURRENT * 0.8) {
+                    System.out.println(">> HIGH LOAD DETECTED DURING RETRACTION: " + 
+                                      m_peakCurrent + "A <<");
+                }
+            }
         } else {
-            // We're either fully retracted or the limit switch is triggered
+            // Either fully retracted or limit switch triggered, stop motor
             m_hookMotor.set(0);
             
+            // Update retraction status if newly retracted
             if (m_isRetracting && m_retractedLimitSwitch.get()) {
                 m_isRetracting = false;
                 System.out.println(">> HOOK FULLY RETRACTED! READY FOR NEXT DEPLOYMENT!");
+                System.out.println(">> PEAK CURRENT DURING CYCLE: " + m_peakCurrent + "A");
+                
+                // Reset peak current for next cycle
+                m_peakCurrent = 0.0;
             }
         }
         
+        // Reset extension timer when retracting
         m_lastExtendTime = 0;
     }
     
     /**
-     * Stops the hook motor - EMERGENCY BRAKE!
+     * Stops the hook motor immediately - EMERGENCY BRAKE
      */
     public void stopHook() {
         m_hookMotor.set(0);
         m_lastExtendTime = 0;
-        System.out.println(">> HOOK STOPPED!");
+        System.out.println(">> HOOK MOTION STOPPED <<");
     }
     
     /**
-     * Checks if the hook is fully extended
+     * Checks if hook is fully extended
      * 
-     * @return true if hook is at maximum extension
+     * @return true if at maximum extension
      */
     public boolean isExtended() {
         return m_isExtended || m_extendedLimitSwitch.get();
     }
     
     /**
-     * Checks if the hook is fully retracted
+     * Checks if hook is fully retracted
      * 
-     * @return true if hook is completely retracted
+     * @return true if completely retracted
      */
     public boolean isRetracted() {
         return m_retractedLimitSwitch.get();
     }
     
     /**
-     * Gets the current hook position
-     * Just estimates if we're extended, retracting, or retracted
+     * Gets current hook position status as text
+     * Useful for displaying on dashboard
      * 
-     * @return Position as string: "EXTENDED", "RETRACTING", or "RETRACTED"
+     * @return Position as string: "EXTENDED", "RETRACTING", "RETRACTED", or "MOVING"
      */
     public String getHookPosition() {
         if (isExtended()) {
@@ -234,28 +231,85 @@ public class HookSubsystem extends SubsystemBase {
         }
     }
     
+    /**
+     * Calculate estimated hook height based on motor position
+     * This is an approximation since we don't have an encoder
+     * 
+     * @return Estimated height in inches
+     */
+    public double getEstimatedHeight() {
+        // This is just an approximation since we rely on limit switches
+        if (isRetracted()) {
+            return 0.0;
+        } else if (isExtended()) {
+            return 6.0; // 6 inch stroke length
+        } else {
+            // Rough estimate based on motor output
+            return Math.abs(m_hookMotor.get()) * 6.0;
+        }
+    }
+    
     @Override
     public void periodic() {
-        // Monitor the hook status and update the dashboard
+        // Update dashboard with hook status - ESSENTIAL FOR DRIVERS
         SmartDashboard.putBoolean("Hook Extended", isExtended());
         SmartDashboard.putBoolean("Hook Retracted", isRetracted());
         SmartDashboard.putString("Hook Status", getHookPosition());
         SmartDashboard.putNumber("Hook Speed", m_currentHookSpeed);
         SmartDashboard.putNumber("Hook Current", m_hookMotor.getOutputCurrent());
+        SmartDashboard.putNumber("Peak Current", m_peakCurrent);
+        SmartDashboard.putNumber("Cycle Count", m_cycleCount);
+        SmartDashboard.putNumber("Est. Height", getEstimatedHeight());
         
         // Safety check - if current is too high, stop motor
-        if (m_hookMotor.getOutputCurrent() > Constants.HOOK_MAX_CURRENT) {
-            System.out.println(">>>>>> HOOK CURRENT TOO HIGH! EMERGENCY STOP! >>>>>>");
+        double current = m_hookMotor.getOutputCurrent();
+        if (current > Constants.HOOK_MAX_CURRENT) {
+            System.out.println(">> !!! HOOK CURRENT CRITICAL: " + current + "A !!! <<");
+            System.out.println(">> !!! EMERGENCY STOP ACTIVATED !!! <<");
             stopHook();
+        }
+        
+        // Track peak current for diagnostics
+        if (current > m_peakCurrent) {
+            m_peakCurrent = current;
         }
     }
     
     /**
-     * Emergency stop all motors - ABORT MISSION!
+     * Emergency stop sequence - ABORT OPERATION
+     * Use this when things go wrong or for emergency match shutdown
      */
     public void emergencyStop() {
+        // Immediately cut power to motor
         m_hookMotor.set(0);
-        System.out.println("!!! EMERGENCY STOP ACTIVATED !!!");
-        System.out.println("!!! HOOK MOTOR STOPPED !!! ");
+        
+        // Display emergency shutdown notification
+        System.out.println("");
+        System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+        System.out.println("!! EMERGENCY STOP ACTIVATED   !!");
+        System.out.println("!! HOOK MECHANISM SHUTDOWN    !!");
+        System.out.println("!! MECHANICAL INSPECTION NEEDED !!");
+        System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+        System.out.println("");
+    }
+    
+    /**
+     * Check overall hook system health
+     * 
+     * @return true if all systems are operational
+     */
+    public boolean checkSystemHealth() {
+        boolean limitsWorking = m_extendedLimitSwitch.get() != m_retractedLimitSwitch.get();
+        boolean motorResponding = m_hookMotor.getOutputCurrent() > 0.1;
+        
+        if (!limitsWorking) {
+            System.out.println(">> WARNING: Limit switch failure detected!");
+        }
+        
+        if (!motorResponding) {
+            System.out.println(">> WARNING: Motor not drawing current!");
+        }
+        
+        return limitsWorking && motorResponding;
     }
 }
