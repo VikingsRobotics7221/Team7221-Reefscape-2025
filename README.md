@@ -945,7 +945,7 @@ new Trigger(() ->
    │            TEAM 7221               │
    │        THE VIKINGS ROBOTICS        │
    │                                    │
-   │          SINCE 2018                │
+   │          SINCE 2025                │
    │                                    │
    │      /|    |\        /|    |\      │
    │     / |    | \      / |    | \     │
@@ -955,15 +955,13 @@ new Trigger(() ->
 ```
 
 ### Team 7221 - The Vikings Robotics
-- **High School**: North High School
-- **Location**: Minneapolis, MN
-- **Founded**: 2018
+- **High School**: Jackson Highschool 
+- **Location**: Jackson, MI
+- **Founded**: 2025(new team)
 - **Team Motto**: "Innovate. Build. Dominate."
 
 ### Contact Information
-- **Email**: team7221@schooldistrict.edu
-- **Website**: https://team7221.org
-- **GitHub**: https://github.com/Team7221
+- **Email**: professorwilsonedu@gmail.com
 
 ### Our Values
 ```
@@ -982,72 +980,6 @@ new Trigger(() ->
 - **Passion**: We bring enthusiasm to everything we do
 
 ---
-
-## 📸 Robot in Action
-
-```
-                                                  _______
-                      __..--""``---.__           /       \\
-                 _.--'               `-.        |_________|
-               .'                        \      |TEAM 7221|
-              /                 __        \     |+-------+|
-             ;                .'{&}        :    ||       ||
-            ;                 :  "         ;    ||       ||
-            |                 '._.'        |    ||       ||
-            : ___             .=._=.       :    ||=======||
-       _.-'`'V 'v'\"-.._      '.=._,'    _.'    ||=======||
-     .'    _..,,.._   `-.              .'       ||=======||
-    / ,--'`        `-.   '-..____...-'         ||=======||
-   : |'\"\"\""""\"\"""\'\":    :               _____  ||=======||  _____
-   | | ARM       | |    |     ___...--'     `-||-------||.'     `--.
-   | |           | |    |    :                ||=======||            :
-   : :           : :    |    |                ||=======||            |
-    \ \         / /     |    | LIFT+ROTATE   ||=======||    CAMERA  |
-     `.`.     .'.'      :    :                ||=======||            :
-       `.`---'.'         \    `._            ||=======||           .'
-      .' \___/ '.         `-     ``--...____||-------||__.....--''
-    .'             `.            ____       |'~~~~~~~'|       ____
-   /    .--'''''--,  \          .'    `-.   ~~~~~~~~~   .-'    `.
-  :   .':         \'. :         |        :             :        |
-  |  | |           | |:         :       .'  VIKING BOT  `.       ;
-  |  : :           ; |:         `-..__.'                 `.__.-'
-  :   \ \         / / :                 ""-.._      _..--""
-   \   `.`.     .'.' /                       ``''''
-    \    `.`---'.'  /                           _______
-     :     \     /  :                         .'|-_-_-_|
-     |      \___/   |_____________________.'  .       .
-     |               |+-------------------+|  |  .   .|
-     | HOOK SYSTEM   ||                   || .|______|.
-     |               ||                   |.'         .'
-     :               ||                   ||         .|
-      \             .|'-------------------'|.        |:
-       \         .' .                     . `-.     / ;
-      ._`-------'_.'                       `. \| |`-._.'
-      |_________|  ||||||||||||||||||||||||| | |
-       \_______/    \|||||||||||||||||||||/.  |
-         |___|                          ||||  |
-        /     \     OMNI-DIRECTIONAL    ||||  |
-       |_______|    TANK DRIVE SYSTEM   ||||  |
-      /|       |\                      .|||||/
-     / |_______| \                    |_____/
-    /___\     /___\                  /|___|\
-   |_____|   |_____|                |_______|
-```
-
-Watch our robot in action at the regional competitions:
-- 🎥 [Team 7221 - Reefscape Robot Reveal](https://youtube.com/teamvikings)
-- 🎥 [Minneapolis Regional Highlights](https://youtube.com/teamvikings)
-- 🎥 [Robot Testing & Development Process](https://youtube.com/teamvikings)
-
----
-
-```
-   ╭────────────────────────────────────╮
-   │       JOIN THE VIKING LEGACY       │
-   │                                    │
-   │        INNOVATE • BUILD • WIN      │
-   ╰────────────────────────────────────╯
-```
 
 > "This README represents our team's ongoing development. Code is continuously improved, and our robot evolves with each iteration. Join us on this journey as we push the boundaries of what's possible in FRC Reefscape!"
 
