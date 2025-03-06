@@ -1,13 +1,12 @@
 /*
- * ================================================================
- *   _____  ____  _   _  _____ _______       _   _ _______ _____  
- *  / ____|/ __ \| \ | |/ ____|__   __|/\   | \ | |__   __/ ____| 
- * | |    | |  | |  \| | (___    | |  /  \  |  \| |  | | | (___   
- * | |    | |  | | . ` |\___ \   | | / /\ \ | . ` |  | |  \___ \  
- * | |____| |__| | |\  |____) |  | |/ ____ \| |\  |  | |  ____) | 
- *  \_____|\____/|_| \_|_____/   |_/_/    \_\_| \_|  |_| |_____/  
- *                                                                 
- * ================================================================
+ * ═════════════════════════════════════════════════════════════
+ *  ____  ____  _   _  ____ ____    _   _ ____ ____  
+ * / ___|| __ )| \ | |/ ___|_   _|/\   | \ | |_   _|/ ____|
+ * | |    |  _ \|  \| | (___   | | /  \  |  \| | | | | (___  
+ * | |    | |_) | |\  |\___ \  | |/ /\ \ | . ` | | |  \___ \ 
+ * | |___ |  _ <| |\  |____) | | / ____ \| |\  | | |  ____) |
+ *  \____||_| \_\_| \_|_____/  |_/_/    \_\_| \_| |_| |_____/ 
+ * ═════════════════════════════════════════════════════════════
  * 
  * TEAM 7221 - REEFSCAPE 2025 - MASTER CONSTANTS FILE
  * 
@@ -16,7 +15,7 @@
  * these values to absolute perfection!
  * 
  * Last Updated: March 2025
- * Coded by paysean - 
+ * Coded by paysean
  */
 
 package frc.robot;
@@ -32,9 +31,9 @@ import edu.wpi.first.math.util.Units;
  * completely change robot behavior.
  */
 public final class Constants {
-    //------------------------------------------
+    //----
     // PHYSICAL ROBOT DIMENSIONS
-    //------------------------------------------
+    //----
     
     // DRIVETRAIN DIMENSIONS
     public static final double WHEEL_DIAMETER = Units.inchesToMeters(6); // 6-inch wheels in meters
@@ -48,9 +47,9 @@ public final class Constants {
     public static final double ROBOT_HEIGHT = Units.inchesToMeters(24); // Base height without mechanisms
     public static final double ARM_MAX_REACH = Units.inchesToMeters(18); // Maximum extension of arm
     
-    //------------------------------------------
+    //----
     // MOTOR & SENSOR IDs
-    //------------------------------------------
+    //----
     
     // DRIVETRAIN MOTORS (SPARK MAX CAN IDs)
     public static final int LEFT_FRONT_DRIVE_MOTOR_ID = 1;
@@ -77,15 +76,20 @@ public final class Constants {
     public static final int PRESSURE_SENSOR_PORT = 0; // Pressure sensor for pneumatics
     public static final int BATTERY_MONITOR_PORT = 1; // External battery voltage monitor
     
-    //------------------------------------------
+    //----
     // USB PORTS FOR CONTROLLERS
-    //------------------------------------------
+    //----
     public static final int CONTROLLER_USB_PORT_ID = 0; // Driver controller
     public static final int OPERATOR_CONTROLLER_USB_PORT_ID = 1; // Operator controller
     
-    //------------------------------------------
+    // CONTROLLER AXIS IDs
+    public static final int LEFT_VERTICAL_JOYSTICK_AXIS = 1; // Left Y axis
+    public static final int RIGHT_HORIZONTAL_JOYSTICK_AXIS = 4; // Right X axis
+    public static final double JOYSTICK_DEADBAND = 0.1; // Ignore inputs below this value
+    
+    //----
     // DRIVE SETTINGS - TUNED FOR 16:1 RATIO!
-    //------------------------------------------
+    //----
     
     // HARDWARE CONFIG
     public static final double DRIVE_GEAR_RATIO = 16.0; // 16:1 ratio for MAXIMUM TORQUE!
@@ -97,102 +101,68 @@ public final class Constants {
     // SPEED SETTINGS - CAREFULLY TUNED!
     public static final double DRIVE_NORMAL_SPEED = 0.85; // 85% power in normal mode
     public static final double DRIVE_TURBO_SPEED = 1.0; // 100% POWER - USE WITH CAUTION!
-    public static final double DRIVE_PRECISION_SPEED = 0.35; // 35% power for fine control
-    public static final double MAX_SAFE_SPEED = 2.5; // Max speed in meters per second
+    public static final double DRIVE_PRECISION_SPEED = 0.5; // 50% power for fine control
+    public static final double DRIVE_AUTONOMOUS_SPEED = 0.7; // 70% power for autonomous
     
-    // SLEW RATE LIMITERS - FOR SMOOTH ACCELERATION
-    public static final double THROTTLE_SLEW_RATE = 3.5; // How quickly we accelerate (higher = faster)
-    public static final double TURN_SLEW_RATE = 3.25; // How quickly turning response changes
+    // RAMP RATES - PREVENTS BROWNOUTS & WHEELIES
+    public static final double OPEN_LOOP_RAMP_RATE = 0.2; // 200ms ramp to full power (teleop)
+    public static final double CLOSED_LOOP_RAMP_RATE = 0.1; // 100ms ramp to full power (autonomous)
     
-    // DRIVE PID CONSTANTS
-    public static final double DRIVE_KP = 0.03; // Proportional gain
-    public static final double DRIVE_KI = 0.0; // Integral gain
-    public static final double DRIVE_KD = 0.001; // Derivative gain
-    public static final double DRIVE_KF = 0.045; // Feed-forward gain
+    // VOLTAGE COMPENSATION - Keeps behavior consistent as battery drains
+    public static final double VOLTAGE_COMPENSATION = 11.0; // Set to 11V for consistent performance
     
-    // DRIVE DEADBANDS
-    public static final double JOYSTICK_DEADBAND = 0.05; // Ignore small joystick movements
+    //----
+    // BALL ARM SYSTEM SETTINGS
+    //----
     
-    //------------------------------------------
-    // BALL ARM SETTINGS
-    //------------------------------------------
+    // ARM CONFIGURATION
+    public static final boolean BALL_ARM_EXTENSION_MOTOR_INVERTED = false; // Direction of extension
+    public static final boolean BALL_GRIPPER_MOTOR_INVERTED = false; // Direction of gripper
     
-    // HARDWARE CONFIG 
-    public static final boolean BALL_ARM_EXTENSION_MOTOR_INVERTED = false;
-    public static final boolean BALL_GRIPPER_MOTOR_INVERTED = true;
+    // ARM POSITION LIMITS
+    public static final double BALL_ARM_MIN_POSITION = 0.0; // Fully retracted
+    public static final double BALL_ARM_MAX_POSITION = 6.0; // Fully extended
+    public static final double BALL_ARM_HOME_POSITION = 0.1; // Safe home position
+    public static final double BALL_ARM_PICKUP_POSITION = 3.0; // Position for floor pickup
+    public static final double BALL_ARM_SCORE_POSITION = 5.5; // Position for scoring
     
-    // ARM CONTROL CONSTANTS
-    public static final double BALL_ARM_KP = 0.08; // Proportional gain for position control
-    public static final double BALL_ARM_KI = 0.0; // Integral gain (not used)
-    public static final double BALL_ARM_KD = 0.001; // Derivative gain for damping
-    public static final double BALL_ARM_KF = 0.03; // Feed-forward to overcome friction
-    public static final double BALL_ARM_MAX_SPEED = 0.7; // Maximum speed (0.0-1.0)
-    public static final double BALL_ARM_STALL_CURRENT_THRESHOLD = 25.0; // Current limit in amps
+    // ARM SPEED & POWER SETTINGS
+    public static final double BALL_ARM_MAX_SPEED = 0.7; // Maximum arm extension speed
+    public static final double BALL_ARM_STALL_CURRENT_THRESHOLD = 25.0; // Amps, warning threshold
     
-    // ARM POSITIONS (in encoder units)
-    public static final double BALL_ARM_HOME_POSITION = 0.0; // Fully retracted
-    public static final double BALL_ARM_PICKUP_POSITION = 8.0; // Extended for pickup
-    public static final double BALL_ARM_SCORE_POSITION = 14.0; // Fully extended for scoring
-    public static final double BALL_ARM_MIN_POSITION = -0.5; // Safety margin for retraction
-    public static final double BALL_ARM_MAX_POSITION = 15.0; // Safety limit for extension
+    // ARM PID CONTROL - TUNED FOR 16:1 GEARBOX
+    public static final double BALL_ARM_KP = 0.1; // Proportional gain
+    public static final double BALL_ARM_KI = 0.0; // Integral gain
+    public static final double BALL_ARM_KD = 0.0; // Derivative gain
+    public static final double BALL_ARM_KF = 0.0; // Feed-forward gain
     
     // GRIPPER SETTINGS
-    public static final double BALL_GRIPPER_INTAKE_SPEED = 0.85; // Speed for ball intake
-    public static final double BALL_GRIPPER_HOLD_SPEED = 0.2; // Speed to maintain grip
-    public static final double BALL_GRIPPER_RELEASE_SPEED = -0.7; // Speed for ball release
+    public static final double BALL_GRIPPER_INTAKE_SPEED = 0.8; // Speed for intaking balls
+    public static final double BALL_GRIPPER_HOLD_SPEED = 0.2; // Speed to hold balls securely
+    public static final double BALL_GRIPPER_RELEASE_SPEED = -1.0; // Speed to eject balls
     
-    // SENSOR THRESHOLDS
-    public static final double BALL_DETECTION_THRESHOLD_INCHES = 2.0; // Ultrasonic threshold
+    // DETECTION SETTINGS
+    public static final double BALL_DETECTION_THRESHOLD_INCHES = 2.0; // Ultrasonic detection distance
     
-    //------------------------------------------
+    //----
     // HOOK SYSTEM SETTINGS
-    //------------------------------------------
+    //----
     
-    // HARDWARE CONFIG
-    public static final boolean HOOK_MOTOR_INVERTED = false; // Motor direction
+    // HOOK MOTOR SETTINGS
+    public static final boolean HOOK_MOTOR_INVERTED = false; // Direction of extension
+    public static final double HOOK_EXTEND_SPEED = 0.7; // Speed for extending hook
+    public static final double HOOK_RETRACT_SPEED = -0.7; // Speed for retracting hook
     
-    // HOOK CONTROL SPEEDS
-    public static final double HOOK_EXTEND_MIN_SPEED = 0.2; // Starting speed
-    public static final double HOOK_EXTEND_MAX_SPEED = 0.7; // Max extension speed
-    public static final double HOOK_RETRACT_SPEED = 0.5; // Retraction speed
+    // HOOK POSITION LIMITS
+    public static final double HOOK_EXTENSION_TIMEOUT = 3.0; // Maximum seconds for extension
+    public static final double HOOK_RETRACTION_TIMEOUT = 3.0; // Maximum seconds for retraction
     
-    // SAFETY LIMITS
-    public static final double HOOK_MAX_CURRENT = 15.0; // Current threshold for safety cutoff (amps)
+    //----
+    // AUTONOMOUS SETTINGS
+    //----
     
-    //------------------------------------------
-    // CONTROLLER MAPPING
-    //------------------------------------------
-    
-    // JOYSTICK AXES
-    public static final int RIGHT_VERTICAL_JOYSTICK_AXIS = 5;
-    public static final int RIGHT_HORIZONTAL_JOYSTICK_AXIS = 4;
-    public static final int LEFT_VERTICAL_JOYSTICK_AXIS = 1;
-    public static final int LEFT_HORIZONTAL_JOYSTICK_AXIS = 0;
-    public static final int LEFT_TRIGGER_AXIS = 2;
-    public static final int RIGHT_TRIGGER_AXIS = 3;
-    
-    // CONTROLLER BUTTONS - XBOX MAPPING
-    public static final int A_BUTTON = 1; // Bottom button
-    public static final int B_BUTTON = 2; // Right button
-    public static final int X_BUTTON = 3; // Left button
-    public static final int Y_BUTTON = 4; // Top button
-    public static final int LEFT_BUMPER = 5;
-    public static final int RIGHT_BUMPER = 6;
-    public static final int BACK_BUTTON = 7;
-    public static final int START_BUTTON = 8;
-    public static final int LEFT_STICK_BUTTON = 9;
-    public static final int RIGHT_STICK_BUTTON = 10;
-    
-    //------------------------------------------
-    // AUTONOMOUS CONSTANTS
-    //------------------------------------------
-    
-    // PATH FOLLOWING
-    public static final double AUTO_MAX_VELOCITY = 1.5; // m/s
-    public static final double AUTO_MAX_ACCELERATION = 1.0; // m/s²
-    
-    // AUTO TIMEOUTS
-    public static final double AUTO_DEFAULT_TIMEOUT = 5.0; // Default timeout in seconds
+    // AUTONOMOUS TIMING
+    public static final double AUTO_DEFAULT_TIMEOUT = 5.0; // Default timeout for commands
     public static final double AUTO_SHORT_TIMEOUT = 2.0; // Short timeout for quick movements
     public static final double AUTO_LONG_TIMEOUT = 10.0; // Long timeout for complex actions
     
@@ -216,9 +186,9 @@ public final class Constants {
     public static final double kMAX_ANGULAR_SPEED_RADIANS_PER_SECOND = 1.8*Math.PI; // Reduced for 16:1
     public static final double kMAX_ANGULAR_ACCELERATION_RADIANS_PER_SECOND_SQUARED = 1.8*Math.PI;
     
-    //------------------------------------------
+    //----
     // VISION SYSTEM SETTINGS
-    //------------------------------------------
+    //----
     
     // TRACKING CONSTANTS
     public static final double TRACKED_TAG_ROATION_KP = 0.015;
@@ -237,9 +207,9 @@ public final class Constants {
     public static final double CAMERA_FOV = 68.5;
     public static final int CAMERA_FPS = 30;
     
-    //------------------------------------------
+    //----
     // PERFORMANCE MONITORING
-    //------------------------------------------
+    //----
     
     // BATTERY MANAGEMENT
     public static final double BATTERY_BROWNOUT_THRESHOLD = 7.0; // Volts
@@ -254,9 +224,9 @@ public final class Constants {
     public static final double TARGET_LOOP_TIME = 0.02; // 20ms (50Hz)
     public static final double LOOP_TIME_WARNING = 0.025; // 25ms (warn if loop takes too long)
     
-    //------------------------------------------
+    //----
     // COMPETITION STRATEGY SETTINGS
-    //------------------------------------------
+    //----
     
     // GAME PIECE COLLECTION
     public static final int BALL_COLLECTION_PRIORITY = 1; // High priority
@@ -271,9 +241,9 @@ public final class Constants {
     public static final double DEFENSE_SPEED_MULTIPLIER = 0.8; // 80% speed when playing defense
     public static final double DEFENSIVE_POSITION_TOLERANCE = 0.3; // Meters - positioning accuracy
     
-    //------------------------------------------
+    //----
     // SYSTEM STATUS CODES
-    //------------------------------------------
+    //----
     
     // Status codes for system health monitoring
     public static final int STATUS_OK = 0;
