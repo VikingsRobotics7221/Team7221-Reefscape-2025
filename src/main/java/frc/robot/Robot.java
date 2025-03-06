@@ -1,4 +1,30 @@
-// src/main/java/frc/robot/Robot.java
+/*
+ * ═══════════════════════════════════════════════════════════════
+ *          TEAM 7221 - THE VIKINGS - REEFSCAPE 2025
+ * ═══════════════════════════════════════════════════════════════
+ *                      __/\__                                   
+ *                     /      \                               
+ *                    |  ROBOT |                            
+ *                  __|        |__                             
+ *                 /   \______/   \                              
+ *                 |    |    |    |                             
+ *                 |   O|    |O   |                             
+ *                /|    |____|    |\                            
+ *               / |            | \                           
+ *              /__|____________|__\                             
+ *             /___________________\                  
+ * ═══════════════════════════════════════════════════════════════
+ *
+ * Robot.java - Primary robot control and initialization class
+ * 
+ * This is THE BRAIN of our robot! It initializes all subsystems,
+ * handles command scheduling, and manages all the robot lifecycle events.
+ * Our drawer slide arm with NEO + 16:1 gearbox is ready for action!
+ * 
+ * Last modified: March 2025
+ * Principal engineer: paysean
+ */
+
 package frc.robot;
 
 import edu.wpi.first.wpilibj.TimedRobot;
@@ -14,83 +40,88 @@ import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
+import edu.wpi.first.wpilibj2.command.WaitCommand;
 
-// Import our commands
+// Import commands
 import frc.robot.commands.BallControlCommands;
 import frc.robot.commands.BallTrackingCommand;
 import frc.robot.commands.hook.HookCommands;
 
-// Import our autonomous routines
+// Import autonomous routines
 import frc.robot.commands.autonomous.StrategicBallHuntAuto;
 import frc.robot.commands.autonomous.DefensiveHoardingAuto;
 import frc.robot.commands.autonomous.ReefscapeAuto;
 import frc.robot.commands.autonomous.basic_path_planning.Drivetrain_GyroStraight;
 import frc.robot.commands.autonomous.basic_path_planning.Drivetrain_GyroTurn;
 
-// Import our subsystems
+// Import subsystems
 import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.subsystems.BallArmSubsystem;
 import frc.robot.subsystems.VisionSubsystem;
 import frc.robot.subsystems.HookSubsystem;
 
-// Import our utility classes
+// Import utilities
 import frc.robot.utils.MotorSafetyMonitor;
 import frc.robot.utils.PerformanceDashboard;
 
 /**
- * THE MIND OF TEAM 7221's REEFSCAPE ROBOT!!
+ * Robot Control System - Core control class for Team 7221's Reefscape 2025 robot
  * 
- * This class is the CORE of our robot code - it initializes all subsystems,
- * handles command scheduling, and manages driver inputs. Our 16:1 drive ratio
- * combined with precise ball control will DOMINATE the competition!
+ * This class implements a command-based architecture that separates control logic from
+ * hardware implementation. It coordinates all subsystems and provides the autonomous
+ * and teleop mode behaviors.
  * 
- * coded by paysean - Team 7221 Viking Code Warrior
- * Last updated: March 2025
+ * Key features:
+ * - Drawer slide arm with NEO + 16:1 gearbox for ball control
+ * - Tank drive with optimized control for pushing power
+ * - Vision-based tracking for autonomous ball acquisition
+ * - Hook deployment system for endgame scoring
  */
 public class Robot extends TimedRobot {
 
-    // Autonomous command tracking
+    // Autonomous command management
     private Command m_autonomousCommand;
     private final SendableChooser<Command> m_autonChooser = new SendableChooser<>();
 
-    // Manual drive override flag
-    public static boolean manualDriveControl = true;
+    // Operating modes
+    private boolean manualDriveControl = true;
+    private boolean m_turboModeEnabled = false;
+    private boolean m_precisionModeEnabled = false;
 
-    // CONTROLLERS - THE DRIVER INTERFACE!!
+    // Control interfaces
     public static final XboxController driveController = new XboxController(Constants.CONTROLLER_USB_PORT_ID);
     public static final XboxController operatorController = new XboxController(Constants.OPERATOR_CONTROLLER_USB_PORT_ID);
 
-    // SUBSYSTEMS - THE MUSCLES AND ORGANS!!
+    // Subsystem initialization
     public static final DriveSubsystem m_driveSubsystem = new DriveSubsystem();
     public static final BallArmSubsystem m_ballArmSubsystem = new BallArmSubsystem();
     public static final VisionSubsystem m_visionSubsystem = new VisionSubsystem();
     public static final HookSubsystem m_hookSubsystem = new HookSubsystem();
     
-    // State tracking variables
+    // State tracking
     private double m_goalAngle = 0.0;
-    private boolean m_turboModeEnabled = false;
-    private boolean m_precisionModeEnabled = false;
     private int m_loopCounter = 0;
 
     @Override
     public void robotInit() {
-        // Boot up message - GET HYPED!!
-        System.out.println("");
-        System.out.println("╔════════════════════════════════════════════════════════╗");
-        System.out.println("║     TEAM 7221 - THE VIKINGS - REEFSCAPE 2025 ROBOT     ║");
-        System.out.println("║ SYSTEMS ONLINE - BALL TRACKING ACTIVE - 16:1 OPTIMIZED ║");
-        System.out.println("║           PREPARE FOR TOTAL DOMINATION!!!              ║");
-        System.out.println("╚════════════════════════════════════════════════════════╝");
-        System.out.println("");
+        // System startup notification
+        System.out.println("\n" +
+            "╔════════════════════════════════════════════════╗\n" +
+            "║     TEAM 7221 - THE VIKINGS - REEFSCAPE 2025   ║\n" +
+            "║     ALL SYSTEMS ONLINE - PREPARED TO DOMINATE  ║\n" +
+            "║     NEO + 16:1 GEARBOX ARM SYSTEM ACTIVATED    ║\n" +
+            "╚════════════════════════════════════════════════╝"
+        );
         
-        // Initialize our utility monitoring systems
+        // Initialize monitoring systems
         MotorSafetyMonitor.initialize();
-        PerformanceDashboard.initialize(false);  // Start in non-verbose mode
+        PerformanceDashboard.initialize(false);  // Non-verbose mode
         
-        // Register all motors for safety monitoring
+        // Register motors for safety monitoring
         MotorSafetyMonitor.registerMotor(m_driveSubsystem.getLeftFrontMotor(), "LeftFront");
         MotorSafetyMonitor.registerMotor(m_driveSubsystem.getRightFrontMotor(), "RightFront");
         MotorSafetyMonitor.registerMotor(m_driveSubsystem.getLeftBackMotor(), "LeftBack");
@@ -99,254 +130,60 @@ public class Robot extends TimedRobot {
         MotorSafetyMonitor.registerMotor(m_ballArmSubsystem.getGripperMotor(), "Gripper");
         MotorSafetyMonitor.registerMotor(m_hookSubsystem.getHookMotor(), "Hook");
 
-        // Configure button bindings for teleop
+        // Configure control bindings
         configureButtonBindings();
         
-        // Setup autonomous chooser with our ULTIMATE autonomous routines
-        m_autonChooser.setDefaultOption("Do Nothing", new InstantCommand());
-        m_autonChooser.addOption("Strategic Ball Hunt (THE BEST!)", new StrategicBallHuntAuto());
+        // Configure autonomous modes
+        m_autonChooser.setDefaultOption("No Action", new InstantCommand());
+        m_autonChooser.addOption("Strategic Ball Hunt", new StrategicBallHuntAuto());
         m_autonChooser.addOption("Defensive Hoarding", new DefensiveHoardingAuto());
-        m_autonChooser.addOption("Standard Reefscape Auto", new ReefscapeAuto());
-        m_autonChooser.addOption("Simple Drive Forward", createSimpleDriveForward());
-        m_autonChooser.addOption("Test Square Pattern", createSquareTestPattern());
+        m_autonChooser.addOption("Reefscape Optimized", new ReefscapeAuto());
+        m_autonChooser.addOption("Drive Forward 1m", new Drivetrain_GyroStraight(1.0, 0.6));
+        m_autonChooser.addOption("Test Square Pattern", createSquareTestAuto());
         
-        SmartDashboard.putData("AUTO MODE SELECTOR", m_autonChooser);
-
-        // Zero gyro and reset encoders for a clean slate
-        m_driveSubsystem.zeroGyro();
-        m_driveSubsystem.resetEncoders();
+        // Register autonomous chooser with dashboard
+        SmartDashboard.putData("Autonomous Mode", m_autonChooser);
         
-        // Set up default commands
+        // Set up default commands for subsystems
         setDefaultCommands();
         
-        // Dashboard info - SHOW OFF OUR AWESOME ROBOT!
-        SmartDashboard.putString("Robot Name", "Team 7221 Viking Reefscape Dominator");
-        SmartDashboard.putString("Drive Ratio", "16:1 MAXIMUM TORQUE!");
-        SmartDashboard.putString("Status", "READY TO DESTROY COMPETITION!");
+        // Initial setup for sensors and systems
+        m_driveSubsystem.resetEncoders();
+        m_driveSubsystem.zeroGyro();
+        m_visionSubsystem.setPipeline(0); // Set to ball tracking by default
+        
+        // Dashboard information
+        SmartDashboard.putString("Robot Name", "Team 7221 Viking Reefscape Robot");
+        SmartDashboard.putString("Arm System", "NEO + 16:1 Gearbox Drawer Slide");
+        SmartDashboard.putString("Status", "READY TO CONQUER THE FIELD!");
     }
 
     /**
-     * Set up the default commands for each subsystem
-     * These run when no other commands are scheduled for that subsystem
-     */
-    private void setDefaultCommands() {
-        // Set default drive command to arcade drive with controller inputs
-        m_driveSubsystem.setDefaultCommand(
-            new RunCommand(
-                () -> {
-                    if (manualDriveControl) {
-                        // Start performance timing for drive loop
-                        PerformanceDashboard.startTimer("DriveLoop");
-                        
-                        // Get joystick inputs
-                        double throttle = -driveController.getRawAxis(Constants.LEFT_VERTICAL_JOYSTICK_AXIS);
-                        double turn = -driveController.getRawAxis(Constants.RIGHT_HORIZONTAL_JOYSTICK_AXIS);
-                        
-                        // Apply deadband to prevent drift
-                        throttle = Math.abs(throttle) < Constants.JOYSTICK_DEADBAND ? 0 : throttle;
-                        turn = Math.abs(turn) < Constants.JOYSTICK_DEADBAND ? 0 : turn;
-                        
-                        // Apply speed limiters based on drive mode
-                        if (m_turboModeEnabled) {
-                            // TURBO MODE = FULL POWER!!
-                            // No limiting in turbo mode - use with caution!
-                        } else if (m_precisionModeEnabled) {
-                            throttle *= Constants.DRIVE_PRECISION_SPEED; // Reduced speed in precision mode
-                            turn *= Constants.DRIVE_PRECISION_SPEED * 0.8; // Even slower turning for precision
-                        } else {
-                            throttle *= Constants.DRIVE_NORMAL_SPEED; // Normal mode = 85% power
-                            turn *= Constants.DRIVE_NORMAL_SPEED * 0.7; // Slightly reduced turning
-                        }
-                        
-                        // Send commands to the drivetrain
-                        m_driveSubsystem.arcadeDrive(throttle, turn);
-                        
-                        // End performance timing
-                        PerformanceDashboard.stopTimer("DriveLoop");
-                    }
-                },
-                m_driveSubsystem
-            )
-        );
-        
-        // Set manual arm control as default for ball arm
-        m_ballArmSubsystem.setDefaultCommand(
-            new RunCommand(() -> {
-                // Only use operator's left joystick input if it's significant
-                double armSpeed = -operatorController.getRawAxis(Constants.LEFT_VERTICAL_JOYSTICK_AXIS);
-                
-                // Apply deadband and scale
-                if (Math.abs(armSpeed) < 0.1) {
-                    armSpeed = 0;
-                } else {
-                    // Scale to safe speed limit
-                    armSpeed *= Constants.BALL_ARM_MAX_SPEED;
-                }
-                
-                m_ballArmSubsystem.moveArm(armSpeed);
-            }, m_ballArmSubsystem)
-        );
-    }
-
-    @Override
-    public void robotPeriodic() {
-        // Run the command scheduler - THE HEARTBEAT OF OUR ROBOT!
-        CommandScheduler.getInstance().run();
-        
-        // Start performance tracking for this loop
-        PerformanceDashboard.startLoopTiming();
-        
-        // Increment loop counter (for periodic tasks)
-        m_loopCounter++;
-        
-        // Update motor safety status every 10 loops (reduces CPU usage)
-        if (m_loopCounter % 10 == 0) {
-            MotorSafetyMonitor.updateAll();
-        }
-        
-        // Log sensor data to SmartDashboard (every 5 loops)
-        if (m_loopCounter % 5 == 0) {
-            // Gyro data
-            SmartDashboard.putNumber("Gyro Angle", m_driveSubsystem.getGyroAngle());
-            SmartDashboard.putNumber("Gyroscope Yaw", m_driveSubsystem.getYaw());
-            
-            // Battery voltage - CRITICAL FOR COMP!
-            SmartDashboard.putNumber("Battery Voltage", RobotController.getBatteryVoltage());
-            
-            // Distance traveled
-            SmartDashboard.putNumber("Distance Traveled", m_driveSubsystem.getTotalDistance());
-            
-            // Camera status
-            SmartDashboard.putBoolean("Target Visible", m_visionSubsystem.getHasTarget());
-            if (m_visionSubsystem.getHasTarget()) {
-                SmartDashboard.putNumber("Target Distance", m_visionSubsystem.getTargetDistance());
-            }
-        }
-        
-        // Generate performance report once per second
-        if (m_loopCounter % 50 == 0) {
-            // Calculate CPU load and other performance metrics
-            double loopTimeMs = PerformanceDashboard.stopTimer("RobotPeriodic") * 1000.0;
-            SmartDashboard.putNumber("CPU Loop Time (ms)", loopTimeMs);
-        }
-        
-        // End performance tracking
-        PerformanceDashboard.endLoopTiming();
-    }
-
-    @Override
-    public void disabledInit() {
-        System.out.println(">> ROBOT DISABLED");
-        System.out.println(">> Performance Report:");
-        System.out.println(PerformanceDashboard.getPerformanceReport());
-    }
-
-    @Override
-    public void autonomousInit() {
-        System.out.println("");
-        System.out.println("╔═══════════════════════════════════════╗");
-        System.out.println("║       AUTONOMOUS MODE ACTIVATED       ║");
-        System.out.println("║ TEAM 7221 TAKING CONTROL OF THE FIELD ║");
-        System.out.println("╚═══════════════════════════════════════╝");
-        System.out.println("");
-
-        // Get selected autonomous routine
-        m_autonomousCommand = m_autonChooser.getSelected();
-        
-        // Reset all sensors for accurate autonomous
-        m_driveSubsystem.zeroGyro();
-        m_driveSubsystem.resetEncoders();
-        
-        // Reset performance metrics for monitoring
-        PerformanceDashboard.reset();
-
-        // Start the autonomous command if we have one!
-        if (m_autonomousCommand != null) {
-            m_autonomousCommand.schedule();
-        }
-    }
-
-    @Override
-    public void teleopInit() {
-        System.out.println("");
-        System.out.println("╔═══════════════════════════════════════╗");
-        System.out.println("║         TELEOP MODE ACTIVATED         ║");
-        System.out.println("║ DRIVER CONTROL ENABLED - LET'S DOMINATE!║");
-        System.out.println("╚═══════════════════════════════════════╝");
-        System.out.println("");
-
-        // Cancel autonomous when teleop starts
-        if (m_autonomousCommand != null) {
-            m_autonomousCommand.cancel();
-        }
-
-        // Reset sensors for clean teleop control
-        m_driveSubsystem.zeroGyro();
-        m_driveSubsystem.resetEncoders();
-        
-        // Get alliance color for dashboard display
-        Optional<Alliance> ally = DriverStation.getAlliance();
-        if (ally.isPresent()) {
-            if (ally.get() == Alliance.Red) {
-                System.out.println(">> RED ALLIANCE - TARGET BLUE BALLS FIRST");
-                SmartDashboard.putString("Alliance", "RED");
-            } else {
-                System.out.println(">> BLUE ALLIANCE - TARGET RED BALLS FIRST");
-                SmartDashboard.putString("Alliance", "BLUE");
-            }
-        }
-
-        // Store initial angle for drift correction
-        m_goalAngle = m_driveSubsystem.getGyroAngle();
-        
-        // Reset drive modes
-        m_turboModeEnabled = false;
-        m_precisionModeEnabled = false;
-        m_driveSubsystem.disableDriveModes();
-        
-        // Enable manual drive control
-        manualDriveControl = true;
-        
-        // Reset performance tracking for teleop session
-        PerformanceDashboard.reset();
-    }
-
-    @Override
-    public void teleopPeriodic() {
-        // Monitor controller inputs for debugging
-        SmartDashboard.putNumber("Left Y", driveController.getRawAxis(Constants.LEFT_VERTICAL_JOYSTICK_AXIS));
-        SmartDashboard.putNumber("Right X", driveController.getRawAxis(Constants.RIGHT_HORIZONTAL_JOYSTICK_AXIS));
-        
-        // Update drive goal angle for assisted driving when turning
-        if (Math.abs(driveController.getRawAxis(Constants.RIGHT_HORIZONTAL_JOYSTICK_AXIS)) > 0.1) {
-            m_goalAngle = m_driveSubsystem.getGyroAngle();
-        }
-    }
-
-    @Override
-    public void testInit() {
-        // Cancel all commands for safety when entering test mode
-        CommandScheduler.getInstance().cancelAll();
-        System.out.println(">> TEST MODE STARTED");
-        
-        // Reset performance tracking for test session
-        PerformanceDashboard.reset();
-    }
-
-    /**
-     * Configure button bindings for teleop control
-     * ALL THE AWESOME CONTROLS THAT MAKE OUR ROBOT SHINE!
+     * Configure controller button bindings
+     * Maps driver and operator controls to robot functions
      */
     private void configureButtonBindings() {
-        // ===== DRIVER CONTROLS (MOVEMENT) =====
+        // DRIVER CONTROLS - Primary movement and drive modes
         
-        // TURBO MODE - Right bumper for MAXIMUM POWER!
-        new Trigger(() -> driveController.getRightBumper())
+        // A = Precision mode (50% power for fine control)
+        new Trigger(() -> driveController.getAButton())
+            .onTrue(new InstantCommand(() -> {
+                m_precisionModeEnabled = true;
+                m_driveSubsystem.enablePrecisionMode();
+                System.out.println(">> PRECISION MODE ACTIVATED");
+            }))
+            .onFalse(new InstantCommand(() -> {
+                m_precisionModeEnabled = false;
+                m_driveSubsystem.disableDriveModes();
+                System.out.println(">> PRECISION MODE DEACTIVATED");
+            }));
+            
+        // B = Turbo mode (100% power for maximum speed)
+        new Trigger(() -> driveController.getBButton())
             .onTrue(new InstantCommand(() -> {
                 m_turboModeEnabled = true;
-                m_precisionModeEnabled = false;
                 m_driveSubsystem.enableTurboMode();
-                System.out.println(">> TURBO MODE ACTIVATED! MAXIMUM POWER!!!");
+                System.out.println(">> TURBO MODE ACTIVATED");
             }))
             .onFalse(new InstantCommand(() -> {
                 m_turboModeEnabled = false;
@@ -354,31 +191,17 @@ public class Robot extends TimedRobot {
                 System.out.println(">> TURBO MODE DEACTIVATED");
             }));
         
-        // PRECISION MODE - Left bumper for fine control
-        new Trigger(() -> driveController.getLeftBumper())
-            .onTrue(new InstantCommand(() -> {
-                m_precisionModeEnabled = true;
-                m_turboModeEnabled = false;
-                m_driveSubsystem.enablePrecisionMode();
-                System.out.println(">> PRECISION MODE ACTIVATED! Fine control enabled.");
-            }))
-            .onFalse(new InstantCommand(() -> {
-                m_precisionModeEnabled = false;
-                m_driveSubsystem.disableDriveModes();
-                System.out.println(">> PRECISION MODE DEACTIVATED");
-            }));
-        
-        // Quick turn buttons (for fast 90° turns)
+        // Quick turn buttons
+        new Trigger(() -> driveController.getXButton())
+            .onTrue(new Drivetrain_GyroTurn(-90)
+                .beforeStarting(() -> System.out.println(">> QUICK TURN LEFT 90°")));
+                
         new Trigger(() -> driveController.getYButton())
             .onTrue(new Drivetrain_GyroTurn(90)
                 .beforeStarting(() -> System.out.println(">> QUICK TURN RIGHT 90°")));
         
-        new Trigger(() -> driveController.getXButton())
-            .onTrue(new Drivetrain_GyroTurn(-90)
-                .beforeStarting(() -> System.out.println(">> QUICK TURN LEFT 90°")));
-        
-        // Emergency stop - Back + Start buttons together
-        new Trigger(() -> driveController.getBackButton() && driveController.getStartButton())
+        // Emergency stop - Both bumpers simultaneously
+        new Trigger(() -> driveController.getLeftBumper() && driveController.getRightBumper())
             .onTrue(new InstantCommand(() -> {
                 m_driveSubsystem.stop();
                 m_ballArmSubsystem.emergencyStop();
@@ -386,121 +209,264 @@ public class Robot extends TimedRobot {
                 System.out.println("!!! EMERGENCY STOP ACTIVATED !!!");
             }));
         
-        // ===== OPERATOR CONTROLS (MECHANISMS) =====
+        // OPERATOR CONTROLS - Mechanism control
         
-        // BALL ARM CONTROLS
-        
-        // A Button - Ball Pickup Sequence
+        // Ball arm control - A = Pickup position
         new Trigger(() -> operatorController.getAButton())
             .onTrue(new BallControlCommands.PickupSequence(m_ballArmSubsystem));
-        
-        // Y Button - Ball Score Sequence
-        new Trigger(() -> operatorController.getYButton())
-            .onTrue(new BallControlCommands.ScoreSequence(m_ballArmSubsystem));
-        
-        // B Button - Return arm to home position
+            
+        // B = Home position
         new Trigger(() -> operatorController.getBButton())
             .onTrue(new InstantCommand(() -> m_ballArmSubsystem.homeArm()));
-        
-        // X Button - Auto Ball Tracking (SUPER COOL FEATURE!!!)
+            
+        // Y = Score position
+        new Trigger(() -> operatorController.getYButton())
+            .onTrue(new BallControlCommands.ScoreSequence(m_ballArmSubsystem));
+            
+        // X = Auto ball tracking
         new Trigger(() -> operatorController.getXButton())
             .onTrue(new BallTrackingCommand());
         
-        // Manual Gripper Control with Triggers
+        // Gripper control with triggers
         new Trigger(() -> operatorController.getRightTriggerAxis() > 0.1)
             .whileTrue(new RunCommand(() -> 
                 m_ballArmSubsystem.setGripper(operatorController.getRightTriggerAxis() * 
-                    Constants.BALL_GRIPPER_INTAKE_SPEED)
-            ));
-        
+                Constants.BALL_GRIPPER_INTAKE_SPEED)
+            ))
+            .onFalse(new InstantCommand(() -> m_ballArmSubsystem.setGripper(0)));
+            
         new Trigger(() -> operatorController.getLeftTriggerAxis() > 0.1)
             .whileTrue(new RunCommand(() -> 
                 m_ballArmSubsystem.setGripper(-operatorController.getLeftTriggerAxis() * 
-                    Constants.BALL_GRIPPER_RELEASE_SPEED)
-            ));
-        
-        // HOOK SYSTEM CONTROLS
-        
-        // Back Button - Extend hook
+                Constants.BALL_GRIPPER_RELEASE_SPEED)
+            ))
+            .onFalse(new InstantCommand(() -> m_ballArmSubsystem.setGripper(0)));
+            
+        // Hook controls
         new Trigger(() -> operatorController.getBackButton())
             .onTrue(new HookCommands.ExtendHookCommand(m_hookSubsystem));
-        
-        // Start Button - Retract hook
+            
         new Trigger(() -> operatorController.getStartButton())
             .onTrue(new HookCommands.RetractHookCommand(m_hookSubsystem));
-        
-        // Right Stick Button - Run full hook cycle (extend, wait, retract)
+            
         new Trigger(() -> operatorController.getRightStickButton())
             .onTrue(new HookCommands.HookCycleCommand(m_hookSubsystem));
-        
-        // VISION SYSTEM CONTROLS
-        
-        // POV Up - Switch to ball tracking pipeline
-        new Trigger(() -> operatorController.getPOV() == 0)
-            .onTrue(new InstantCommand(() -> m_visionSubsystem.setPipeline(0)));
-        
-        // POV Down - Switch to AprilTag pipeline
-        new Trigger(() -> operatorController.getPOV() == 180)
-            .onTrue(new InstantCommand(() -> m_visionSubsystem.setPipeline(1)));
-        
-        // POV Right - Toggle driver camera mode
-        new Trigger(() -> operatorController.getPOV() == 90)
-            .onTrue(new InstantCommand(() -> {
-                boolean current = m_visionSubsystem.getCurrentPipeline() == 2;
-                m_visionSubsystem.setDriverMode(!current);
-            }));
-        
-        // EMERGENCY CONTROLS
-        
-        // Left Bumper + Right Bumper together - Emergency stop all systems
+            
+        // Emergency stop - Both bumpers simultaneously
         new Trigger(() -> operatorController.getLeftBumper() && operatorController.getRightBumper())
             .onTrue(new InstantCommand(() -> {
                 m_ballArmSubsystem.emergencyStop();
                 m_hookSubsystem.emergencyStop();
-                m_driveSubsystem.stop();
-                System.out.println("!!! EMERGENCY STOP ACTIVATED !!!");
+                System.out.println("!!! MECHANISM EMERGENCY STOP ACTIVATED !!!");
             }));
     }
     
     /**
-     * Create a simple drive forward autonomous routine
-     * Good for testing and quick deployment!
-     * 
-     * @return Command for driving forward 1 meter
+     * Set up default commands for subsystems
+     * These commands run when no other command is scheduled
      */
-    private Command createSimpleDriveForward() {
-        return new SequentialCommandGroup(
-            new InstantCommand(() -> {
-                System.out.println(">> Starting Simple Drive Forward");
-                m_driveSubsystem.resetEncoders();
-            }),
-            new Drivetrain_GyroStraight(1.0, 0.4),
-            new InstantCommand(() -> System.out.println(">> Simple Drive Complete!"))
+    private void setDefaultCommands() {
+        // Drive subsystem - Default to arcade drive with controller input
+        m_driveSubsystem.setDefaultCommand(
+            new RunCommand(
+                () -> {
+                    if (manualDriveControl) {
+                        // Get joystick inputs
+                        double throttle = -driveController.getLeftY();  // Forward/back
+                        double turn = driveController.getRightX();      // Turning
+                        
+                        // Apply deadband to eliminate controller drift
+                        throttle = Math.abs(throttle) < Constants.JOYSTICK_DEADBAND ? 0 : throttle;
+                        turn = Math.abs(turn) < Constants.JOYSTICK_DEADBAND ? 0 : turn;
+                        
+                        // Drive the robot with the processed inputs
+                        m_driveSubsystem.arcadeDrive(throttle, turn);
+                    }
+                },
+                m_driveSubsystem
+            )
+        );
+        
+        // Ball arm subsystem - Manual control with operator joystick
+        m_ballArmSubsystem.setDefaultCommand(
+            new RunCommand(
+                () -> {
+                    // Get joystick input for manual arm control
+                    double armMove = -operatorController.getLeftY();
+                    
+                    // Apply deadband
+                    if (Math.abs(armMove) < 0.1) {
+                        armMove = 0;
+                    } else {
+                        // Scale to safe speed
+                        armMove *= Constants.BALL_ARM_MAX_SPEED;
+                    }
+                    
+                    // Move the arm
+                    m_ballArmSubsystem.moveArm(armMove);
+                },
+                m_ballArmSubsystem
+            )
         );
     }
     
     /**
-     * Create a square test pattern autonomous routine
-     * Great for testing turning accuracy and consistency!
+     * Creates a test autonomous routine that drives in a square pattern
+     * Useful for validating control performance
      * 
-     * @return Command for driving in a square pattern
+     * @return Command sequence for square pattern
      */
-    private Command createSquareTestPattern() {
+    private Command createSquareTestAuto() {
         return new SequentialCommandGroup(
-            new InstantCommand(() -> {
-                System.out.println(">> Starting Square Test Pattern");
-                m_driveSubsystem.resetEncoders();
-            }),
-            // Drive in a square pattern: forward, turn, forward, turn, etc.
-            new Drivetrain_GyroStraight(1.0, 0.4),
-            new Drivetrain_GyroTurn(90),
-            new Drivetrain_GyroStraight(1.0, 0.4),
-            new Drivetrain_GyroTurn(90),
-            new Drivetrain_GyroStraight(1.0, 0.4),
-            new Drivetrain_GyroTurn(90),
-            new Drivetrain_GyroStraight(1.0, 0.4),
-            new Drivetrain_GyroTurn(90),
-            new InstantCommand(() -> System.out.println(">> Square Test Complete!"))
+            new InstantCommand(() -> System.out.println(">> BEGINNING SQUARE TEST PATTERN")),
+            
+            // Forward 1m
+            new Drivetrain_GyroStraight(1.0, 0.6),
+            
+            // Turn 90 degrees
+            new Drivetrain_GyroTurn(90.0),
+            
+            // Forward 1m
+            new Drivetrain_GyroStraight(1.0, 0.6),
+            
+            // Turn 90 degrees
+            new Drivetrain_GyroTurn(90.0),
+            
+            // Forward 1m
+            new Drivetrain_GyroStraight(1.0, 0.6),
+            
+            // Turn 90 degrees
+            new Drivetrain_GyroTurn(90.0),
+            
+            // Forward 1m (completing square)
+            new Drivetrain_GyroStraight(1.0, 0.6),
+            
+            // Return to original heading
+            new Drivetrain_GyroTurn(90.0),
+            
+            new InstantCommand(() -> System.out.println(">> SQUARE PATTERN COMPLETE!"))
         );
+    }
+
+    @Override
+    public void robotPeriodic() {
+        CommandScheduler.getInstance().run();
+        
+        // Update dashboard with key information
+        m_loopCounter++;
+        if (m_loopCounter % 10 == 0) {  // Update every 10 loops to reduce CAN bus traffic
+            SmartDashboard.putNumber("Gyro Angle", m_driveSubsystem.getGyroAngle());
+            SmartDashboard.putNumber("Ball Arm Position", m_ballArmSubsystem.getArmPosition());
+            SmartDashboard.putBoolean("Has Ball", m_ballArmSubsystem.hasBall());
+            SmartDashboard.putNumber("Battery Voltage", RobotController.getBatteryVoltage());
+            SmartDashboard.putBoolean("Vision Target", m_visionSubsystem.getHasTarget());
+            SmartDashboard.putBoolean("Hook Extended", m_hookSubsystem.isExtended());
+            SmartDashboard.putBoolean("Hook Retracted", m_hookSubsystem.isRetracted());
+        }
+        
+        // Check for critical battery voltage
+        if (m_loopCounter % 50 == 0) {
+            double voltage = RobotController.getBatteryVoltage();
+            if (voltage < Constants.BATTERY_WARNING_THRESHOLD) {
+                System.out.println(">> WARNING: Low battery voltage: " + voltage + "V");
+            }
+        }
+    }
+
+    @Override
+    public void autonomousInit() {
+        m_autonomousCommand = m_autonChooser.getSelected();
+        
+        // Get alliance information for path planning
+        Optional<Alliance> alliance = DriverStation.getAlliance();
+        boolean isRed = alliance.isPresent() && alliance.get() == Alliance.Red;
+        
+        System.out.println("\n" +
+            "╔════════════════════════════════════════════════╗\n" +
+            "║        AUTONOMOUS MODE INITIALIZED             ║\n" +
+            "║        ALLIANCE: " + (isRed ? "RED" : "BLUE") + "                          ║\n" +
+            "╚════════════════════════════════════════════════╝"
+        );
+        
+        // Reset critical sensors for autonomous
+        m_driveSubsystem.resetEncoders();
+        m_driveSubsystem.zeroGyro();
+        
+        // Execute the autonomous command
+        if (m_autonomousCommand != null) {
+            m_autonomousCommand.schedule();
+        }
+    }
+
+    @Override
+    public void autonomousPeriodic() {
+        // Command scheduler handles this through robotPeriodic()
+    }
+
+    @Override
+    public void teleopInit() {
+        System.out.println("\n" +
+            "╔════════════════════════════════════════════════╗\n" +
+            "║        TELEOP MODE INITIALIZED                 ║\n" +
+            "║        DRIVER CONTROL ACTIVATED                ║\n" +
+            "╚════════════════════════════════════════════════╝"
+        );
+        
+        // Cancel autonomous command if running
+        if (m_autonomousCommand != null) {
+            m_autonomousCommand.cancel();
+        }
+        
+        // Reset drive modes to normal for teleop
+        m_driveSubsystem.disableDriveModes();
+        m_turboModeEnabled = false;
+        m_precisionModeEnabled = false;
+    }
+
+    @Override
+    public void teleopPeriodic() {
+        // Command scheduler handles this through robotPeriodic()
+    }
+
+    @Override
+    public void disabledInit() {
+        System.out.println("\n" +
+            "╔════════════════════════════════════════════════╗\n" +
+            "║        ROBOT DISABLED                          ║\n" +
+            "║        SYSTEMS ON STANDBY                      ║\n" +
+            "╚════════════════════════════════════════════════╝"
+        );
+        
+        // Log performance metrics
+        System.out.println(">> PERFORMANCE SUMMARY:");
+        System.out.println(">> MAX DRIVE CURRENT: " + m_driveSubsystem.getMaxCurrent() + "A");
+        System.out.println(">> TOTAL DISTANCE: " + m_driveSubsystem.getTotalDistance() + "m");
+        System.out.println(">> BATTERY VOLTAGE: " + RobotController.getBatteryVoltage() + "V");
+    }
+
+    @Override
+    public void disabledPeriodic() {
+        // Nothing to do when disabled
+    }
+
+    @Override
+    public void testInit() {
+        CommandScheduler.getInstance().cancelAll();
+        System.out.println("\n>> TEST MODE INITIALIZED\n");
+    }
+
+    @Override
+    public void testPeriodic() {
+        // Test mode code here
+    }
+
+    @Override
+    public void simulationInit() {
+        // Simulation initialization code
+    }
+
+    @Override
+    public void simulationPeriodic() {
+        // Simulation periodic code
     }
 }
