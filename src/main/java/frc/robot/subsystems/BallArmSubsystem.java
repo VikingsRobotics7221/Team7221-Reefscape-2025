@@ -78,24 +78,24 @@ public class BallArmSubsystem extends SubsystemBase {
             "╚════════════════════════════════════════════════╝");
         
         // Initialize extension motor - NEO with 16:1 gearbox
-        m_extensionMotor = new CANSparkMax(Constants.BALL_ARM_EXTENSION_MOTOR_ID, MotorType.kBrushless);
+        m_extensionMotor = new CANSparkMax(Constants.BallArm.EXTENSION_MOTOR_ID, MotorType.kBrushless);
         m_extensionEncoder = m_extensionMotor.getEncoder();
         m_pidController = m_extensionMotor.getPIDController();
         
         // Initialize gripper motor - NEO 550
-        m_gripperMotor = new CANSparkMax(Constants.BALL_GRIPPER_MOTOR_ID, MotorType.kBrushless);
+        m_gripperMotor = new CANSparkMax(Constants.BallArm.GRIPPER_MOTOR_ID, MotorType.kBrushless);
         
         // Configure motor settings
         configureMotors();
         
         // Initialize sensors
-        m_extendedLimitSwitch = new DigitalInput(Constants.BALL_ARM_EXTENDED_LIMIT_PORT);
-        m_retractedLimitSwitch = new DigitalInput(Constants.BALL_ARM_RETRACTED_LIMIT_PORT);
+        m_extendedLimitSwitch = new DigitalInput(Constants.Electrical.BALL_ARM_EXTENDED_LIMIT_PORT);
+        m_retractedLimitSwitch = new DigitalInput(Constants.Electrical.BALL_ARM_RETRACTED_LIMIT_PORT);
         
         // Initialize ultrasonic sensor for ball detection
         m_ballDetector = new Ultrasonic(
-            Constants.BALL_DETECTOR_PING_PORT,
-            Constants.BALL_DETECTOR_ECHO_PORT
+            Constants.Electrical.BALL_DETECTOR_PING_PORT,
+            Constants.Electrical.BALL_DETECTOR_ECHO_PORT
         );
         
         // Enable continuous ultrasonic readings
@@ -130,7 +130,7 @@ public class BallArmSubsystem extends SubsystemBase {
     private void configureMotors() {
         // Configure extension motor (NEO with 16:1 gearbox)
         m_extensionMotor.restoreFactoryDefaults();
-        m_extensionMotor.setInverted(Constants.BALL_ARM_EXTENSION_MOTOR_INVERTED);
+        m_extensionMotor.setInverted(Constants.BallArm.EXTENSION_MOTOR_INVERTED);
         m_extensionMotor.setIdleMode(IdleMode.kBrake); // Brake mode essential for position holding
         m_extensionMotor.setSmartCurrentLimit(30); // 30A limit protects the motor
         m_extensionMotor.enableVoltageCompensation(11.0);
@@ -138,15 +138,15 @@ public class BallArmSubsystem extends SubsystemBase {
         m_extensionMotor.setClosedLoopRampRate(0.1);
         
         // Configure PID controller for position control
-        m_pidController.setP(Constants.BALL_ARM_KP);
-        m_pidController.setI(Constants.BALL_ARM_KI);
-        m_pidController.setD(Constants.BALL_ARM_KD);
-        m_pidController.setFF(Constants.BALL_ARM_KF);
-        m_pidController.setOutputRange(-Constants.BALL_ARM_MAX_SPEED, Constants.BALL_ARM_MAX_SPEED);
+        m_pidController.setP(Constants.BallArm.POSITION_KP);
+        m_pidController.setI(Constants.BallArm.POSITION_KI);
+        m_pidController.setD(Constants.BallArm.POSITION_KD);
+        m_pidController.setFF(Constants.BallArm.POSITION_KF);
+        m_pidController.setOutputRange(-Constants.BallArm.MAX_SPEED, Constants.BallArm.MAX_SPEED);
         
         // Configure gripper motor (NEO 550)
         m_gripperMotor.restoreFactoryDefaults();
-        m_gripperMotor.setInverted(Constants.BALL_GRIPPER_MOTOR_INVERTED);
+        m_gripperMotor.setInverted(Constants.BallArm.GRIPPER_MOTOR_INVERTED);
         m_gripperMotor.setIdleMode(IdleMode.kBrake);
         m_gripperMotor.setSmartCurrentLimit(20); // Lower limit for NEO 550
         m_gripperMotor.enableVoltageCompensation(11.0);
@@ -157,8 +157,8 @@ public class BallArmSubsystem extends SubsystemBase {
         
         System.out.println(">> Motors configured: Extension (NEO 16:1), Gripper (NEO 550)");
         System.out.printf(">> PID values: P=%.4f, I=%.4f, D=%.4f, F=%.4f\n", 
-                          Constants.BALL_ARM_KP, Constants.BALL_ARM_KI, 
-                          Constants.BALL_ARM_KD, Constants.BALL_ARM_KF);
+                          Constants.BallArm.POSITION_KP, Constants.BallArm.POSITION_KI, 
+                          Constants.BallArm.POSITION_KD, Constants.BallArm.POSITION_KF);
     }
     
     /**
@@ -287,7 +287,7 @@ public class BallArmSubsystem extends SubsystemBase {
         double rangeInches = m_ballDetector.getRangeInches();
         
         // Ball detected if distance is below threshold
-        boolean ballDetected = rangeInches < Constants.BALL_DETECTION_THRESHOLD_INCHES;
+        boolean ballDetected = rangeInches < Constants.BallArm.DETECTION_THRESHOLD_INCHES;
         
         // Announce new ball detection without spamming logs
         if (ballDetected && !m_hasBall) {
@@ -310,11 +310,11 @@ public class BallArmSubsystem extends SubsystemBase {
      */
     public void setArmPosition(double targetPosition) {
         // Enforce position limits for safety
-        if (targetPosition < Constants.BALL_ARM_MIN_POSITION) {
-            targetPosition = Constants.BALL_ARM_MIN_POSITION;
+        if (targetPosition < Constants.BallArm.MIN_POSITION) {
+            targetPosition = Constants.BallArm.MIN_POSITION;
             System.out.println(">> Position limited to minimum safe extension");
-        } else if (targetPosition > Constants.BALL_ARM_MAX_POSITION) {
-            targetPosition = Constants.BALL_ARM_MAX_POSITION;
+        } else if (targetPosition > Constants.BallArm.MAX_POSITION) {
+            targetPosition = Constants.BallArm.MAX_POSITION;
             System.out.println(">> Position limited to maximum safe extension");
         }
         
@@ -344,7 +344,7 @@ public class BallArmSubsystem extends SubsystemBase {
      */
     public void homeArm() {
         System.out.println(">> COMMAND: Retracting arm to home position");
-        setArmPosition(Constants.BALL_ARM_HOME_POSITION);
+        setArmPosition(Constants.BallArm.HOME_POSITION);
     }
     
     /**
@@ -353,7 +353,7 @@ public class BallArmSubsystem extends SubsystemBase {
     public void pickupPosition() {
         System.out.println("\n>> COMMAND: Extending arm to floor pickup position");
         System.out.println(">> Ball acquisition sequence initiated\n");
-        setArmPosition(Constants.BALL_ARM_PICKUP_POSITION);
+        setArmPosition(Constants.BallArm.PICKUP_POSITION);
     }
     
     /**
@@ -362,7 +362,7 @@ public class BallArmSubsystem extends SubsystemBase {
     public void scorePosition() {
         System.out.println("\n>> COMMAND: Extending arm to scoring position");
         System.out.println(">> Preparing for ball release\n");
-        setArmPosition(Constants.BALL_ARM_SCORE_POSITION);
+        setArmPosition(Constants.BallArm.SCORE_POSITION);
     }
     
     /**
@@ -371,10 +371,10 @@ public class BallArmSubsystem extends SubsystemBase {
     public void intakeBall() {
         // Run intake at full power if no ball detected
         if (!hasBall()) {
-            setGripper(Constants.BALL_GRIPPER_INTAKE_SPEED);
+            setGripper(Constants.BallArm.GRIPPER_INTAKE_SPEED);
         } else {
             // Reduce to holding speed once ball is secured
-            setGripper(Constants.BALL_GRIPPER_HOLD_SPEED);
+            setGripper(Constants.BallArm.GRIPPER_HOLD_SPEED);
         }
     }
     
@@ -383,7 +383,7 @@ public class BallArmSubsystem extends SubsystemBase {
      */
     public void releaseBall() {
         System.out.println(">> LAUNCHING BALL!");
-        setGripper(Constants.BALL_GRIPPER_RELEASE_SPEED);
+        setGripper(Constants.BallArm.GRIPPER_RELEASE_SPEED);
     }
     
     /**
@@ -419,7 +419,7 @@ public class BallArmSubsystem extends SubsystemBase {
         
         // Check for excessive current draw
         double current = getArmCurrent();
-        if (current > Constants.BALL_ARM_STALL_CURRENT_THRESHOLD) {
+        if (current > Constants.BallArm.STALL_CURRENT_THRESHOLD) {
             // Log warning if sustained high current
             if (now - m_lastStatusTime > 1000) {
                 System.out.println(">> WARNING: High arm current: " + 
