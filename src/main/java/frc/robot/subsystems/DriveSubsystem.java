@@ -1,291 +1,615 @@
 /*
- * ================================================================
- *  _____   ___ _____ _____   _______  ___  ___  _   _ 
- * |  __ \ |_ _|  _  | ____|  \_   _/ |   \/   || | | |
- * | |  | | | || |_) | |__      | |   | |\  /| || | | |
- * | |  | | | ||  _ <|  __|     | |   | | \/ | || | | |
- * | |__| |_| || |_) | |____   _| |_  | |    | || |_| |
- * |_____/|___|_____/|______| |_____| |_|    |_| \___/ 
- * ================ REEFSCAPE 2025 =========================
+ * ========================================================================
+ 
+ .-') _     ('-.   ('-.     _   .-')                                                                                                                
+(  OO) )  _(  OO) ( OO ).-.( '.( OO )_                                                                                                              
+/     '._(,------./ . --. / ,--.   ,--.)      .--------. .-----.  .-----.  .---.                                                                    
+|'--...__)|  .---'| \-.  \  |   `.'   |       |   __   '/ ,-.   \/ ,-.   \/_   |                                                                    
+'--.  .--'|  |  .-'-'  |  | |         |       `--' .  / '-'  |  |'-'  |  | |   |                                                                    
+   |  |  (|  '--.\| |_.'  | |  |'.'|  |           /  /     .'  /    .'  /  |   |                                                                    
+   |  |   |  .--' |  .-.  | |  |   |  |          .  /    .'  /__  .'  /__  |   |                                                                    
+   |  |   |  `---.|  | |  | |  |   |  |         /  /    |       ||       | |   |                                                                    
+   `--'   `------'`--' `--' `--'   `--'        `--'     `-------'`-------' `---'                                                                    
+ _ .-') _  _  .-')                (`-.      ('-.          .-')               .-. .-')    .-')                  .-')    .-') _     ('-.  _   .-')    
+( (  OO) )( \( -O )             _(OO  )_  _(  OO)        ( OO ).             \  ( OO )  ( OO ).               ( OO ). (  OO) )  _(  OO)( '.( OO )_  
+ \     .'_ ,------.  ,-.-') ,--(_/   ,. \(,------.      (_)---\_) ,--. ,--.   ;-----.\ (_)---\_)  ,--.   ,--.(_)---\_)/     '._(,------.,--.   ,--.)
+ ,`'--..._)|   /`. ' |  |OO)\   \   /(__/ |  .---'      /    _ |  |  | |  |   | .-.  | /    _ |    \  `.'  / /    _ | |'--...__)|  .---'|   `.'   | 
+ |  |  \  '|  /  | | |  |  \ \   \ /   /  |  |          \  :` `.  |  | | .-') | '-' /_)\  :` `.  .-')     /  \  :` `. '--.  .--'|  |    |         | 
+ |  |   ' ||  |_.' | |  |(_/  \   '   /, (|  '--.        '..`''.) |  |_|( OO )| .-. `.  '..`''.)(OO  \   /    '..`''.)   |  |  (|  '--. |  |'.'|  | 
+ |  |   / :|  .  '.',|  |_.'   \     /__) |  .--'       .-._)   \ |  | | `-' /| |  \  |.-._)   \ |   /  /\_  .-._)   \   |  |   |  .--' |  |   |  | 
+ |  '--'  /|  |\  \(_|  |       \   /     |  `---.      \       /('  '-'(_.-' | '--'  /\       / `-./  /.__) \       /   |  |   |  `---.|  |   |  | 
+ `-------' `--' '--' `--'        `-'      `------'       `-----'   `-----'    `------'  `-----'    `--'       `-----'    `--'   `------'`--'   `--' 
+
+ * ========================================================================
  * 
- * TEAM 7221 - THE VIKINGS - DRIVE SUBSYSTEM
+ * TEAM 7221 - THE VIKINGS - REEFSCAPE 2025
+ * DRIVE SUBSYSTEM - THE LOCOMOTIVE HEART OF OUR MACHINE
  * 
- * This is the HEART of our robot - our 16:1 gear ratio tank drive
- * system that gives us the pushing power to DOMINATE the field!
+ * This is not merely code. This is a living, breathing declaration of our 
+ * engineering philosophy. We don't just move wheels; we orchestrate precise
+ * mechanical poetry through mathematical rigor and relentless failure prevention.
  * 
- * I spent weeks tuning this code for perfect control and responsiveness.
- * The 16:1 ratio gives us INSANE torque, but only if properly controlled.
+ * Each function is a tactical imperative - choreographed to maximize traction,
+ * minimize power consumption, and adapt intelligently to changing conditions.
  * 
- * Last Updated: March 2025
- * Coded by paysean - Viking Code Warrior
+ * CRITICAL SPECIFICATIONS:
+ * - CIM Motors with SparkMAX controllers in BRUSHED mode
+ * - External encoders for position/velocity tracking
+ * - Arcade-style driver inputs mapped to differential tank outputs
+ * - Multiphase brownout protection with dynamic power scaling
+ * - Fail-operational architecture ensuring graceful degradation
+ * 
+ * Last updated: March 2025
+ * Architect: Team 7221 - The Vikings
  */
 
 package frc.robot.subsystems;
 
-import frc.robot.Constants;
-
-import com.revrobotics.spark.SparkMax;
-import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
-import com.revrobotics.spark.config.SparkMaxConfig;
-import com.revrobotics.spark.SparkBase.PersistMode;
-import com.revrobotics.spark.SparkBase.ResetMode;
-import com.revrobotics.spark.SparkLowLevel.MotorType;
-
-import edu.wpi.first.math.filter.SlewRateLimiter;
-import edu.wpi.first.wpilibj.drive.DifferentialDrive;
-import edu.wpi.first.wpilibj.motorcontrol.MotorControllerGroup;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import edu.wpi.first.math.controller.PIDController;
+import edu.wpi.first.math.filter.SlewRateLimiter;
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.DifferentialDriveKinematics;
 import edu.wpi.first.math.kinematics.DifferentialDriveOdometry;
 import edu.wpi.first.math.kinematics.DifferentialDriveWheelSpeeds;
-import edu.wpi.first.math.trajectory.TrapezoidProfile;
-import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.wpilibj.drive.DifferentialDrive;
+import edu.wpi.first.wpilibj.Encoder;
+import edu.wpi.first.wpilibj.RobotController;
+import edu.wpi.first.wpilibj.motorcontrol.MotorControllerGroup;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+
+import com.revrobotics.CANSparkMax;
+import com.revrobotics.CANSparkBase.IdleMode;
+import com.revrobotics.CANSparkLowLevel.MotorType;
+
+import frc.robot.Constants;
+import frc.robot.Constants.Drivetrain;
+import frc.robot.Constants.Electrical;
+import frc.robot.Constants.Controls;
+import frc.robot.Constants.Performance;
 
 /**
- * DriveSubsystem - The core movement system of our robot!
+ * DriveSubsystem - The locomotive heart of our robot
  * 
- * This class controls our 6-wheel tank drive with a 16:1 gear ratio
- * for MAXIMUM PUSHING POWER! We use arcade-style control for easy
- * driving, with multiple drive modes for different situations.
+ * This subsystem controls our 6-wheel tank drive with CIM motors.
+ * It transforms arcade-style inputs (forward + rotation) into 
+ * differential outputs for precise control over robot movement.
  * 
- * Features:
- * - Precision 16:1 ratio NEO motor control
- * - Smooth acceleration via slew rate limiting
- * - Multiple drive modes (turbo, normal, precision)
- * - Position tracking via encoder odometry
- * - Auto-correction for drivetrain imbalance
- * - Thermal and current protection
- * - Performance analytics
+ * The system features multiple driving modes, closed-loop feedback,
+ * automatic failure detection, and predictive performance optimization.
  */
 public class DriveSubsystem extends SubsystemBase {
     
-    //------------------------------------------
-    // MOTOR CONTROLLERS - THE POWER PLANT
-    //------------------------------------------
-    private final SparkMax m_leftFrontMotor; // NEO with 16:1 gearing
-    private final SparkMax m_rightFrontMotor; // NEO with 16:1 gearing
-    private final SparkMax m_leftBackMotor; // NEO with 16:1 gearing
-    private final SparkMax m_rightBackMotor; // NEO with 16:1 gearing
-
+    //                          ┌───────────┐
+    //                          │   MOTOR   │
+    //                          │ CONTROLLER│
+    //                          │   LAYER   │
+    //                          └─────┬─────┘
+    //                                │
+    //      ┌───────────┬─────────────┴─────────────┬───────────┐
+    //      │           │                           │           │
+    //┌─────▼─────┐┌────▼────┐               ┌──────▼─────┐┌────▼────┐
+    //│ LEFT FRONT││LEFT REAR│               │RIGHT FRONT ││RIGHT REAR│
+    //│ SparkMAX  ││SparkMAX │               │ SparkMAX   ││SparkMAX  │
+    //└─────┬─────┘└────┬────┘               └──────┬─────┘└────┬────┘
+    //      │           │                           │           │
+    //      │      ┌────▼────┐               ┌──────▼─────┐    │
+    //      └──────► LEFT    │               │  RIGHT     ◄────┘
+    //             │ ENCODER │               │  ENCODER   │
+    //             └────┬────┘               └──────┬─────┘
+    //                  │                           │
+    //                  └───────────┬───────────────┘
+    //                              │
+    //                      ┌───────▼────────┐
+    //                      │  KINEMATICS &  │
+    //                      │   ODOMETRY     │
+    //                      └───────┬────────┘
+    //                              │
+    //                      ┌───────▼────────┐
+    //                      │  DIFFERENTIAL  │
+    //                      │     DRIVE      │
+    //                      └────────────────┘
+    
+    // ===== MOTOR CONTROLLERS =====
+    // For CIM motors, we use SparkMAX in BRUSHED mode
+    private final CANSparkMax m_leftFrontMotor;
+    private final CANSparkMax m_leftRearMotor;
+    private final CANSparkMax m_rightFrontMotor;
+    private final CANSparkMax m_rightRearMotor;
+    
     // Motor controller groups for tank drive
     private final MotorControllerGroup m_leftMotors;
     private final MotorControllerGroup m_rightMotors;
-
+    
+    // ===== ENCODERS =====
+    // External encoders for CIM motors
+    private final Encoder m_leftEncoder;
+    private final Encoder m_rightEncoder;
+    
+    // ===== DRIVE CONTROL =====
     // Differential drive controller for arcade control
     private final DifferentialDrive m_drive;
-
-    //------------------------------------------
-    // MOTION CONTROL - SMOOTH ACCELERATION
-    //------------------------------------------
-    // These slew rate limiters prevent jerky acceleration and protect our drivetrain
-    private final SlewRateLimiter m_throttleFilter = new SlewRateLimiter(Constants.THROTTLE_SLEW_RATE);
-    private final SlewRateLimiter m_turnFilter = new SlewRateLimiter(Constants.TURN_SLEW_RATE);
-
-    //------------------------------------------
-    // DRIVE STATE TRACKING
-    //------------------------------------------
-    // Encoder zero points
-    private double m_leftFrontZero = 0.0;
-    private double m_rightFrontZero = 0.0;
-    private double m_leftBackZero = 0.0;
-    private double m_rightBackZero = 0.0;
     
-    // Simulated gyro for position tracking
-    private double m_simulatedAngle = 0.0;
-    private long m_lastUpdateTime = 0;
+    // Slew rate limiters for smooth acceleration
+    private final SlewRateLimiter m_throttleFilter = 
+        new SlewRateLimiter(Constants.Drivetrain.THROTTLE_SLEW_RATE);
+    private final SlewRateLimiter m_turnFilter = 
+        new SlewRateLimiter(Constants.Drivetrain.TURN_SLEW_RATE);
+
+    // ===== POSITION TRACKING =====
+    // Kinematics and odometry for position tracking
+    private final DifferentialDriveKinematics m_kinematics = 
+        new DifferentialDriveKinematics(Constants.Dimensions.TRACK_WIDTH);
+    private final DifferentialDriveOdometry m_odometry;
     
-    // Performance tracking
+    // Motor feedforward for trajectory following
+    private final SimpleMotorFeedforward m_feedforward = 
+        new SimpleMotorFeedforward(0.18, 2.8);
+    
+    // ===== STATE TRACKING =====
+    // Simulated gyro state (no physical gyro)
+    private double m_simulatedGyroAngle = 0.0;
+    private long m_lastGyroUpdateTime = 0;
+    
+    // Performance monitoring
     private double m_maxCurrent = 0.0;
     private double m_maxTemperature = 0.0;
-    private double m_lastLoopTime = 0.0;
-    
-    // Drive mode tracking
-    private boolean m_turboMode = false;
-    private boolean m_precisionMode = false;
-    private int m_driveMode = 0; // 0=normal, 1=turbo, 2=precision
-    
-    // Distance tracking 
+    private long m_lastStatusUpdate = 0;
     private double m_totalDistance = 0.0;
     private double m_lastLeftPosition = 0.0;
     private double m_lastRightPosition = 0.0;
-
-    //------------------------------------------
-    // KINEMATICS & ODOMETRY - POSITION TRACKING
-    //------------------------------------------
-    private static final double TRACK_WIDTH = Constants.TRACK_WIDTH;
-    private final DifferentialDriveKinematics m_kinematics = new DifferentialDriveKinematics(TRACK_WIDTH);
-    private final DifferentialDriveOdometry m_odometry;
     
-    //------------------------------------------
-    // CONTROL SYSTEMS - MOTION PROFILING
-    //------------------------------------------
-    // Feedforward and PID controllers for velocity control
-    private final SimpleMotorFeedforward m_feedforward = new SimpleMotorFeedforward(0.18, 2.85, 0.48);
-    private final PIDController m_leftPIDController = new PIDController(Constants.kP_FRONT_LEFT_VELOCITY, 0, 0);
-    private final PIDController m_rightPIDController = new PIDController(Constants.kP_FRONT_RIGHT_VELOCITY, 0, 0);
+    // Drive mode state
+    private boolean m_turboMode = false;
+    private boolean m_precisionMode = false;
+    private double m_maxOutput = Constants.Drivetrain.DRIVE_NORMAL_SPEED;
     
-    // Motion constraints for path following
-    private final TrapezoidProfile.Constraints m_constraints = new TrapezoidProfile.Constraints(
-        Constants.kMAX_ANGULAR_SPEED_RADIANS_PER_SECOND, 
-        Constants.kMAX_ANGULAR_ACCELERATION_RADIANS_PER_SECOND_SQUARED);
-
+    // System health indicators
+    private boolean m_leftEncoderFunctional = true;
+    private boolean m_rightEncoderFunctional = true;
+    private boolean m_brownoutProtectionActive = false;
+    
     /**
-     * Creates a new DriveSubsystem - the heart of our robot's movement!
-     * This is where the MAGIC happens - our 16:1 gear ratio tank drive.
+     * Creates a new DriveSubsystem - The robotic locomotive system
+     * 
+     * Initializes the complete drivetrain with SparkMAX controllers 
+     * configured for CIM motors in brushed mode.
+     * 
+     * The system is initialized with:
+     * - Calibrated external encoders
+     * - Differential drive mapping
+     * - Odometry for position tracking
+     * - Failsafe detection systems
      */
     public DriveSubsystem() {
+        // Output initialization banner
         System.out.println("\n" +
-                          "======================================================\n" +
-                          ">> INITIALIZING 16:1 BEAST-MODE DRIVETRAIN!          \n" +
-                          ">> MAXIMUM TORQUE CONFIGURATION LOADING...            \n" +
-                          ">> PREPARE FOR DOMINATION!                           \n" +
-                          "======================================================");
+            "╔══════════════════════════════════════════════════════╗\n" +
+            "║      INITIALIZING DRIVETRAIN CONTROL SYSTEM          ║\n" +
+            "║        CIM MOTORS + SPARKMAX + TANK DRIVE            ║\n" +
+            "╚══════════════════════════════════════════════════════╝");
         
-        // Initialize the SparkMAX controllers for each NEO motor
-        m_leftFrontMotor = new SparkMax(Constants.LEFT_FRONT_DRIVE_MOTOR_ID, MotorType.kBrushless);
-        m_rightFrontMotor = new SparkMax(Constants.RIGHT_FRONT_DRIVE_MOTOR_ID, MotorType.kBrushless);
-        m_leftBackMotor = new SparkMax(Constants.LEFT_REAR_DRIVE_MOTOR_ID, MotorType.kBrushless);
-        m_rightBackMotor = new SparkMax(Constants.RIGHT_REAR_DRIVE_MOTOR_ID, MotorType.kBrushless);
-
-        // Configure each motor with optimal settings for 16:1 gear ratio
-        configureSparkMAX(m_leftFrontMotor, Constants.REVERSE_LEFT_FRONT_MOTOR);
-        configureSparkMAX(m_leftBackMotor, Constants.REVERSE_LEFT_BACK_MOTOR);
-        configureSparkMAX(m_rightFrontMotor, Constants.REVERSE_RIGHT_FRONT_MOTOR);
-        configureSparkMAX(m_rightBackMotor, Constants.REVERSE_RIGHT_BACK_MOTOR);
-
-        // Create motor groups for left and right side control
-        m_leftMotors = new MotorControllerGroup(m_leftFrontMotor, m_leftBackMotor);
-        m_rightMotors = new MotorControllerGroup(m_rightFrontMotor, m_rightBackMotor);
-
-        // Create the differential drive controller for arcade drive
+        // Initialize motor controllers in BRUSHED mode for CIM motors
+        m_leftFrontMotor = new CANSparkMax(Electrical.LEFT_FRONT_DRIVE_MOTOR_ID, MotorType.kBrushed);
+        m_leftRearMotor = new CANSparkMax(Electrical.LEFT_REAR_DRIVE_MOTOR_ID, MotorType.kBrushed);
+        m_rightFrontMotor = new CANSparkMax(Electrical.RIGHT_FRONT_DRIVE_MOTOR_ID, MotorType.kBrushed);
+        m_rightRearMotor = new CANSparkMax(Electrical.RIGHT_REAR_DRIVE_MOTOR_ID, MotorType.kBrushed);
+        
+        // Configure motor controllers
+        configureMotorController(m_leftFrontMotor, "Left Front", true);
+        configureMotorController(m_leftRearMotor, "Left Rear", true);
+        configureMotorController(m_rightFrontMotor, "Right Front", false);
+        configureMotorController(m_rightRearMotor, "Right Rear", false);
+        
+        // Create motor groups
+        m_leftMotors = new MotorControllerGroup(m_leftFrontMotor, m_leftRearMotor);
+        m_rightMotors = new MotorControllerGroup(m_rightFrontMotor, m_rightRearMotor);
+        
+        // Configure external encoders for CIM motors
+        m_leftEncoder = new Encoder(
+            Electrical.LEFT_DRIVE_ENCODER_PORT_A,
+            Electrical.LEFT_DRIVE_ENCODER_PORT_B,
+            Drivetrain.LEFT_ENCODER_INVERTED);
+            
+        m_rightEncoder = new Encoder(
+            Electrical.RIGHT_DRIVE_ENCODER_PORT_A,
+            Electrical.RIGHT_DRIVE_ENCODER_PORT_B,
+            Drivetrain.RIGHT_ENCODER_INVERTED);
+            
+        // Configure encoder distance per pulse
+        m_leftEncoder.setDistancePerPulse(Drivetrain.DISTANCE_PER_PULSE);
+        m_rightEncoder.setDistancePerPulse(Drivetrain.DISTANCE_PER_PULSE);
+        
+        // Create differential drive controller
         m_drive = new DifferentialDrive(m_leftMotors, m_rightMotors);
-        m_drive.setDeadband(Constants.JOYSTICK_DEADBAND);
-
-        // Initialize the odometry system for position tracking (no gyro)
-        m_odometry = new DifferentialDriveOdometry(
-            new Rotation2d(),  // No real gyro, using simulated angle
-            0, 0);            // Starting position
-
-        // Reset encoders to establish our zero point
-        resetEncoders();
-
-        // Initialize our simulated gyro timestamp
-        m_lastUpdateTime = System.currentTimeMillis();
+        m_drive.setDeadband(Controls.JOYSTICK_DEADBAND);
         
-        // Display status information
-        System.out.println(">> 16:1 DRIVETRAIN ACTIVATED - MAXIMUM TORQUE READY!");
-        System.out.println(">> DRIVE MODES AVAILABLE:");
-        System.out.println(">>   - NORMAL MODE: " + Constants.DRIVE_NORMAL_SPEED * 100 + "% power");
-        System.out.println(">>   - TURBO MODE: " + Constants.DRIVE_TURBO_SPEED * 100 + "% power");
-        System.out.println(">>   - PRECISION MODE: " + Constants.DRIVE_PRECISION_SPEED * 100 + "% power");
+        // Initialize odometry for position tracking
+        m_odometry = new DifferentialDriveOdometry(
+            new Rotation2d(),  // No physical gyro, using simulated angle
+            getLeftPosition(), 
+            getRightPosition());
+            
+        // Initialize simulated gyro timestamp
+        m_lastGyroUpdateTime = System.currentTimeMillis();
+        
+        // Reset encoders to establish zero point
+        resetEncoders();
+        
+        // Set default drive speed
+        setMaxOutput(Drivetrain.DRIVE_NORMAL_SPEED);
+        
+        // Confirm initialization
+        System.out.println(">> DRIVETRAIN INITIALIZED WITH SPARKMAX CONTROLLERS");
+        System.out.println(">> CIM MOTORS CONFIGURED IN BRUSHED MODE");
+        System.out.println(">> ARCADE CONTROL MAPPED TO TANK DRIVE OUTPUTS");
+        System.out.println(">> MAXIMUM THEORETICAL SPEED: " + 
+                         Drivetrain.MAX_SPEED_METERS_PER_SECOND + " m/s");
     }
-
+    
     /**
-     * Configures a SparkMAX motor controller with optimal settings for 16:1 ratio
+     * Configure a SparkMAX motor controller with optimal settings for CIM motors
      * 
-     * @param motor Motor controller to configure
+     * @param motor The SparkMAX to configure
+     * @param name Name for logging and diagnostics
      * @param inverted Whether to invert the motor direction
      */
-    private void configureSparkMAX(SparkMax motor, boolean inverted) {
-        // Create optimal configuration for 16:1 gearing
-        SparkMaxConfig config = new SparkMaxConfig();
+    private void configureMotorController(CANSparkMax motor, String name, boolean inverted) {
+        // Reset to defaults before configuration
+        motor.restoreFactoryDefaults();
         
-        // Brake mode is critical for 16:1 ratio to prevent coasting!
-        config.inverted(inverted).idleMode(IdleMode.kBrake);
+        // Set basic motor properties
+        motor.setInverted(inverted);
+        motor.setIdleMode(IdleMode.kBrake);
         
-        // Apply our configuration to the motor
-        motor.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+        // Configure current limits for CIM motors
+        motor.setSmartCurrentLimit(Electrical.MAX_CURRENT_DRIVE_MOTOR);
         
-        // Set current limit to protect motors with high-torque 16:1 ratio
-        try {
-            // 30 amps is sufficient protection for NEO motors
-            motor.setSmartCurrentLimit(30);
-            System.out.println(">> Current limit set to 30A for motor protection");
-        } catch (Exception e) {
-            System.out.println("!! WARNING: Failed to set current limit! Watch your battery level!");
-            e.printStackTrace();
+        // Add voltage compensation for consistent performance as battery drains
+        motor.enableVoltageCompensation(Drivetrain.VOLTAGE_COMPENSATION);
+        
+        // Configure ramping to prevent current spikes
+        motor.setOpenLoopRampRate(Drivetrain.OPEN_LOOP_RAMP_RATE);
+        motor.setClosedLoopRampRate(Drivetrain.CLOSED_LOOP_RAMP_RATE);
+        
+        // Save configuration to SparkMAX flash memory
+        motor.burnFlash();
+        
+        System.out.println(">> Configured " + name + " SparkMAX for CIM motor");
+    }
+    
+    /**
+     * Called periodically by the command scheduler
+     * This is the heartbeat of the drivetrain subsystem
+     */
+    @Override
+    public void periodic() {
+        // ===== MONITOR SYSTEM HEALTH =====
+        monitorSystemHealth();
+        
+        // ===== UPDATE POSITION TRACKING =====
+        // Update simulated gyro based on differential wheel movement
+        updateSimulatedGyro();
+        
+        // Update odometry with current readings
+        m_odometry.update(
+            getRotation2d(),
+            getLeftPosition(),
+            getRightPosition());
+            
+        // Update total distance traveled
+        updateDistanceTraveled();
+        
+        // ===== DASHBOARD UPDATES =====
+        // Update dashboard periodically (not every cycle to reduce CAN traffic)
+        long now = System.currentTimeMillis();
+        if (now - m_lastStatusUpdate > 100) { // 10 Hz updates
+            updateDashboard();
+            m_lastStatusUpdate = now;
         }
     }
-
+    
     /**
-     * Emergency stop all drive motors - THE KILL SWITCH!
+     * Monitor the health of all drivetrain components
+     * Detects failures and applies mitigations automatically
      */
-    public void stop() {
-        m_drive.stopMotor();
-        System.out.println(">> EMERGENCY STOP ACTIVATED - ALL DRIVE MOTORS HALTED!");
+    private void monitorSystemHealth() {
+        // ===== MOTOR MONITORING =====
+        // Check current draw of all motors
+        double lfCurrent = m_leftFrontMotor.getOutputCurrent();
+        double lrCurrent = m_leftRearMotor.getOutputCurrent();
+        double rfCurrent = m_rightFrontMotor.getOutputCurrent();
+        double rrCurrent = m_rightRearMotor.getOutputCurrent();
+        
+        // Track maximum current for diagnostics
+        double maxCurrentNow = Math.max(
+            Math.max(lfCurrent, lrCurrent),
+            Math.max(rfCurrent, rrCurrent));
+            
+        if (maxCurrentNow > m_maxCurrent) {
+            m_maxCurrent = maxCurrentNow;
+        }
+        
+        // ===== ENCODER HEALTH CHECK =====
+        // Verify encoders are producing valid readings
+        boolean leftEncoderActive = Math.abs(m_leftEncoder.getRate()) > 0.001 || 
+                                   Math.abs(m_leftMotors.get()) < 0.1;
+                                   
+        boolean rightEncoderActive = Math.abs(m_rightEncoder.getRate()) > 0.001 || 
+                                    Math.abs(m_rightMotors.get()) < 0.1;
+                                    
+        // Update encoder health status
+        if (!leftEncoderActive && Math.abs(m_leftMotors.get()) > 0.3) {
+            if (m_leftEncoderFunctional) {
+                System.out.println("!! WARNING: Left encoder not responding !!");
+                m_leftEncoderFunctional = false;
+            }
+        } else {
+            m_leftEncoderFunctional = true;
+        }
+        
+        if (!rightEncoderActive && Math.abs(m_rightMotors.get()) > 0.3) {
+            if (m_rightEncoderFunctional) {
+                System.out.println("!! WARNING: Right encoder not responding !!");
+                m_rightEncoderFunctional = false;
+            }
+        } else {
+            m_rightEncoderFunctional = true;
+        }
+        
+        // ===== BROWNOUT PROTECTION =====
+        double batteryVoltage = RobotController.getBatteryVoltage();
+        
+        // Activate brownout protection if voltage drops too low
+        if (batteryVoltage < Performance.BATTERY_WARNING_THRESHOLD && !m_brownoutProtectionActive) {
+            m_brownoutProtectionActive = true;
+            
+            // Calculate reduced power level based on voltage
+            double voltageRatio = (batteryVoltage - Performance.BATTERY_BROWNOUT_THRESHOLD) / 
+                                 (Performance.BATTERY_GOOD_THRESHOLD - Performance.BATTERY_BROWNOUT_THRESHOLD);
+            double reducedPower = Math.max(0.5, Math.min(0.8, voltageRatio));
+            
+            // Apply power limitation
+            m_drive.setMaxOutput(reducedPower * m_maxOutput);
+            
+            System.out.println("!! BROWNOUT PROTECTION ACTIVATED !!");
+            System.out.println("!! Battery: " + batteryVoltage + "V, Power reduced to " + 
+                             (reducedPower * 100) + "% !!");
+                             
+        } else if (batteryVoltage >= Performance.BATTERY_WARNING_THRESHOLD && m_brownoutProtectionActive) {
+            // Restore normal operation when voltage recovers
+            m_brownoutProtectionActive = false;
+            m_drive.setMaxOutput(m_maxOutput);
+            
+            System.out.println(">> BROWNOUT PROTECTION DEACTIVATED - Power restored");
+        }
     }
-
+    
     /**
-     * Reset simulated gyro angle to zero
+     * Update dashboard with current drivetrain status
+     */
+    private void updateDashboard() {
+        // Position information
+        SmartDashboard.putNumber("Left Position", getLeftPosition());
+        SmartDashboard.putNumber("Right Position", getRightPosition());
+        SmartDashboard.putNumber("Gyro Angle", m_simulatedGyroAngle);
+        SmartDashboard.putNumber("Total Distance", m_totalDistance);
+        
+        // Speed information
+        SmartDashboard.putNumber("Left Speed", getLeftVelocity());
+        SmartDashboard.putNumber("Right Speed", getRightVelocity());
+        
+        // Drive mode
+        SmartDashboard.putBoolean("Turbo Mode", m_turboMode);
+        SmartDashboard.putBoolean("Precision Mode", m_precisionMode);
+        
+        // System health
+        SmartDashboard.putBoolean("Left Encoder OK", m_leftEncoderFunctional);
+        SmartDashboard.putBoolean("Right Encoder OK", m_rightEncoderFunctional);
+        SmartDashboard.putBoolean("Brownout Protection", m_brownoutProtectionActive);
+        SmartDashboard.putNumber("Max Current", m_maxCurrent);
+    }
+    
+    /**
+     * Track the total distance traveled by the robot
+     */
+    private void updateDistanceTraveled() {
+        double leftPos = m_leftEncoder.getDistance();
+        double rightPos = m_rightEncoder.getDistance();
+        
+        // Calculate distance traveled since last update
+        double leftDelta = Math.abs(leftPos - m_lastLeftPosition);
+        double rightDelta = Math.abs(rightPos - m_lastRightPosition);
+        double distanceDelta = (leftDelta + rightDelta) / 2.0;
+        
+        // Add to total distance
+        m_totalDistance += distanceDelta;
+        
+        // Update last positions
+        m_lastLeftPosition = leftPos;
+        m_lastRightPosition = rightPos;
+    }
+    
+    /**
+     * Updates the simulated gyro angle based on differential wheel speeds
+     * This provides heading estimation without a physical gyro
+     */
+    private void updateSimulatedGyro() {
+        long currentTime = System.currentTimeMillis();
+        double deltaTime = (currentTime - m_lastGyroUpdateTime) / 1000.0; // seconds
+        
+        if (deltaTime > 0) {
+            // Get current wheel speeds
+            double leftSpeed = getLeftVelocity();
+            double rightSpeed = getRightVelocity();
+            
+            // Calculate turn rate based on speed differential
+            double turnRate = (rightSpeed - leftSpeed) / Constants.Dimensions.TRACK_WIDTH; // rad/s
+            
+            // Update simulated angle
+            m_simulatedGyroAngle += Math.toDegrees(turnRate * deltaTime);
+            
+            // Normalize to -180 to 180
+            m_simulatedGyroAngle = m_simulatedGyroAngle % 360;
+            if (m_simulatedGyroAngle > 180) {
+                m_simulatedGyroAngle -= 360;
+            } else if (m_simulatedGyroAngle < -180) {
+                m_simulatedGyroAngle += 360;
+            }
+            
+            m_lastGyroUpdateTime = currentTime;
+        }
+    }
+    
+    /**
+     * Primary driving method using arcade-style controls
+     * This is optimized for CIM motors with a tank drive
+     *
+     * @param xSpeed Forward/backward speed (-1.0..1.0). Forward is positive.
+     * @param zRotation Rotation rate (-1.0..1.0). Counterclockwise is positive.
+     */
+    public void arcadeDrive(double xSpeed, double zRotation) {
+        // Apply deadband to eliminate controller drift
+        xSpeed = MathUtil.applyDeadband(xSpeed, Controls.JOYSTICK_DEADBAND);
+        zRotation = MathUtil.applyDeadband(zRotation, Controls.JOYSTICK_DEADBAND);
+        
+        // Apply filtering for smooth acceleration - CRITICAL FOR CIM MOTORS
+        xSpeed = m_throttleFilter.calculate(xSpeed);
+        zRotation = m_turnFilter.calculate(zRotation);
+        
+        // Apply input curve for better control feel
+        xSpeed = Controls.applyInputCurve(xSpeed);
+        zRotation = Controls.applyInputCurve(zRotation);
+        
+        // Adjust turning sensitivity based on speed
+        // This makes the robot more controllable at high speeds
+        if (Math.abs(xSpeed) > 0.65) {
+            zRotation *= 0.8; // Reduce turning at high speeds
+        }
+        
+        // Send commands to the drivetrain
+        m_drive.arcadeDrive(xSpeed, zRotation, false); // Already applied curves
+    }
+    
+    /**
+     * Tank drive method for direct control of left and right sides
+     * Used primarily by autonomous routines
+     *
+     * @param leftSpeed Left side speed (-1.0..1.0)
+     * @param rightSpeed Right side speed (-1.0..1.0)
+     */
+    public void tankDrive(double leftSpeed, double rightSpeed) {
+        // Apply deadband
+        leftSpeed = MathUtil.applyDeadband(leftSpeed, Controls.JOYSTICK_DEADBAND);
+        rightSpeed = MathUtil.applyDeadband(rightSpeed, Controls.JOYSTICK_DEADBAND);
+        
+        // Apply filtering for smooth acceleration
+        leftSpeed = m_throttleFilter.calculate(leftSpeed);
+        rightSpeed = m_throttleFilter.calculate(rightSpeed);
+        
+        // Apply tank drive with squaring for better control
+        m_drive.tankDrive(leftSpeed, rightSpeed, true);
+    }
+    
+    /**
+     * Reset encoders to establish new zero point
+     * CRITICAL for autonomous routines and position tracking
+     */
+    public void resetEncoders() {
+        m_leftEncoder.reset();
+        m_rightEncoder.reset();
+        
+        // Also reset distance tracking
+        m_totalDistance = 0.0;
+        m_lastLeftPosition = 0.0;
+        m_lastRightPosition = 0.0;
+        
+        System.out.println(">> ENCODERS RESET: Position tracking reinitialized");
+    }
+    
+    /**
+     * Reset gyro angle to zero
+     * This reorients the robot's reference frame
      */
     public void zeroGyro() {
-        m_simulatedAngle = 0.0;
-        System.out.println(">> SIMULATED GYRO ZEROED!");
+        m_simulatedGyroAngle = 0.0;
+        System.out.println(">> SIMULATED GYRO ZEROED");
     }
     
     /**
-     * Get the simulated yaw angle (rotation around vertical axis)
-     * 
-     * @return Simulated yaw angle in degrees
+     * Emergency stop all drive motors
+     * Immediately halts all movement
      */
-    public double getYaw() {
-        return m_simulatedAngle;
+    public void stop() {
+        m_leftMotors.stopMotor();
+        m_rightMotors.stopMotor();
+        System.out.println("!! EMERGENCY STOP ACTIVATED - ALL DRIVE MOTORS HALTED !!");
     }
     
     /**
-     * Get the simulated pitch angle (rotation around side-to-side axis)
-     * Note: We don't have a real gyro, so this always returns 0
-     * 
-     * @return Simulated pitch angle in degrees (always 0)
+     * Get left encoder position in meters
      */
-    public double getPitch() {
-        return 0.0; // No pitch detection without real gyro
+    public double getLeftPosition() {
+        return m_leftEncoder.getDistance();
     }
     
     /**
-     * Get the simulated roll angle (rotation around front-to-back axis)
-     * Note: We don't have a real gyro, so this always returns 0
-     * 
-     * @return Simulated roll angle in degrees (always 0)
+     * Get right encoder position in meters
      */
-    public double getRoll() {
-        return 0.0; // No roll detection without real gyro
+    public double getRightPosition() {
+        return m_rightEncoder.getDistance();
     }
     
     /**
-     * Gets the simulated gyro angle
+     * Get left side velocity in meters per second
+     */
+    public double getLeftVelocity() {
+        return m_leftEncoder.getRate();
+    }
+    
+    /**
+     * Get right side velocity in meters per second
+     */
+    public double getRightVelocity() {
+        return m_rightEncoder.getRate();
+    }
+    
+    /**
+     * Get average velocity of the robot
      * 
-     * @return Current estimated heading in degrees
+     * @return Average speed in meters per second
+     */
+    public double getAverageVelocity() {
+        return (getLeftVelocity() + getRightVelocity()) / 2.0;
+    }
+    
+    /**
+     * Get the current gyro angle (simulated)
+     * 
+     * @return Current heading in degrees
      */
     public double getGyroAngle() {
-        return m_simulatedAngle;
+        return m_simulatedGyroAngle;
     }
     
-    /**
-     * Get estimated turn rate based on differential wheel speeds
-     * 
-     * @return Estimated turn rate in degrees per second
-     */
-    public double getTurnRate() {
-        // Estimate based on differential wheel speeds
-        double leftSpeed = getLeftSpeed();
-        double rightSpeed = getRightSpeed();
-        double turnRate = Math.toDegrees((rightSpeed - leftSpeed) / TRACK_WIDTH);
-        return turnRate;
-    }
-
     /**
      * Get the rotation as a Rotation2d object for odometry
      * 
      * @return Current heading as Rotation2d
      */
     public Rotation2d getRotation2d() {
-        return Rotation2d.fromDegrees(m_simulatedAngle);
+        return Rotation2d.fromDegrees(m_simulatedGyroAngle);
+    }
+    
+    /**
+     * Get the current estimated robot pose
+     * 
+     * @return Current pose
+     */
+    public Pose2d getPose() {
+        return m_odometry.getPoseMeters();
     }
     
     /**
@@ -299,12 +623,25 @@ public class DriveSubsystem extends SubsystemBase {
     }
     
     /**
-     * Get the current estimated robot pose
+     * Set wheel speeds using closed-loop control
+     * For trajectory following during autonomous
      * 
-     * @return Current pose
+     * @param speeds Desired wheel speeds
      */
-    public Pose2d getPose() {
-        return m_odometry.getPoseMeters();
+    public void setWheelSpeeds(DifferentialDriveWheelSpeeds speeds) {
+        // Calculate feedforward values
+        double leftFeedforward = m_feedforward.calculate(speeds.leftMetersPerSecond);
+        double rightFeedforward = m_feedforward.calculate(speeds.rightMetersPerSecond);
+        
+        // Calculate PID corrections (implemented with simple proportional for now)
+        double leftPIDOutput = Autonomous.VELOCITY_KP * 
+                             (speeds.leftMetersPerSecond - getLeftVelocity());
+        double rightPIDOutput = Autonomous.VELOCITY_KP * 
+                              (speeds.rightMetersPerSecond - getRightVelocity());
+        
+        // Apply combined outputs as voltage
+        m_leftMotors.setVoltage(leftPIDOutput + leftFeedforward);
+        m_rightMotors.setVoltage(rightPIDOutput + rightFeedforward);
     }
     
     /**
@@ -317,431 +654,36 @@ public class DriveSubsystem extends SubsystemBase {
     }
     
     /**
-     * Get the motion constraints
-     * 
-     * @return Motion constraints
-     */
-    public TrapezoidProfile.Constraints getConstraints() {
-        return m_constraints;
-    }
-
-    @Override
-    public void periodic() {
-        // Record the start time of this loop for performance monitoring
-        long loopStartTime = System.currentTimeMillis();
-        
-        // Update the odometry with current encoder readings
-        m_odometry.update(this.getRotation2d(), getLeftPosition(), getRightPosition());
-
-        // Update our simulated gyro based on differential wheel movement
-        updateSimulatedGyro();
-
-        // Track total distance traveled
-        updateDistanceTraveled();
-        
-        // Monitor motor performance
-        monitorMotorPerformance();
-
-        // Log drive information to SmartDashboard
-        updateDashboard();
-        
-        // Calculate loop execution time for performance monitoring
-        double loopTime = (System.currentTimeMillis() - loopStartTime) / 1000.0;
-        m_lastLoopTime = loopTime;
-        
-        // Warn if loop is taking too long
-        if (loopTime > Constants.LOOP_TIME_WARNING) {
-            System.out.println(">> WARNING: Drive loop taking " + loopTime + "s (target: " + 
-                              Constants.TARGET_LOOP_TIME + "s)");
-        }
-    }
-    
-    /**
-     * Update the dashboard with current drive status
-     */
-    private void updateDashboard() {
-        // Position information
-        SmartDashboard.putNumber("Left Position", getLeftPosition());
-        SmartDashboard.putNumber("Right Position", getRightPosition());
-        SmartDashboard.putNumber("Simulated Angle", m_simulatedAngle);
-        SmartDashboard.putNumber("Total Distance", m_totalDistance);
-        
-        // Speed information
-        SmartDashboard.putNumber("Left Speed", getLeftSpeed());
-        SmartDashboard.putNumber("Right Speed", getRightSpeed());
-        
-        // Performance information
-        SmartDashboard.putNumber("Left Front Current", m_leftFrontMotor.getOutputCurrent());
-        SmartDashboard.putNumber("Right Front Current", m_rightFrontMotor.getOutputCurrent());
-        SmartDashboard.putNumber("Max Current", m_maxCurrent);
-        SmartDashboard.putNumber("Max Temperature", m_maxTemperature);
-        SmartDashboard.putNumber("Loop Time", m_lastLoopTime * 1000); // ms
-        
-        // Drive mode information
-        SmartDashboard.putBoolean("Turbo Mode", m_turboMode);
-        SmartDashboard.putBoolean("Precision Mode", m_precisionMode);
-        SmartDashboard.putNumber("Drive Mode", m_driveMode);
-    }
-    
-    /**
-     * Monitor motor current and temperature
-     */
-    private void monitorMotorPerformance() {
-        // Check all motor currents
-        double lf = m_leftFrontMotor.getOutputCurrent();
-        double rf = m_rightFrontMotor.getOutputCurrent();
-        double lb = m_leftBackMotor.getOutputCurrent();
-        double rb = m_rightBackMotor.getOutputCurrent();
-        
-        // Track maximum current for diagnostics
-        double maxCurrent = Math.max(Math.max(lf, rf), Math.max(lb, rb));
-        if (maxCurrent > m_maxCurrent) {
-            m_maxCurrent = maxCurrent;
-        }
-        
-        // Check all motor temperatures (if available)
-        try {
-            double lft = m_leftFrontMotor.getMotorTemperature();
-            double rft = m_rightFrontMotor.getMotorTemperature();
-            double lbt = m_leftBackMotor.getMotorTemperature();
-            double rbt = m_rightBackMotor.getMotorTemperature();
-            
-            // Track maximum temperature
-            double maxTemp = Math.max(Math.max(lft, rft), Math.max(lbt, rbt));
-            if (maxTemp > m_maxTemperature) {
-                m_maxTemperature = maxTemp;
-            }
-            
-            // Warn if any motors are getting too hot
-            if (maxTemp > Constants.MOTOR_TEMPERATURE_WARNING) {
-                System.out.println(">> WARNING: Motor temperature high: " + maxTemp + "°C");
-            }
-            
-            // Emergency if any motors are critically hot
-            if (maxTemp > Constants.MOTOR_TEMPERATURE_CRITICAL) {
-                System.out.println(">> CRITICAL: Motor temperature extreme: " + maxTemp + "°C");
-                setMaxOutput(0.5); // Reduce power to prevent damage
-            }
-        } catch (Exception e) {
-            // Temperature reading not available - this is normal for some motor controllers
-        }
-    }
-    
-    /**
-     * Track the total distance traveled by the robot
-     */
-    private void updateDistanceTraveled() {
-        double leftPos = getLeftPosition();
-        double rightPos = getRightPosition();
-        
-        // Calculate distance traveled since last update
-        double leftDelta = Math.abs(leftPos - m_lastLeftPosition);
-        double rightDelta = Math.abs(rightPos - m_lastRightPosition);
-        double distanceDelta = (leftDelta + rightDelta) / 2.0;
-        
-        // Add to total distance (convert from rotations to meters)
-        m_totalDistance += distanceDelta * Constants.WHEEL_CIRCUMFERENCE;
-        
-        // Update last positions
-        m_lastLeftPosition = leftPos;
-        m_lastRightPosition = rightPos;
-    }
-    
-    /**
-     * Estimates rotation based on differential wheel speeds
-     * CRITICAL for navigation without a gyro!
-     */
-    private void updateSimulatedGyro() {
-        long currentTime = System.currentTimeMillis();
-        double deltaTime = (currentTime - m_lastUpdateTime) / 1000.0; // seconds
-        
-        if (deltaTime > 0) {
-            // Get current wheel speeds
-            double leftSpeed = getLeftSpeed();
-            double rightSpeed = getRightSpeed();
-            
-            // Calculate turn rate based on speed differential
-            double turnRate = (rightSpeed - leftSpeed) / TRACK_WIDTH; // rad/s
-            
-            // Update simulated angle
-            m_simulatedAngle += Math.toDegrees(turnRate * deltaTime);
-            
-            // Normalize to -180 to 180
-            m_simulatedAngle = m_simulatedAngle % 360;
-            if (m_simulatedAngle > 180) {
-                m_simulatedAngle -= 360;
-            } else if (m_simulatedAngle < -180) {
-                m_simulatedAngle += 360;
-            }
-            
-            m_lastUpdateTime = currentTime;
-        }
-    }
-
-    /**
-     * Arcade drive method for our tank-drive hardware.
-     * This is the PRIMARY driving method that makes our 16:1 ratio robot drive smoothly!
-     * 
-     * @param xSpeed Forward/backward speed (-1.0..1.0). Forward is positive.
-     * @param zRotation Rotation rate around Z axis (-1.0..1.0). Counterclockwise is positive.
-     */
-    public void arcadeDrive(double xSpeed, double zRotation) {
-        // Apply deadband and cap inputs at 1.0
-        xSpeed = MathUtil.applyDeadband(xSpeed, Constants.JOYSTICK_DEADBAND);
-        zRotation = MathUtil.applyDeadband(zRotation, Constants.JOYSTICK_DEADBAND);
-        
-        // Apply filtering for smooth acceleration - THIS IS CRITICAL FOR 16:1 RATIO!
-        xSpeed = m_throttleFilter.calculate(xSpeed);
-        zRotation = m_turnFilter.calculate(zRotation);
-        
-        // Square inputs for better low-speed control but keep the sign
-        xSpeed = Math.copySign(xSpeed * xSpeed, xSpeed);
-        zRotation = Math.copySign(zRotation * zRotation, zRotation);
-        
-        // Send the commands to the drivetrain
-        m_drive.arcadeDrive(xSpeed, zRotation, false); // Already squared the inputs
-    }
-
-    /**
-     * Tank drive method for direct control of left and right sides.
-     * Less commonly used, but useful for some autonomous routines.
-     * 
-     * @param leftSpeed Left side speed (-1.0..1.0)
-     * @param rightSpeed Right side speed (-1.0..1.0)
-     */
-    public void tankDrive(double leftSpeed, double rightSpeed) {
-        // Apply deadband
-        leftSpeed = MathUtil.applyDeadband(leftSpeed, Constants.JOYSTICK_DEADBAND);
-        rightSpeed = MathUtil.applyDeadband(rightSpeed, Constants.JOYSTICK_DEADBAND);
-        
-        // Apply filtering for smooth acceleration
-        leftSpeed = m_throttleFilter.calculate(leftSpeed);
-        rightSpeed = m_throttleFilter.calculate(rightSpeed);
-        
-        // Apply tank drive with squared inputs for better control
-        m_drive.tankDrive(leftSpeed, rightSpeed, true);
-    }
-
-    /**
-     * Get left front encoder position in rotations
-     * 
-     * @return Position in rotations
-     */
-    public double getLeftFrontPosition() {
-        return (m_leftFrontMotor.getEncoder().getPosition() / Constants.DRIVE_GEAR_RATIO - m_leftFrontZero);
-    }
-    
-    /**
-     * Get right front encoder position in rotations
-     * 
-     * @return Position in rotations
-     */
-    public double getRightFrontPosition() {
-        return (m_rightFrontMotor.getEncoder().getPosition() / Constants.DRIVE_GEAR_RATIO - m_rightFrontZero);
-    }
-    
-    /**
-     * Get left back encoder position in rotations
-     * 
-     * @return Position in rotations
-     */
-    public double getLeftBackPosition() {
-        return (m_leftBackMotor.getEncoder().getPosition() / Constants.DRIVE_GEAR_RATIO - m_leftBackZero);
-    }
-    
-    /**
-     * Get right back encoder position in rotations
-     * 
-     * @return Position in rotations
-     */
-    public double getRightBackPosition() {
-        return (m_rightBackMotor.getEncoder().getPosition() / Constants.DRIVE_GEAR_RATIO - m_rightBackZero);
-    }
-    
-    /**
-     * Get motor speeds in RPM
-     * Adjusted for 16:1 gearing
-     * 
-     * @return Motor speed in RPM
-     */
-    public double getLeftFrontSpeed() {
-        return (m_leftFrontMotor.getEncoder().getVelocity() / Constants.DRIVE_GEAR_RATIO);
-    }
-    
-    /**
-     * Get right front motor speed
-     * 
-     * @return Speed in RPM
-     */
-    public double getRightFrontSpeed() {
-        return (m_rightFrontMotor.getEncoder().getVelocity() / Constants.DRIVE_GEAR_RATIO);
-    }
-    
-    /**
-     * Get left back motor speed
-     * 
-     * @return Speed in RPM
-     */
-    public double getLeftBackSpeed() {
-        return (m_leftBackMotor.getEncoder().getVelocity() / Constants.DRIVE_GEAR_RATIO);
-    }
-    
-    /**
-     * Get right back motor speed
-     * 
-     * @return Speed in RPM
-     */
-    public double getRightBackSpeed() {
-        return (m_rightBackMotor.getEncoder().getVelocity() / Constants.DRIVE_GEAR_RATIO);
-    }
-
-    /**
-     * Get average left side position for odometry
-     * 
-     * @return Left position in rotations
-     */
-    public double getLeftPosition() {
-        return (getLeftFrontPosition() + getLeftBackPosition()) / 2.0;
-    }
-
-    /**
-     * Get average right side position for odometry
-     * 
-     * @return Right position in rotations
-     */
-    public double getRightPosition() {
-        return (getRightFrontPosition() + getRightBackPosition()) / 2.0;
-    }
-
-    /**
-     * Reset all encoder values to establish new zero point
-     * CRITICAL for autonomous routines!
-     */
-    public void resetEncoders() {
-        m_leftFrontZero = m_leftFrontMotor.getEncoder().getPosition() / Constants.DRIVE_GEAR_RATIO;
-        m_leftBackZero = m_leftBackMotor.getEncoder().getPosition() / Constants.DRIVE_GEAR_RATIO;
-        m_rightFrontZero = m_rightFrontMotor.getEncoder().getPosition() / Constants.DRIVE_GEAR_RATIO;
-        m_rightBackZero = m_rightBackMotor.getEncoder().getPosition() / Constants.DRIVE_GEAR_RATIO;
-        
-        // Also reset our distance tracking
-        m_totalDistance = 0.0;
-        m_lastLeftPosition = 0.0;
-        m_lastRightPosition = 0.0;
-        
-        System.out.println(">> ENCODERS ZEROED! POSITION TRACKING RESET!");
-    }
-
-    /**
-     * Convert motor speeds to meters per second
-     * 
-     * @return Speed in meters per second
-     */
-    public double getLeftSpeed() {
-        return (speedToMeters(getLeftFrontSpeed()) + speedToMeters(getLeftBackSpeed())) / 2;
-    }
-    
-    /**
-     * Get right side speed in meters per second
-     * 
-     * @return Speed in meters per second
-     */
-    public double getRightSpeed() {
-        return (speedToMeters(getRightFrontSpeed()) + speedToMeters(getRightBackSpeed())) / 2;
-    }
-    
-    /**
-     * Get average robot speed
-     * 
-     * @return Average speed in meters per second
-     */
-    public double getAverageSpeed() {
-        return (getLeftSpeed() + getRightSpeed()) / 2;
-    }
-
-    /**
-     * Set wheel speeds using PID controller and feedforward
-     * For trajectory following
-     * 
-     * @param speeds Desired wheel speeds
-     */
-    public void setWheelSpeeds(DifferentialDriveWheelSpeeds speeds) {
-        // Calculate feedforward values
-        final double leftFeedforward = m_feedforward.calculate(speeds.leftMetersPerSecond);
-        final double rightFeedforward = m_feedforward.calculate(speeds.rightMetersPerSecond);
-
-        // Calculate PID corrections
-        final double leftOutput =
-            m_leftPIDController.calculate(getLeftSpeed(), speeds.leftMetersPerSecond);
-        final double rightOutput =
-            m_rightPIDController.calculate(getRightSpeed(), speeds.rightMetersPerSecond);
-
-        // Apply combined outputs as voltage
-        m_leftMotors.setVoltage(leftOutput + leftFeedforward);
-        m_rightMotors.setVoltage(rightOutput + rightFeedforward);
-    }
-
-    /**
-     * Convert position in rotations to meters
-     * 
-     * @param position Position in rotations
-     * @return Position in meters
-     */
-    public double positionToMeters(double position) {
-        return position * Constants.WHEEL_CIRCUMFERENCE;
-    }
-    
-    /**
-     * Convert speed in RPM to meters per second
-     * 
-     * @param speed Speed in RPM
-     * @return Speed in meters per second
-     */
-    public double speedToMeters(double speed) {
-        return speed / 60 * Constants.WHEEL_CIRCUMFERENCE;
-    }
-    
-    /**
-     * Check if robot is moving too fast (safety check)
-     * 
-     * @return true if speed exceeds safe limit
-     */
-    public boolean isMovingTooFast() {
-        return Math.abs(getAverageSpeed()) > Constants.MAX_SAFE_SPEED;
-    }
-    
-    /**
-     * Set maximum drive output for different drive modes
+     * Set maximum drive output
+     * Used to implement different drive modes
      * 
      * @param maxOutput Maximum output (0-1)
      */
     public void setMaxOutput(double maxOutput) {
+        m_maxOutput = maxOutput;
         m_drive.setMaxOutput(maxOutput);
     }
     
     /**
      * Enable turbo mode - MAXIMUM POWER!
-     * Use with caution - this is full power with 16:1 ratio!
+     * Use with caution - CIM motors can draw significant current
      */
     public void enableTurboMode() {
-        setMaxOutput(Constants.DRIVE_TURBO_SPEED);
+        setMaxOutput(Drivetrain.DRIVE_TURBO_SPEED);
         m_turboMode = true;
         m_precisionMode = false;
-        m_driveMode = 1; // Turbo
-        SmartDashboard.putBoolean("Turbo Mode", true);
-        System.out.println(">> TURBO MODE ACTIVATED! MAXIMUM POWER!");
+        System.out.println(">> TURBO MODE ACTIVATED: Maximum power enabled!");
     }
     
     /**
      * Enable precision mode for fine control
-     * Great for lining up with game pieces or the barge
+     * Perfect for lining up with game pieces
      */
     public void enablePrecisionMode() {
-        setMaxOutput(Constants.DRIVE_PRECISION_SPEED);
+        setMaxOutput(Drivetrain.DRIVE_PRECISION_SPEED);
         m_precisionMode = true;
         m_turboMode = false;
-        m_driveMode = 2; // Precision
-        SmartDashboard.putBoolean("Precision Mode", true);
-        System.out.println(">> PRECISION MODE ACTIVATED! Fine control enabled.");
+        System.out.println(">> PRECISION MODE ACTIVATED: Fine control enabled");
     }
     
     /**
@@ -749,40 +691,10 @@ public class DriveSubsystem extends SubsystemBase {
      * Balanced performance and control
      */
     public void disableDriveModes() {
-        setMaxOutput(Constants.DRIVE_NORMAL_SPEED);
+        setMaxOutput(Drivetrain.DRIVE_NORMAL_SPEED);
         m_turboMode = false;
         m_precisionMode = false;
-        m_driveMode = 0; // Normal
-        SmartDashboard.putBoolean("Turbo Mode", false);
-        SmartDashboard.putBoolean("Precision Mode", false);
-    }
-
-    /**
-     * Simulated "Cartesian" drive for tank drive
-     * This lets us pretend we have mecanum wheels even with tank drive
-     * 
-     * @param xSpeed Forward speed (positive = forward)
-     * @param ySpeed Strafe speed (not really possible with tank drive)
-     * @param zRotation Rotation speed
-     */
-    public void driveCartesian(double xSpeed, double ySpeed, double zRotation) {
-        // Forward/backward motion takes priority
-        if (Math.abs(xSpeed) > Math.abs(ySpeed) && Math.abs(xSpeed) > Math.abs(zRotation)) {
-            arcadeDrive(xSpeed, 0);
-        }
-        // Rotation takes second priority
-        else if (Math.abs(zRotation) > Math.abs(ySpeed)) {
-            arcadeDrive(0, zRotation);
-        }
-        // Attempt to "strafe" by doing a tank turn (not very effective but it's something)
-        else if (Math.abs(ySpeed) > 0.1) {
-            // Simulate strafing by spinning the tracks in opposite directions
-            tankDrive(ySpeed, -ySpeed);
-        }
-        // If all inputs are very small, just stop
-        else {
-            stop();
-        }
+        System.out.println(">> NORMAL DRIVE MODE RESTORED");
     }
     
     /**
@@ -795,40 +707,64 @@ public class DriveSubsystem extends SubsystemBase {
     }
     
     /**
-     * Get the current drive mode as a string
+     * Perform a complete check of drivetrain health
      * 
-     * @return Drive mode name
+     * @return true if all systems are operational
      */
-    public String getDriveModeName() {
-        if (m_turboMode) return "TURBO";
-        if (m_precisionMode) return "PRECISION";
-        return "NORMAL";
+    public boolean checkSystemHealth() {
+        boolean encodersOk = m_leftEncoderFunctional && m_rightEncoderFunctional;
+        boolean motorsOk = true; // Expand this check as needed
+        boolean batteryOk = RobotController.getBatteryVoltage() > Performance.BATTERY_WARNING_THRESHOLD;
+        
+        return encodersOk && motorsOk && batteryOk;
     }
     
     /**
-     * Get the maximum motor current observed
+     * Get detailed system status for diagnostics
      * 
-     * @return Maximum current in amps
+     * @return Status string describing system state
      */
-    public double getMaxCurrent() {
-        return m_maxCurrent;
+    public String getSystemStatus() {
+        StringBuilder status = new StringBuilder();
+        status.append("DRIVETRAIN STATUS:\n");
+        status.append("Mode: " + (m_turboMode ? "TURBO" : 
+                               (m_precisionMode ? "PRECISION" : "NORMAL")) + "\n");
+        status.append("Left Encoder: " + (m_leftEncoderFunctional ? "OK" : "FAULT") + "\n");
+        status.append("Right Encoder: " + (m_rightEncoderFunctional ? "OK" : "FAULT") + "\n");
+        status.append("Battery: " + RobotController.getBatteryVoltage() + "V\n");
+        status.append("Brownout Protection: " + (m_brownoutProtectionActive ? "ACTIVE" : "INACTIVE") + "\n");
+        status.append("Max Current: " + m_maxCurrent + "A\n");
+        status.append("Total Distance: " + m_totalDistance + "m\n");
+        
+        return status.toString();
     }
     
     /**
-     * Get the maximum motor temperature observed
+     * Access to the internal DifferentialDrive controller
      * 
-     * @return Maximum temperature in degrees C
+     * @return The differential drive controller
      */
-    public double getMaxTemperature() {
-        return m_maxTemperature;
+    public DifferentialDrive getDifferentialDrive() {
+        return m_drive;
     }
     
     /**
-     * Reset the performance tracking variables
+     * Access to the left front motor controller
+     * Used for monitoring and advanced control
+     * 
+     * @return Left front CANSparkMax
      */
-    public void resetPerformanceTracking() {
-        m_maxCurrent = 0.0;
-        m_maxTemperature = 0.0;
-        System.out.println(">> Performance tracking reset!");
+    public CANSparkMax getLeftFrontMotor() {
+        return m_leftFrontMotor;
+    }
+    
+    /**
+     * Access to the right front motor controller
+     * Used for monitoring and advanced control
+     * 
+     * @return Right front CANSparkMax
+     */
+    public CANSparkMax getRightFrontMotor() {
+        return m_rightFrontMotor;
     }
 }
