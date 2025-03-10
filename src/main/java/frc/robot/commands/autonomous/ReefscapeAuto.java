@@ -4,7 +4,6 @@ package frc.robot.commands.autonomous;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
-import edu.wpi.first.wpilibj2.command.RunCommand;
 
 import frc.robot.Robot;
 import frc.robot.commands.BallTrackingCommand;
@@ -13,80 +12,85 @@ import frc.robot.commands.autonomous.basic_path_planning.Drivetrain_GyroStraight
 import frc.robot.commands.autonomous.basic_path_planning.Drivetrain_GyroTurn;
 
 /**
- * ReefscapeAuto - Team 7221's GYRO-FREE AUTONOMOUS BALL COLLECTION!
+ * ReefscapeAuto - Main autonomous routine for the 2025 Reefscape competition
  * 
- * This autonomous routine has been updated to work without a gyro by using
- * time-based turns and encoder-driven distance measurement.
+ * This autonomous sequence performs the following operations:
+ * 1. Drive forward from starting position to reach field center
+ * 2. Scan the field to locate game pieces
+ * 3. Track and collect a game piece using vision
+ * 4. Return to scoring zone
+ * 5. Score the collected game piece
  * 
- * 1. Moves from starting position
- * 2. Searches for and collects balls
- * 3. Returns to scoring zone
- * 4. Scores the collected balls
+ * Key connections with other systems:
+ * - Uses DriveSubsystem for movement (controlled via GyroStraight and GyroTurn commands)
+ * - Uses VisionSubsystem for ball detection (switched to pipeline 0)
+ * - Uses BallArmSubsystem for game piece collection and scoring
  * 
- * coded by paysean
+ * This routine is designed to work without a physical gyro by using encoder-based
+ * turning and position tracking.
  */
 public class ReefscapeAuto extends SequentialCommandGroup {
     
+    /**
+     * Creates a new autonomous routine for the Reefscape game
+     */
     public ReefscapeAuto() {
         addCommands(
-            // Initialize systems
+            // Phase 1: Initialization
             new InstantCommand(() -> {
-                // Reset encoders for navigation
+                // Reset encoders to establish a new reference point
                 Robot.m_driveSubsystem.resetEncoders();
                 
-                // Set vision to ball detection mode
+                // Set vision system to ball detection mode
                 Robot.m_visionSubsystem.setPipeline(0);
                 
-                System.out.println("");
-                System.out.println("======================================");
-                System.out.println(">> STARTING REEFSCAPE AUTO ROUTINE!  ");
-                System.out.println(">> GYRO-FREE VERSION - LET'S DO THIS!");
-                System.out.println("======================================");
-                System.out.println("");
+                // Log start of autonomous routine
+                System.out.println("Starting Reefscape autonomous routine");
             }),
             
-            // Drive forward into field
+            // Phase 2: Move into field
+            // Drive forward 1 meter at 40% power to enter field
             new Drivetrain_GyroStraight(1.0, 0.4),
             
-            // Turn to scan the field (now using timer-based turn)
+            // Phase 3: Scan for game pieces
+            // Turn 45 degrees to scan the field
             new Drivetrain_GyroTurn(45),
             
-            // Brief pause to stabilize
+            // Brief pause to stabilize after turning
             new WaitCommand(0.2),
             
-            // Find and collect first ball
+            // Phase 4: Locate and collect a game piece
+            // Activate vision tracking to find and collect a ball
             new BallTrackingCommand(),
             
-            // Wait for arm to be safely stowed
+            // Pause to ensure arm is safely stowed after collection
             new WaitCommand(0.5),
             
-            // Turn back toward scoring zone (time-based 180 degree turn)
+            // Phase 5: Return to scoring position
+            // Turn 180 degrees to face the scoring zone
             new Drivetrain_GyroTurn(180),
             
-            // Brief pause to stabilize
+            // Pause to stabilize after turning
             new WaitCommand(0.2),
             
-            // Drive back to scoring position
+            // Drive to scoring position (1.2 meters at 50% power)
             new Drivetrain_GyroStraight(1.2, 0.5),
             
-            // Final alignment turn to face target
+            // Fine-tune alignment with scoring target
             new Drivetrain_GyroTurn(-10),
             
-            // Brief pause before scoring
+            // Pause before scoring for stability
             new WaitCommand(0.3),
             
-            // Score the ball
+            // Phase 6: Score the game piece
+            // Execute scoring sequence with the ball arm
             new ScoreSequence(Robot.m_ballArmSubsystem),
             
-            // Cleanup - make sure arm is stowed
+            // Phase 7: Finalization
+            // Return arm to home position for teleop
             new InstantCommand(() -> {
                 Robot.m_ballArmSubsystem.homeArm();
-                System.out.println("");
-                System.out.println("======================================");
-                System.out.println(">> AUTO ROUTINE COMPLETE - SUCCESS!  ");
-                System.out.println(">> SWITCHING TO TELEOP CONTROL       ");
-                System.out.println("======================================");
-                System.out.println("");
+                System.out.println("Autonomous routine complete");
             })
         );
     }
