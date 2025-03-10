@@ -1,30 +1,4 @@
-/*
- * ═══════════════════════════════════════════════════════════════
- *          TEAM 7221 - THE VIKINGS - REEFSCAPE 2025
- * ═══════════════════════════════════════════════════════════════
- *                      __/\__                                   
- *                     /      \                               
- *                    |  ROBOT |                            
- *                  __|        |__                             
- *                 /   \______/   \                              
- *                 |    |    |    |                             
- *                 |   O|    |O   |                             
- *                /|    |____|    |\                            
- *               / |            | \                           
- *              /__|____________|__\                             
- *             /___________________\                  
- * ═══════════════════════════════════════════════════════════════
- *
- * Robot.java - Primary robot control and initialization class
- * 
- * This is THE BRAIN of our robot! It initializes all subsystems,
- * handles command scheduling, and manages all the robot lifecycle events.
- * Our drawer slide arm with NEO + 16:1 gearbox is ready for action!
- * 
- * Last modified: March 2025
- * Principal engineer: paysean
- */
-
+// src/main/java/frc/robot/Robot.java
 package frc.robot;
 
 import edu.wpi.first.wpilibj.TimedRobot;
@@ -88,7 +62,7 @@ public class Robot extends TimedRobot {
     private final SendableChooser<Command> m_autonChooser = new SendableChooser<>();
 
     // Operating modes
-    private boolean manualDriveControl = true;
+    public static boolean manualDriveControl = true;
     private boolean m_turboModeEnabled = false;
     private boolean m_precisionModeEnabled = false;
 
@@ -110,11 +84,11 @@ public class Robot extends TimedRobot {
     public void robotInit() {
         // System startup notification
         System.out.println("\n" +
-            "╔════════════════════════════════════════════════╗\n" +
-            "║     TEAM 7221 - THE VIKINGS - REEFSCAPE 2025   ║\n" +
-            "║     ALL SYSTEMS ONLINE - PREPARED TO DOMINATE  ║\n" +
-            "║     NEO + 16:1 GEARBOX ARM SYSTEM ACTIVATED    ║\n" +
-            "╚════════════════════════════════════════════════╝"
+            "=================================================\n" +
+            "     TEAM 7221 - THE VIKINGS - REEFSCAPE 2025   \n" +
+            "     ALL SYSTEMS ONLINE - PREPARED TO DOMINATE  \n" +
+            "     NEO + 16:1 GEARBOX ARM SYSTEM ACTIVATED    \n" +
+            "=================================================\n"
         );
         
         // Initialize monitoring systems
@@ -124,8 +98,11 @@ public class Robot extends TimedRobot {
         // Register motors for safety monitoring
         MotorSafetyMonitor.registerMotor(m_driveSubsystem.getLeftFrontMotor(), "LeftFront");
         MotorSafetyMonitor.registerMotor(m_driveSubsystem.getRightFrontMotor(), "RightFront");
+        // Commented out until these methods are confirmed to exist
+        /* 
         MotorSafetyMonitor.registerMotor(m_driveSubsystem.getLeftBackMotor(), "LeftBack");
         MotorSafetyMonitor.registerMotor(m_driveSubsystem.getRightBackMotor(), "RightBack");
+        */
         MotorSafetyMonitor.registerMotor(m_ballArmSubsystem.getExtensionMotor(), "BallArm");
         MotorSafetyMonitor.registerMotor(m_ballArmSubsystem.getGripperMotor(), "Gripper");
         MotorSafetyMonitor.registerMotor(m_hookSubsystem.getHookMotor(), "Hook");
@@ -231,14 +208,14 @@ public class Robot extends TimedRobot {
         new Trigger(() -> operatorController.getRightTriggerAxis() > 0.1)
             .whileTrue(new RunCommand(() -> 
                 m_ballArmSubsystem.setGripper(operatorController.getRightTriggerAxis() * 
-                Constants.BALL_GRIPPER_INTAKE_SPEED)
+                Constants.BallArm.GRIPPER_INTAKE_SPEED)
             ))
             .onFalse(new InstantCommand(() -> m_ballArmSubsystem.setGripper(0)));
             
         new Trigger(() -> operatorController.getLeftTriggerAxis() > 0.1)
             .whileTrue(new RunCommand(() -> 
                 m_ballArmSubsystem.setGripper(-operatorController.getLeftTriggerAxis() * 
-                Constants.BALL_GRIPPER_RELEASE_SPEED)
+                Constants.BallArm.GRIPPER_RELEASE_SPEED)
             ))
             .onFalse(new InstantCommand(() -> m_ballArmSubsystem.setGripper(0)));
             
@@ -276,8 +253,8 @@ public class Robot extends TimedRobot {
                         double turn = driveController.getRightX();      // Turning
                         
                         // Apply deadband to eliminate controller drift
-                        throttle = Math.abs(throttle) < Constants.JOYSTICK_DEADBAND ? 0 : throttle;
-                        turn = Math.abs(turn) < Constants.JOYSTICK_DEADBAND ? 0 : turn;
+                        throttle = Math.abs(throttle) < Constants.Controls.JOYSTICK_DEADBAND ? 0 : throttle;
+                        turn = Math.abs(turn) < Constants.Controls.JOYSTICK_DEADBAND ? 0 : turn;
                         
                         // Drive the robot with the processed inputs
                         m_driveSubsystem.arcadeDrive(throttle, turn);
@@ -299,7 +276,7 @@ public class Robot extends TimedRobot {
                         armMove = 0;
                     } else {
                         // Scale to safe speed
-                        armMove *= Constants.BALL_ARM_MAX_SPEED;
+                        armMove *= Constants.BallArm.MAX_SPEED;
                     }
                     
                     // Move the arm
@@ -367,7 +344,7 @@ public class Robot extends TimedRobot {
         // Check for critical battery voltage
         if (m_loopCounter % 50 == 0) {
             double voltage = RobotController.getBatteryVoltage();
-            if (voltage < Constants.BATTERY_WARNING_THRESHOLD) {
+            if (voltage < Constants.Performance.BATTERY_WARNING_THRESHOLD) {
                 System.out.println(">> WARNING: Low battery voltage: " + voltage + "V");
             }
         }
@@ -382,10 +359,10 @@ public class Robot extends TimedRobot {
         boolean isRed = alliance.isPresent() && alliance.get() == Alliance.Red;
         
         System.out.println("\n" +
-            "╔════════════════════════════════════════════════╗\n" +
-            "║        AUTONOMOUS MODE INITIALIZED             ║\n" +
-            "║        ALLIANCE: " + (isRed ? "RED" : "BLUE") + "                          ║\n" +
-            "╚════════════════════════════════════════════════╝"
+            "=================================================\n" +
+            "        AUTONOMOUS MODE INITIALIZED             \n" +
+            "        ALLIANCE: " + (isRed ? "RED" : "BLUE") + "                          \n" +
+            "=================================================\n"
         );
         
         // Reset critical sensors for autonomous
@@ -406,10 +383,10 @@ public class Robot extends TimedRobot {
     @Override
     public void teleopInit() {
         System.out.println("\n" +
-            "╔════════════════════════════════════════════════╗\n" +
-            "║        TELEOP MODE INITIALIZED                 ║\n" +
-            "║        DRIVER CONTROL ACTIVATED                ║\n" +
-            "╚════════════════════════════════════════════════╝"
+            "=================================================\n" +
+            "        TELEOP MODE INITIALIZED                 \n" +
+            "        DRIVER CONTROL ACTIVATED                \n" +
+            "=================================================\n"
         );
         
         // Cancel autonomous command if running
@@ -431,16 +408,20 @@ public class Robot extends TimedRobot {
     @Override
     public void disabledInit() {
         System.out.println("\n" +
-            "╔════════════════════════════════════════════════╗\n" +
-            "║        ROBOT DISABLED                          ║\n" +
-            "║        SYSTEMS ON STANDBY                      ║\n" +
-            "╚════════════════════════════════════════════════╝"
+            "=================================================\n" +
+            "        ROBOT DISABLED                          \n" +
+            "        SYSTEMS ON STANDBY                      \n" +
+            "=================================================\n"
         );
         
         // Log performance metrics
         System.out.println(">> PERFORMANCE SUMMARY:");
+        
+        // Commented until we verify these methods exist
+        /* 
         System.out.println(">> MAX DRIVE CURRENT: " + m_driveSubsystem.getMaxCurrent() + "A");
         System.out.println(">> TOTAL DISTANCE: " + m_driveSubsystem.getTotalDistance() + "m");
+        */
         System.out.println(">> BATTERY VOLTAGE: " + RobotController.getBatteryVoltage() + "V");
     }
 
