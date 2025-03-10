@@ -1,19 +1,3 @@
-/*
- * ================================================================
- *  _    _  ____   ____  _  __     _____ __  __ _____   _____ !
- * | |  | |/ __ \ / __ \| |/ /    / ____|  \/  |  __ \ / ____|!
- * | |__| | |  | | |  | | ' /    | |    | \  / | |  | | (___  !
- * |  __  | |  | | |  | |  <     | |    | |\/| | |  | |\___ \ !
- * | |  | | |__| | |__| | . \    | |____| |  | | |__| |____) |!
- * |_|  |_|\____/ \____/|_|\_\    \_____|_|  |_|_____/|_____/ !
- *                                                             !
- * ================================================================
- * 
- * TEAM 7221 HOOK COMMANDS - FOR MAXIMUM BARGE DOMINATION
- * 
- *   |--|  |--|  |--|  |--|  |--|  |--|  |--|  |--|  |--|  |--|  |--|  |--|
- */
-
 package frc.robot.commands.hook;
 
 import edu.wpi.first.wpilibj2.command.Command;
@@ -24,17 +8,28 @@ import edu.wpi.first.wpilibj2.command.InstantCommand;
 import frc.robot.subsystems.HookSubsystem;
 
 /**
- * Hook commands for controlling our epic barge hook system
+ * HookCommands - Command classes for controlling the barge hook mechanism
  * 
- * We've got awesome commands to:
- * - Extend the hook
- * - Retract the hook
- * - Run the full grab sequence
+ * This file contains a collection of commands that control the robot's hook system
+ * for barge manipulation during the endgame phase of FRC Reefscape.
+ * 
+ * The hook system uses a linear actuator with a J-hook end effector to:
+ * 1. Extend vertically to reach the barge
+ * 2. Securely attach to the barge
+ * 3. Retract to pull the barge in the desired direction
+ * 
+ * System connections:
+ * - These commands require the HookSubsystem to function
+ * - They are activated through button bindings defined in Robot.java
+ * - They use limit switches to detect when the hook reaches its limits
  */
 public class HookCommands {
     
     /**
-     * Command to extend the hook
+     * ExtendHookCommand - Extends the hook until it reaches its limit
+     * 
+     * This command extends the hook upward until the limit switch is triggered,
+     * indicating the hook has reached its maximum extension.
      */
     public static class ExtendHookCommand extends Command {
         private final HookSubsystem m_hookSubsystem;
@@ -46,7 +41,7 @@ public class HookCommands {
         
         @Override
         public void initialize() {
-            System.out.println(">> EXTENDING HOOK - RELEASE THE KRAKEN! <<");
+            System.out.println("Extending hook...");
         }
         
         @Override
@@ -58,9 +53,9 @@ public class HookCommands {
         public void end(boolean interrupted) {
             m_hookSubsystem.stopHook();
             if (interrupted) {
-                System.out.println(">> HOOK EXTENSION INTERRUPTED!");
+                System.out.println("Hook extension interrupted");
             } else {
-                System.out.println(">> HOOK FULLY EXTENDED!");
+                System.out.println("Hook fully extended");
             }
         }
         
@@ -71,7 +66,11 @@ public class HookCommands {
     }
     
     /**
-     * Command to retract the hook
+     * RetractHookCommand - Retracts the hook until it reaches its limit
+     * 
+     * This command retracts the hook downward until the limit switch is triggered,
+     * indicating the hook has fully retracted. When used after hooking onto the barge,
+     * this command will pull the barge with the robot.
      */
     public static class RetractHookCommand extends Command {
         private final HookSubsystem m_hookSubsystem;
@@ -83,7 +82,7 @@ public class HookCommands {
         
         @Override
         public void initialize() {
-            System.out.println(">> RETRACTING HOOK - COMING HOME!");
+            System.out.println("Retracting hook...");
         }
         
         @Override
@@ -95,9 +94,9 @@ public class HookCommands {
         public void end(boolean interrupted) {
             m_hookSubsystem.stopHook();
             if (interrupted) {
-                System.out.println(">> HOOK RETRACTION INTERRUPTED!");
+                System.out.println("Hook retraction interrupted");
             } else {
-                System.out.println(">> HOOK FULLY RETRACTED!");
+                System.out.println("Hook fully retracted");
             }
         }
         
@@ -108,41 +107,36 @@ public class HookCommands {
     }
     
     /**
-     * Full hook cycle command - extends, waits for barge connection, then retracts
+     * HookCycleCommand - Runs a complete hook cycle
+     * 
+     * This command sequence executes a full hook operation:
+     * 1. Extend the hook
+     * 2. Wait for barge connection (or a set time delay)
+     * 3. Retract the hook, pulling the barge
+     * 
+     * Useful for automatic barge capture during endgame.
      */
     public static class HookCycleCommand extends SequentialCommandGroup {
         public HookCycleCommand(HookSubsystem hookSubsystem) {
             addCommands(
-                // Start with cool announcement
+                // Start with announcement
                 new InstantCommand(() -> {
-                    System.out.println("");
-                    System.out.println(">>>>>> INITIATING FULL HOOK CYCLE! >>>>>>");
-                    System.out.println(">>>>>> PREPARE FOR BARGE CAPTURE! >>>>>>");
-                    System.out.println("");
+                    System.out.println("Starting full hook cycle");
                 }),
                 
                 // Extend the hook
                 new ExtendHookCommand(hookSubsystem),
                 
-                // Wait for barge connection (operator will press button to continue)
-                new InstantCommand(() -> {
-                    System.out.println(">> WAITING FOR BARGE CONNECTION!");
-                    System.out.println(">> PRESS CONFIRM WHEN CONNECTED!");
-                }),
-                
-                // This would normally be replaced by a button press to continue
-                // For testing purposes, we'll just wait 2 seconds
-                new WaitCommand(2.0),
+                // Wait for barge connection (or a set time)
+                new InstantCommand(() -> System.out.println("Hook extended - waiting for barge connection")),
+                new WaitCommand(2.0),  // In competition, replace with driver confirmation
                 
                 // Retract with the barge
                 new RetractHookCommand(hookSubsystem),
                 
                 // Finish with success message
                 new InstantCommand(() -> {
-                    System.out.println("");
-                    System.out.println(">>>>>> BARGE CAPTURED SUCCESSFULLY! >>>>>>");
-                    System.out.println(">>>>>> HOOK CYCLE COMPLETE! >>>>>>");
-                    System.out.println("");
+                    System.out.println("Hook cycle complete");
                 })
             );
         }
@@ -150,11 +144,14 @@ public class HookCommands {
     
     /**
      * Emergency stop command for the hook system
+     * 
+     * @param hookSubsystem The hook subsystem to stop
+     * @return A command that immediately stops hook movement
      */
     public static Command emergencyStopHook(HookSubsystem hookSubsystem) {
         return Commands.runOnce(() -> {
             hookSubsystem.emergencyStop();
-            System.out.println("!!! HOOK EMERGENCY STOP ACTIVATED !!!");
+            System.out.println("HOOK EMERGENCY STOP ACTIVATED");
         });
     }
 }
