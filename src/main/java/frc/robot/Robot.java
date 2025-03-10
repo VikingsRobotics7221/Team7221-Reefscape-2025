@@ -67,8 +67,8 @@ public class Robot extends TimedRobot {
     private boolean m_precisionModeEnabled = false;
 
     // Control interfaces
-    public static final XboxController driveController = new XboxController(Constants.CONTROLLER_USB_PORT_ID);
-    public static final XboxController operatorController = new XboxController(Constants.OPERATOR_CONTROLLER_USB_PORT_ID);
+    public static final XboxController driveController = new XboxController(Constants.Electrical.DRIVER_CONTROLLER_PORT);
+    public static final XboxController operatorController = new XboxController(Constants.Electrical.OPERATOR_CONTROLLER_PORT);
 
     // Subsystem initialization
     public static final DriveSubsystem m_driveSubsystem = new DriveSubsystem();
@@ -417,7 +417,7 @@ public class Robot extends TimedRobot {
         // Log performance metrics
         System.out.println(">> PERFORMANCE SUMMARY:");
         
-        // Commented until we verify these methods exist
+        // Commented out until we confirm these methods exist
         /* 
         System.out.println(">> MAX DRIVE CURRENT: " + m_driveSubsystem.getMaxCurrent() + "A");
         System.out.println(">> TOTAL DISTANCE: " + m_driveSubsystem.getTotalDistance() + "m");
