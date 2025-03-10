@@ -43,17 +43,24 @@ import frc.robot.utils.MotorSafetyMonitor;
 import frc.robot.utils.PerformanceDashboard;
 
 /**
- * Robot Control System - Core control class for Team 7221's Reefscape 2025 robot
+ * Robot Control System - Main control class for Team 7221's Reefscape robot
  * 
- * This class implements a command-based architecture that separates control logic from
- * hardware implementation. It coordinates all subsystems and provides the autonomous
- * and teleop mode behaviors.
+ * This class serves as the central brain of our robot, coordinating all subsystems:
+ * - DriveSubsystem: Controls our 6-wheel tank drive using arcade-style input
+ * - BallArmSubsystem: Manages our drawer-slide ball manipulation system
+ * - VisionSubsystem: Handles camera processing for ball tracking
+ * - HookSubsystem: Controls our endgame barge hook mechanism
+ * 
+ * The code follows a command-based architecture where:
+ * 1. Subsystems define hardware interfaces (motors, sensors)
+ * 2. Commands define actions (drive, collect balls, deploy hook)
+ * 3. This Robot class binds controller inputs to those commands
  * 
  * Key features:
- * - Drawer slide arm with NEO + 16:1 gearbox for ball control
- * - Tank drive with optimized control for pushing power
- * - Vision-based tracking for autonomous ball acquisition
- * - Hook deployment system for endgame scoring
+ * - Multi-mode operation (autonomous, teleop, test)
+ * - Controller button mapping for driver and operator
+ * - Multiple autonomous routines selectable via dashboard
+ * - Performance monitoring and safety systems
  */
 public class Robot extends TimedRobot {
 
@@ -67,8 +74,8 @@ public class Robot extends TimedRobot {
     private boolean m_precisionModeEnabled = false;
 
     // Control interfaces
-    public static final XboxController driveController = new XboxController(Constants.Electrical.DRIVER_CONTROLLER_PORT);
-    public static final XboxController operatorController = new XboxController(Constants.Electrical.OPERATOR_CONTROLLER_PORT);
+    public static final XboxController driveController = new XboxController(Constants.Controls.DRIVER_CONTROLLER_PORT);
+    public static final XboxController operatorController = new XboxController(Constants.Controls.OPERATOR_CONTROLLER_PORT);
 
     // Subsystem initialization
     public static final DriveSubsystem m_driveSubsystem = new DriveSubsystem();
@@ -77,49 +84,31 @@ public class Robot extends TimedRobot {
     public static final HookSubsystem m_hookSubsystem = new HookSubsystem();
     
     // State tracking
-    private double m_goalAngle = 0.0;
     private int m_loopCounter = 0;
+    private double m_lastBatteryVoltage = 12.0;
 
+    /**
+     * Robot initialization - Called once when the robot first starts up
+     * Sets up all subsystems, control bindings, and dashboard elements
+     */
     @Override
     public void robotInit() {
         // System startup notification
-        System.out.println("\n" +
-            "=================================================\n" +
-            "     TEAM 7221 - THE VIKINGS - REEFSCAPE 2025   \n" +
-            "     ALL SYSTEMS ONLINE - PREPARED TO DOMINATE  \n" +
-            "     NEO + 16:1 GEARBOX ARM SYSTEM ACTIVATED    \n" +
-            "=================================================\n"
-        );
+        System.out.println("TEAM 7221 - THE VIKINGS - REEFSCAPE 2025");
+        System.out.println("ROBOT SYSTEMS INITIALIZING");
         
         // Initialize monitoring systems
         MotorSafetyMonitor.initialize();
         PerformanceDashboard.initialize(false);  // Non-verbose mode
         
         // Register motors for safety monitoring
-        MotorSafetyMonitor.registerMotor(m_driveSubsystem.getLeftFrontMotor(), "LeftFront");
-        MotorSafetyMonitor.registerMotor(m_driveSubsystem.getRightFrontMotor(), "RightFront");
-        // Commented out until these methods are confirmed to exist
-        /* 
-        MotorSafetyMonitor.registerMotor(m_driveSubsystem.getLeftBackMotor(), "LeftBack");
-        MotorSafetyMonitor.registerMotor(m_driveSubsystem.getRightBackMotor(), "RightBack");
-        */
-        MotorSafetyMonitor.registerMotor(m_ballArmSubsystem.getExtensionMotor(), "BallArm");
-        MotorSafetyMonitor.registerMotor(m_ballArmSubsystem.getGripperMotor(), "Gripper");
-        MotorSafetyMonitor.registerMotor(m_hookSubsystem.getHookMotor(), "Hook");
-
-        // Configure control bindings
+        registerMotorsForSafetyMonitoring();
+        
+        // Configure control bindings for controllers
         configureButtonBindings();
         
-        // Configure autonomous modes
-        m_autonChooser.setDefaultOption("No Action", new InstantCommand());
-        m_autonChooser.addOption("Strategic Ball Hunt", new StrategicBallHuntAuto());
-        m_autonChooser.addOption("Defensive Hoarding", new DefensiveHoardingAuto());
-        m_autonChooser.addOption("Reefscape Optimized", new ReefscapeAuto());
-        m_autonChooser.addOption("Drive Forward 1m", new Drivetrain_GyroStraight(1.0, 0.6));
-        m_autonChooser.addOption("Test Square Pattern", createSquareTestAuto());
-        
-        // Register autonomous chooser with dashboard
-        SmartDashboard.putData("Autonomous Mode", m_autonChooser);
+        // Configure autonomous modes and selection
+        configureAutonomousModes();
         
         // Set up default commands for subsystems
         setDefaultCommands();
@@ -132,7 +121,37 @@ public class Robot extends TimedRobot {
         // Dashboard information
         SmartDashboard.putString("Robot Name", "Team 7221 Viking Reefscape Robot");
         SmartDashboard.putString("Arm System", "NEO + 16:1 Gearbox Drawer Slide");
-        SmartDashboard.putString("Status", "READY TO CONQUER THE FIELD!");
+        SmartDashboard.putString("Status", "READY");
+        
+        System.out.println("ROBOT INITIALIZATION COMPLETE - READY FOR OPERATION");
+    }
+
+    /**
+     * Register motors with the safety monitoring system
+     * This allows automatic detection of stalls, overheating, and brownouts
+     */
+    private void registerMotorsForSafetyMonitoring() {
+        MotorSafetyMonitor.registerMotor(m_driveSubsystem.getLeftFrontMotor(), "LeftFront");
+        MotorSafetyMonitor.registerMotor(m_driveSubsystem.getRightFrontMotor(), "RightFront");
+        MotorSafetyMonitor.registerMotor(m_ballArmSubsystem.getExtensionMotor(), "BallArm");
+        MotorSafetyMonitor.registerMotor(m_ballArmSubsystem.getGripperMotor(), "Gripper");
+        MotorSafetyMonitor.registerMotor(m_hookSubsystem.getHookMotor(), "Hook");
+    }
+
+    /**
+     * Configure autonomous modes available for selection
+     * Adds all available routines to the dashboard chooser
+     */
+    private void configureAutonomousModes() {
+        m_autonChooser.setDefaultOption("No Action", new InstantCommand());
+        m_autonChooser.addOption("Strategic Ball Hunt", new StrategicBallHuntAuto());
+        m_autonChooser.addOption("Defensive Hoarding", new DefensiveHoardingAuto());
+        m_autonChooser.addOption("Reefscape Optimized", new ReefscapeAuto());
+        m_autonChooser.addOption("Drive Forward 1m", new Drivetrain_GyroStraight(1.0, 0.6));
+        m_autonChooser.addOption("Test Square Pattern", createSquareTestAuto());
+        
+        // Register autonomous chooser with dashboard
+        SmartDashboard.putData("Autonomous Mode", m_autonChooser);
     }
 
     /**
@@ -141,18 +160,28 @@ public class Robot extends TimedRobot {
      */
     private void configureButtonBindings() {
         // DRIVER CONTROLS - Primary movement and drive modes
+        configureDriverControls();
         
-        // A = Precision mode (50% power for fine control)
+        // OPERATOR CONTROLS - Mechanism control
+        configureOperatorControls();
+    }
+    
+    /**
+     * Configure driver controller buttons
+     * Primarily handles drivetrain control modes
+     */
+    private void configureDriverControls() {
+        // A = Precision mode (35% power for fine control)
         new Trigger(() -> driveController.getAButton())
             .onTrue(new InstantCommand(() -> {
                 m_precisionModeEnabled = true;
                 m_driveSubsystem.enablePrecisionMode();
-                System.out.println(">> PRECISION MODE ACTIVATED");
+                System.out.println("Precision mode activated");
             }))
             .onFalse(new InstantCommand(() -> {
                 m_precisionModeEnabled = false;
                 m_driveSubsystem.disableDriveModes();
-                System.out.println(">> PRECISION MODE DEACTIVATED");
+                System.out.println("Precision mode deactivated");
             }));
             
         // B = Turbo mode (100% power for maximum speed)
@@ -160,22 +189,22 @@ public class Robot extends TimedRobot {
             .onTrue(new InstantCommand(() -> {
                 m_turboModeEnabled = true;
                 m_driveSubsystem.enableTurboMode();
-                System.out.println(">> TURBO MODE ACTIVATED");
+                System.out.println("Turbo mode activated");
             }))
             .onFalse(new InstantCommand(() -> {
                 m_turboModeEnabled = false;
                 m_driveSubsystem.disableDriveModes();
-                System.out.println(">> TURBO MODE DEACTIVATED");
+                System.out.println("Turbo mode deactivated");
             }));
         
         // Quick turn buttons
         new Trigger(() -> driveController.getXButton())
             .onTrue(new Drivetrain_GyroTurn(-90)
-                .beforeStarting(() -> System.out.println(">> QUICK TURN LEFT 90°")));
+                .beforeStarting(() -> System.out.println("Quick turn left 90°")));
                 
         new Trigger(() -> driveController.getYButton())
             .onTrue(new Drivetrain_GyroTurn(90)
-                .beforeStarting(() -> System.out.println(">> QUICK TURN RIGHT 90°")));
+                .beforeStarting(() -> System.out.println("Quick turn right 90°")));
         
         // Emergency stop - Both bumpers simultaneously
         new Trigger(() -> driveController.getLeftBumper() && driveController.getRightBumper())
@@ -183,11 +212,15 @@ public class Robot extends TimedRobot {
                 m_driveSubsystem.stop();
                 m_ballArmSubsystem.emergencyStop();
                 m_hookSubsystem.emergencyStop();
-                System.out.println("!!! EMERGENCY STOP ACTIVATED !!!");
+                System.out.println("EMERGENCY STOP ACTIVATED");
             }));
-        
-        // OPERATOR CONTROLS - Mechanism control
-        
+    }
+    
+    /**
+     * Configure operator controller buttons
+     * Handles ball arm and hook mechanisms
+     */
+    private void configureOperatorControls() {
         // Ball arm control - A = Pickup position
         new Trigger(() -> operatorController.getAButton())
             .onTrue(new BallControlCommands.PickupSequence(m_ballArmSubsystem));
@@ -229,12 +262,12 @@ public class Robot extends TimedRobot {
         new Trigger(() -> operatorController.getRightStickButton())
             .onTrue(new HookCommands.HookCycleCommand(m_hookSubsystem));
             
-        // Emergency stop - Both bumpers simultaneously
+        // Emergency stop for mechanisms - Both bumpers simultaneously
         new Trigger(() -> operatorController.getLeftBumper() && operatorController.getRightBumper())
             .onTrue(new InstantCommand(() -> {
                 m_ballArmSubsystem.emergencyStop();
                 m_hookSubsystem.emergencyStop();
-                System.out.println("!!! MECHANISM EMERGENCY STOP ACTIVATED !!!");
+                System.out.println("MECHANISM EMERGENCY STOP ACTIVATED");
             }));
     }
     
@@ -289,13 +322,13 @@ public class Robot extends TimedRobot {
     
     /**
      * Creates a test autonomous routine that drives in a square pattern
-     * Useful for validating control performance
+     * Useful for validating drivetrain control and position tracking
      * 
      * @return Command sequence for square pattern
      */
     private Command createSquareTestAuto() {
         return new SequentialCommandGroup(
-            new InstantCommand(() -> System.out.println(">> BEGINNING SQUARE TEST PATTERN")),
+            new InstantCommand(() -> System.out.println("Beginning square test pattern")),
             
             // Forward 1m
             new Drivetrain_GyroStraight(1.0, 0.6),
@@ -321,15 +354,37 @@ public class Robot extends TimedRobot {
             // Return to original heading
             new Drivetrain_GyroTurn(90.0),
             
-            new InstantCommand(() -> System.out.println(">> SQUARE PATTERN COMPLETE!"))
+            new InstantCommand(() -> System.out.println("Square pattern test complete"))
         );
     }
 
+    /**
+     * Called periodically during all robot modes
+     * Handles command scheduling and dashboard updates
+     */
     @Override
     public void robotPeriodic() {
+        // Run the command scheduler
         CommandScheduler.getInstance().run();
         
+        // Start performance timing
+        PerformanceDashboard.startLoopTiming();
+        
         // Update dashboard with key information
+        updateDashboard();
+        
+        // Check for any critical system issues
+        monitorSystemHealth();
+        
+        // End performance timing
+        PerformanceDashboard.endLoopTiming();
+    }
+    
+    /**
+     * Update dashboard with key robot information
+     * Displays status of all major subsystems
+     */
+    private void updateDashboard() {
         m_loopCounter++;
         if (m_loopCounter % 10 == 0) {  // Update every 10 loops to reduce CAN bus traffic
             SmartDashboard.putNumber("Gyro Angle", m_driveSubsystem.getGyroAngle());
@@ -340,16 +395,37 @@ public class Robot extends TimedRobot {
             SmartDashboard.putBoolean("Hook Extended", m_hookSubsystem.isExtended());
             SmartDashboard.putBoolean("Hook Retracted", m_hookSubsystem.isRetracted());
         }
+    }
+    
+    /**
+     * Monitor system health for critical issues
+     * Checks battery voltage, motor currents, and sensor status
+     */
+    private void monitorSystemHealth() {
+        // Check for significant battery voltage changes
+        double currentVoltage = RobotController.getBatteryVoltage();
+        if (Math.abs(currentVoltage - m_lastBatteryVoltage) > 0.5) {
+            System.out.println("Battery voltage change: " + 
+                              String.format("%.2f", m_lastBatteryVoltage) + "V -> " + 
+                              String.format("%.2f", currentVoltage) + "V");
+            m_lastBatteryVoltage = currentVoltage;
+        }
         
         // Check for critical battery voltage
         if (m_loopCounter % 50 == 0) {
-            double voltage = RobotController.getBatteryVoltage();
-            if (voltage < Constants.Performance.BATTERY_WARNING_THRESHOLD) {
-                System.out.println(">> WARNING: Low battery voltage: " + voltage + "V");
+            if (currentVoltage < Constants.Performance.BATTERY_WARNING_THRESHOLD) {
+                System.out.println("WARNING: Low battery voltage: " + currentVoltage + "V");
             }
         }
+        
+        // Update motor safety monitoring
+        MotorSafetyMonitor.updateAll();
     }
 
+    /**
+     * Called when the robot enters autonomous mode
+     * Initializes and starts the selected autonomous routine
+     */
     @Override
     public void autonomousInit() {
         m_autonomousCommand = m_autonChooser.getSelected();
@@ -358,12 +434,8 @@ public class Robot extends TimedRobot {
         Optional<Alliance> alliance = DriverStation.getAlliance();
         boolean isRed = alliance.isPresent() && alliance.get() == Alliance.Red;
         
-        System.out.println("\n" +
-            "=================================================\n" +
-            "        AUTONOMOUS MODE INITIALIZED             \n" +
-            "        ALLIANCE: " + (isRed ? "RED" : "BLUE") + "                          \n" +
-            "=================================================\n"
-        );
+        System.out.println("AUTONOMOUS MODE INITIALIZED");
+        System.out.println("ALLIANCE: " + (isRed ? "RED" : "BLUE"));
         
         // Reset critical sensors for autonomous
         m_driveSubsystem.resetEncoders();
@@ -375,19 +447,23 @@ public class Robot extends TimedRobot {
         }
     }
 
+    /**
+     * Called periodically during autonomous
+     * Command scheduler handles execution through robotPeriodic()
+     */
     @Override
     public void autonomousPeriodic() {
         // Command scheduler handles this through robotPeriodic()
     }
 
+    /**
+     * Called when the robot enters teleop mode
+     * Cancels autonomous and prepares for driver control
+     */
     @Override
     public void teleopInit() {
-        System.out.println("\n" +
-            "=================================================\n" +
-            "        TELEOP MODE INITIALIZED                 \n" +
-            "        DRIVER CONTROL ACTIVATED                \n" +
-            "=================================================\n"
-        );
+        System.out.println("TELEOP MODE INITIALIZED");
+        System.out.println("DRIVER CONTROL ACTIVATED");
         
         // Cancel autonomous command if running
         if (m_autonomousCommand != null) {
@@ -400,52 +476,71 @@ public class Robot extends TimedRobot {
         m_precisionModeEnabled = false;
     }
 
+    /**
+     * Called periodically during teleop
+     * Command scheduler handles execution through robotPeriodic()
+     */
     @Override
     public void teleopPeriodic() {
         // Command scheduler handles this through robotPeriodic()
     }
 
+    /**
+     * Called when the robot enters disabled mode
+     * Logs performance metrics and prepares for shutdown
+     */
     @Override
     public void disabledInit() {
-        System.out.println("\n" +
-            "=================================================\n" +
-            "        ROBOT DISABLED                          \n" +
-            "        SYSTEMS ON STANDBY                      \n" +
-            "=================================================\n"
-        );
+        System.out.println("ROBOT DISABLED");
+        System.out.println("SYSTEMS ON STANDBY");
         
         // Log performance metrics
-        System.out.println(">> PERFORMANCE SUMMARY:");
-        
-        // Commented out until we confirm these methods exist
-        /* 
-        System.out.println(">> MAX DRIVE CURRENT: " + m_driveSubsystem.getMaxCurrent() + "A");
-        System.out.println(">> TOTAL DISTANCE: " + m_driveSubsystem.getTotalDistance() + "m");
-        */
-        System.out.println(">> BATTERY VOLTAGE: " + RobotController.getBatteryVoltage() + "V");
+        System.out.println("PERFORMANCE SUMMARY:");
+        System.out.println("BATTERY VOLTAGE: " + RobotController.getBatteryVoltage() + "V");
+        System.out.println(PerformanceDashboard.getTimingSummary());
     }
 
+    /**
+     * Called periodically while disabled
+     * Minimal processing to conserve power
+     */
     @Override
     public void disabledPeriodic() {
         // Nothing to do when disabled
     }
 
+    /**
+     * Called when entering test mode
+     * Sets up for manual subsystem testing
+     */
     @Override
     public void testInit() {
         CommandScheduler.getInstance().cancelAll();
-        System.out.println("\n>> TEST MODE INITIALIZED\n");
+        System.out.println("TEST MODE INITIALIZED");
     }
 
+    /**
+     * Called periodically during test mode
+     * Used for direct testing of subsystems
+     */
     @Override
     public void testPeriodic() {
         // Test mode code here
     }
 
+    /**
+     * Called when simulation is initialized
+     * Sets up simulation parameters
+     */
     @Override
     public void simulationInit() {
-        // Simulation initialization code
+        System.out.println("SIMULATION MODE INITIALIZED");
     }
 
+    /**
+     * Called periodically during simulation
+     * Updates simulation models
+     */
     @Override
     public void simulationPeriodic() {
         // Simulation periodic code
