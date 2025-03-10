@@ -20,56 +20,44 @@ import java.util.List;
 import java.util.ArrayList;
 
 /**
- * Drivetrain_SmoothPath - ADVANCED PATH FOLLOWING WITH 16:1 OPTIMIZATION!
+ * Drivetrain_SmoothPath - Advanced Path Following with Tank Drive
  * 
- * This command generates and follows smooth paths optimized for our 16:1 drivetrain.
- * It uses WPILib's trajectory generation but with CUSTOM PID TUNING specifically
- * for high-torque, high-precision movement with our tank drive.
+ * This command generates and follows smooth paths optimized for tank drive systems.
+ * It creates curved trajectories between waypoints with proper acceleration and
+ * deceleration profiles for reliable autonomous movement.
  * 
- * Unlike basic autonomous commands, this one:
- * 1. Creates curved paths between waypoints
- * 2. Dynamically adjusts speed based on path curvature
- * 3. Uses encoder feedback for closed-loop position tracking
- * 4. Handles smooth acceleration/deceleration automatically
+ * SYSTEM INTEGRATION:
+ * - Uses DriveSubsystem from Robot.java for motor control
+ * - References Constants.java for robot-specific parameters
+ * - Utilizes WPILib trajectory classes for path generation
+ * - Provides detailed feedback during operation
  * 
- * coded by paysean - this is my MASTERPIECE of motion control!
+ * KEY FEATURES:
+ * - Creates curved paths between waypoints
+ * - Dynamically adjusts speed based on path curvature
+ * - Uses encoder feedback for closed-loop position tracking
+ * - Manages smooth acceleration/deceleration automatically
  */
 public class Drivetrain_SmoothPath extends Command {
     
-    // The drivetrain subsystem to control
+    // The drivetrain subsystem that will execute the path
     private final DriveSubsystem m_drive;
     
-    // Path generation and following objects
+    // Path generation and following components
     private final Trajectory m_trajectory;
     private final RamseteController m_ramseteController = new RamseteController();
-    private final PIDController m_leftController = new PIDController(Constants.kP_FRONT_LEFT_VELOCITY, 0, 0);
-    private final PIDController m_rightController = new PIDController(Constants.kP_FRONT_RIGHT_VELOCITY, 0, 0);
+    private final PIDController m_leftController = new PIDController(Constants.kP_DRIVE_VEL, 0, 0);
+    private final PIDController m_rightController = new PIDController(Constants.kP_DRIVE_VEL, 0, 0);
     
-    // Timing
+    // Timing and tracking variables
     private final Timer m_timer = new Timer();
     private final double m_timeoutSeconds;
-    
-    // Tracking variables
     private boolean m_isFinished = false;
     private double m_previousTime = 0;
     private double m_maxPathError = 0;
     
-    // ASCII ART because it makes code better!
-    //    _____                 _   _     
-    //   / ____|               | | | |    
-    //  | (___  _ __ ___   ___ | |_| |__  
-    //   \___ \| '_ ` _ \ / _ \| __| '_ \ 
-    //   ____) | | | | | | (_) | |_| | | |
-    //  |_____/|_| |_| |_|\___/ \__|_| |_|
-    //   _____      _   _                 
-    //  |  __ \    | | | |                
-    //  | |__) |_ _| |_| |__              
-    //  |  ___/ _` | __| '_ \             
-    //  | |  | (_| | |_| | | |            
-    //  |_|   \__,_|\__|_| |_|            
-    
     /**
-     * Creates a smooth path command between waypoints
+     * Creates a path-following command between multiple waypoints.
      * 
      * @param startPose Starting position and heading
      * @param waypoints List of points to pass through
@@ -91,16 +79,16 @@ public class Drivetrain_SmoothPath extends Command {
         m_drive = Robot.m_driveSubsystem;
         m_timeoutSeconds = timeoutSeconds;
         
-        // Add this subsystem as a requirement
+        // Register that this command requires the drivetrain
         addRequirements(m_drive);
         
-        // Configure trajectory constraints - SPECIALLY TUNED FOR 16:1 RATIO!
+        // Configure trajectory constraints based on robot capabilities
         TrajectoryConfig config = new TrajectoryConfig(maxVelocity, maxAcceleration)
             .setKinematics(m_drive.getKinematics())
             .setReversed(reversed)
-            .addConstraint(new CentripetalAccelerationConstraint(Constants.kMAX_ANGULAR_SPEED_RADIANS_PER_SECOND));
+            .addConstraint(new CentripetalAccelerationConstraint(Constants.MAX_TURN_RATE_RAD_PER_SEC));
         
-        // Generate the trajectory
+        // Generate the trajectory using WPILib trajectory generator
         m_trajectory = TrajectoryGenerator.generateTrajectory(
             startPose,
             waypoints,
@@ -108,17 +96,15 @@ public class Drivetrain_SmoothPath extends Command {
             config
         );
         
-        System.out.println("");
-        System.out.println(">> SMOOTH PATH COMMAND CREATED!");
-        System.out.println(">> TOTAL PATH LENGTH: " + m_trajectory.getTotalTimeSeconds() + " seconds");
-        System.out.println(">> WAYPOINTS: " + waypoints.size());
-        System.out.println("");
+        // Log path creation for debugging
+        System.out.println("SmoothPath created with " + waypoints.size() + 
+                           " waypoints, " + m_trajectory.getTotalTimeSeconds() + " seconds duration");
     }
     
     /**
-     * Simplified constructor for common path following
+     * Simplified constructor for common path following scenarios.
      * 
-     * @param waypoints Array of x,y points to visit [x1,y1,x2,y2,...]
+     * @param waypoints Array of x,y coordinates [x1,y1,x2,y2,...]
      * @param endHeading Final heading in degrees
      * @param maxVelocity Maximum velocity in m/s
      * @param timeoutSeconds Maximum execution time
@@ -128,24 +114,26 @@ public class Drivetrain_SmoothPath extends Command {
             new Pose2d(0, 0, new Rotation2d(0)),  // Start at current position
             waypointsArrayToList(waypoints),      // Convert array to Translation2d List
             new Pose2d(
-                waypoints[waypoints.length-2],    // Last x
-                waypoints[waypoints.length-1],    // Last y
-                Rotation2d.fromDegrees(endHeading) // End heading
+                waypoints[waypoints.length-2],    // Last x coordinate
+                waypoints[waypoints.length-1],    // Last y coordinate
+                Rotation2d.fromDegrees(endHeading) // Final orientation
             ),
             maxVelocity,
-            maxVelocity * 0.75,  // 75% of max velocity for acceleration limit
+            maxVelocity * 0.75,  // Limit acceleration to 75% of max velocity
             timeoutSeconds,
-            false  // Forward
+            false  // Forward by default
         );
     }
     
     /**
-     * Helper method to convert array of coordinates to List of Translation2d
+     * Helper method to convert array of coordinates to List of Translation2d.
+     * This allows for simpler parameter passing when creating paths.
      */
     private static List<Translation2d> waypointsArrayToList(double[] waypoints) {
         List<Translation2d> waypointsList = new ArrayList<>();
         
-        // Skip first and last points (they're start/end poses)
+        // Convert coordinate pairs to Translation2d objects
+        // Skip first and last points (they're specified in start/end poses)
         for (int i = 0; i < waypoints.length - 3; i += 2) {
             waypointsList.add(new Translation2d(waypoints[i], waypoints[i+1]));
         }
@@ -155,29 +143,28 @@ public class Drivetrain_SmoothPath extends Command {
 
     @Override
     public void initialize() {
-        // Reset the timer
+        // Reset the timer and tracking variables
         m_timer.reset();
         m_timer.start();
         m_previousTime = 0;
         m_maxPathError = 0;
         
-        // Reset odometry to the starting pose
+        // Reset odometry to match the starting pose of the trajectory
         m_drive.resetOdometry(m_trajectory.getInitialPose());
         
-        System.out.println(">> STARTING SMOOTH PATH FOLLOW");
-        System.out.println(">> INITIAL POSE: " + m_trajectory.getInitialPose());
-        System.out.println(">> FINAL POSE: " + m_trajectory.sample(m_trajectory.getTotalTimeSeconds()).poseMeters);
+        System.out.println("Starting path following from " + m_trajectory.getInitialPose() + 
+                           " to " + m_trajectory.sample(m_trajectory.getTotalTimeSeconds()).poseMeters);
     }
 
     @Override
     public void execute() {
-        // Get the time elapsed
+        // Get the current elapsed time
         double currentTime = m_timer.get();
         
-        // Get the desired state at the current time
+        // Get the desired robot state at the current time
         Trajectory.State desiredState = m_trajectory.sample(currentTime);
         
-        // Calculate wheel speeds using Ramsete controller
+        // Calculate wheel speeds using Ramsete controller for path following
         var targetWheelSpeeds = m_drive.getKinematics().toWheelSpeeds(
             m_ramseteController.calculate(m_drive.getPose(), desiredState)
         );
@@ -186,18 +173,18 @@ public class Drivetrain_SmoothPath extends Command {
         Pose2d currentPose = m_drive.getPose();
         Pose2d desiredPose = desiredState.poseMeters;
         
-        // Calculate path error for diagnostics
+        // Calculate path error (distance from desired position)
         double pathError = currentPose.getTranslation().getDistance(desiredPose.getTranslation());
         if (pathError > m_maxPathError) {
             m_maxPathError = pathError;
         }
         
-        // Set the wheel speeds on the drivetrain
+        // Apply the calculated wheel speeds to the drivetrain
         m_drive.setWheelSpeeds(targetWheelSpeeds);
         
-        // Only log occasionally to reduce spam
+        // Periodically log progress (not every cycle to reduce console spam)
         if (currentTime - m_previousTime > 0.5) {
-            System.out.printf(">> PATH: t=%.2fs, error=%.2fm, x=%.2f, y=%.2f, heading=%.1f°\n",
+            System.out.printf("Path: t=%.1fs, error=%.2fm, pos=(%.2f,%.2f), heading=%.1f°\n",
                             currentTime,
                             pathError,
                             currentPose.getX(),
@@ -206,7 +193,7 @@ public class Drivetrain_SmoothPath extends Command {
             m_previousTime = currentTime;
         }
         
-        // Check if we're at the end of the trajectory
+        // Check if we've reached the end of the trajectory
         if (currentTime >= m_trajectory.getTotalTimeSeconds()) {
             m_isFinished = true;
         }
@@ -214,7 +201,7 @@ public class Drivetrain_SmoothPath extends Command {
 
     @Override
     public boolean isFinished() {
-        // Check if we've reached the end of the trajectory or timed out
+        // Command is finished when we reach the end of the trajectory or timeout
         return m_isFinished || m_timer.hasElapsed(m_timeoutSeconds);
     }
 
@@ -226,13 +213,13 @@ public class Drivetrain_SmoothPath extends Command {
         // Stop the robot
         m_drive.arcadeDrive(0, 0);
         
-        // Print completion message
+        // Report completion status
         if (interrupted) {
-            System.out.println(">> SMOOTH PATH INTERRUPTED after " + m_timer.get() + " seconds");
+            System.out.println("Path following interrupted after " + m_timer.get() + " seconds");
         } else {
-            System.out.println(">> SMOOTH PATH COMPLETED in " + m_timer.get() + " seconds");
-            System.out.println(">> MAX PATH ERROR: " + m_maxPathError + " meters");
-            System.out.println(">> FINAL POSE: " + m_drive.getPose());
+            System.out.println("Path following completed in " + m_timer.get() + " seconds");
+            System.out.println("Maximum path error: " + m_maxPathError + " meters");
+            System.out.println("Final position: " + m_drive.getPose());
         }
     }
 }
