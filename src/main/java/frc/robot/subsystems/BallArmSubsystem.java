@@ -1,446 +1,300 @@
-/*
- * ═════════════════════════════════════════════════════════════
- *  ____    _    _    _         _    ____   __  __ 
- * | __ )  / \  | |  | |       / \  |  _ \ |  \/  |
- * |  _ \ / _ \ | |  | |      / _ \ | |_) || |\/| |
- * | |_) / ___ \| |__| |___  / ___ \|  _ < | |  | |
- * |____/_/   \_\____|_____|/_/   \_\_| \_\|_|  |_|
- * ═════════════════════════════════════════════════════════════
- * 
- * TEAM 7221 - REEFSCAPE 2025 - DRAWER SLIDE ARM SYSTEM
- * 
- * This is our precision ball control system using a heavy-duty drawer slide!
- * The system employs a cable-pulley mechanism driven by a NEO motor with 16:1 gearbox
- * for perfect position control, with aluminum C-claws for superior ball grip.
- * 
- * Technical breakdown:
- * - NEO motor with 16:1 gearbox provides excellent torque at arm
- * - Cable-pulley system gives mechanical advantage without slop
- * - C-shaped aluminum gripper with NEO 550 powered wheels
- * - Dual limit switches prevent mechanism damage
- * - Position-based PID control for precise placement
- * 
- * Last updated: March 2025
- */
-
 package frc.robot.subsystems;
 
+import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj.DigitalInput;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.CANSparkLowLevel.MotorType;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.SparkPIDController;
-import com.revrobotics.CANSparkBase.IdleMode;
-
-import edu.wpi.first.wpilibj.DigitalInput;
-import edu.wpi.first.wpilibj.Ultrasonic;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
+import frc.robot.utils.MotorSafetyMonitor;
 
 /**
- * BallArmSubsystem - Controls the drawer slide ball manipulation system
+ * BallArmSubsystem - Controls the robot's arm for ball manipulation.
  * 
- * This subsystem manages our cable-driven drawer slide arm with C-shaped 
- * aluminum claws for ball grasping. The system is powered by a NEO motor
- * with 16:1 gearbox for extension and a NEO 550 for the gripper wheels.
+ * This subsystem manages an arm with the following capabilities:
+ * - Vertical movement (up/down)
+ * - Intake/outtake of balls
+ * - Position tracking via encoders
+ * - Safety limits to prevent mechanical damage
+ * 
+ * The arm is used to collect balls from the ground, hold them, and place them
+ * in scoring locations during the Reefscape 2025 competition.
  */
 public class BallArmSubsystem extends SubsystemBase {
-    // ==== HARDWARE COMPONENTS ====
-    private final CANSparkMax m_extensionMotor;   // NEO with 16:1 gearbox for drawer slide
-    private final CANSparkMax m_gripperMotor;     // NEO 550 for ball intake wheels
-    private final RelativeEncoder m_extensionEncoder; // Built-in NEO encoder
-    private final SparkPIDController m_pidController; // PID controller for position
     
-    // ==== SENSORS ====
-    private final DigitalInput m_extendedLimitSwitch;    // Prevents over-extension
-    private final DigitalInput m_retractedLimitSwitch;   // Detects full retraction
-    private final Ultrasonic m_ballDetector;             // Detects when we have a ball
+    // Motors
+    private final CANSparkMax armMotor;         // Controls vertical arm movement
+    private final CANSparkMax intakeMotor;      // Controls ball intake/outtake
     
-    // ==== STATE VARIABLES ====
-    private boolean m_hasBall = false;         // Ball detection status
-    private double m_extensionZero = 0.0;      // Zero reference for encoder
-    private long m_lastStatusTime = 0;         // For limiting console output
-    private int m_stallCounter = 0;            // For detecting jams
-    private double m_maxCurrent = 0.0;         // Track highest current draw
-    private double m_lastPosition = 0.0;       // For checking movement
-    private double m_targetPosition = 0.0;     // Desired arm position
-    private boolean m_statusBlink = false;     // For dashboard indicator
-
+    // Sensors
+    private final RelativeEncoder armEncoder;   // Tracks arm position
+    private final DigitalInput upperLimitSwitch; // Prevents arm from going too high
+    private final DigitalInput lowerLimitSwitch; // Prevents arm from going too low
+    private final DigitalInput ballDetector;     // Detects when a ball is held
+    
+    // Controllers
+    private final SparkPIDController armPIDController;
+    
+    // Safety
+    private final MotorSafetyMonitor safetyMonitor;
+    
+    // State tracking
+    private boolean hasBall = false;
+    private boolean isMoving = false;
+    private double targetPosition = 0.0;
+    
     /**
-     * Creates the drawer slide ball arm subsystem
+     * Creates a new BallArmSubsystem.
+     * Initializes all motors, sensors, and controllers with appropriate settings.
      */
     public BallArmSubsystem() {
-        System.out.println("\n" +
-            "╔════════════════════════════════════════════════╗\n" +
-            "║     DRAWER SLIDE ARM SUBSYSTEM INITIALIZING    ║\n" +
-            "║       NEO WITH 16:1 GEARBOX ACTIVATED          ║\n" +
-            "║       CABLE-DRIVE MECHANISM COMING ONLINE      ║\n" +
-            "╚════════════════════════════════════════════════╝");
+        // Initialize arm motor
+        armMotor = new CANSparkMax(Constants.BALL_ARM_MOTOR_ID, MotorType.kBrushless);
+        armMotor.restoreFactoryDefaults();
+        armMotor.setIdleMode(CANSparkMax.IdleMode.kBrake);
+        armMotor.setSmartCurrentLimit(Constants.BALL_ARM_CURRENT_LIMIT);
         
-        // Initialize extension motor - NEO with 16:1 gearbox
-        m_extensionMotor = new CANSparkMax(Constants.BallArm.EXTENSION_MOTOR_ID, MotorType.kBrushless);
-        m_extensionEncoder = m_extensionMotor.getEncoder();
-        m_pidController = m_extensionMotor.getPIDController();
+        // Initialize intake motor
+        intakeMotor = new CANSparkMax(Constants.BALL_INTAKE_MOTOR_ID, MotorType.kBrushless);
+        intakeMotor.restoreFactoryDefaults();
+        intakeMotor.setIdleMode(CANSparkMax.IdleMode.kBrake);
+        intakeMotor.setSmartCurrentLimit(Constants.BALL_INTAKE_CURRENT_LIMIT);
+        intakeMotor.setInverted(Constants.BALL_INTAKE_INVERTED);
         
-        // Initialize gripper motor - NEO 550
-        m_gripperMotor = new CANSparkMax(Constants.BallArm.GRIPPER_MOTOR_ID, MotorType.kBrushless);
+        // Configure encoder
+        armEncoder = armMotor.getEncoder();
+        armEncoder.setPositionConversionFactor(Constants.BALL_ARM_ENCODER_FACTOR);
+        armEncoder.setPosition(0);
         
-        // Configure motor settings
-        configureMotors();
+        // Set up PID controller
+        armPIDController = armMotor.getPIDController();
+        armPIDController.setP(Constants.BALL_ARM_PID_P);
+        armPIDController.setI(Constants.BALL_ARM_PID_I);
+        armPIDController.setD(Constants.BALL_ARM_PID_D);
+        armPIDController.setOutputRange(-Constants.BALL_ARM_MAX_OUTPUT, Constants.BALL_ARM_MAX_OUTPUT);
         
-        // Initialize sensors
-        m_extendedLimitSwitch = new DigitalInput(Constants.Electrical.BALL_ARM_EXTENDED_LIMIT_PORT);
-        m_retractedLimitSwitch = new DigitalInput(Constants.Electrical.BALL_ARM_RETRACTED_LIMIT_PORT);
+        // Initialize limit switches and ball detector
+        upperLimitSwitch = new DigitalInput(Constants.BALL_ARM_UPPER_LIMIT_SWITCH);
+        lowerLimitSwitch = new DigitalInput(Constants.BALL_ARM_LOWER_LIMIT_SWITCH);
+        ballDetector = new DigitalInput(Constants.BALL_DETECTOR_SWITCH);
         
-        // Initialize ultrasonic sensor for ball detection
-        m_ballDetector = new Ultrasonic(
-            Constants.Electrical.BALL_DETECTOR_PING_PORT,
-            Constants.Electrical.BALL_DETECTOR_ECHO_PORT
+        // Initialize safety monitor
+        safetyMonitor = new MotorSafetyMonitor(
+            "Ball Arm", 
+            armMotor, 
+            Constants.BALL_ARM_MAX_TEMP,
+            Constants.BALL_ARM_MAX_CURRENT
         );
         
-        // Enable continuous ultrasonic readings
-        Ultrasonic.setAutomaticMode(true);
+        // Set initial target position
+        targetPosition = armEncoder.getPosition();
         
-        // Reset encoder to establish zero position
-        resetArmEncoder();
-        
-        // Show ASCII art to visualize the mechanism
-        System.out.println("   ╔═══════════════════════════════╗");
-        System.out.println("   ║   DRAWER SLIDE ARM ACTIVATED  ║");
-        System.out.println("   ╚═════════════╦═════════════════╝");
-        System.out.println("                 ║");
-        System.out.println("        ┌────────┴─────────┐");
-        System.out.println("        │    NEO 16:1      │");
-        System.out.println("        └────────┬─────────┘");
-        System.out.println("                 ║");
-        System.out.println("        ┌────────┴─────────┐");
-        System.out.println("        │   DRAWER SLIDE   │");
-        System.out.println("        └────────┬─────────┘");
-        System.out.println("                 ║");
-        System.out.println("           ┌─────┴─────┐");
-        System.out.println("           C           C");
-        System.out.println("           │     O     │");
-        System.out.println("           └───────────┘");
+        // Log initialization
+        SmartDashboard.putString("Ball Arm Status", "Initialized");
     }
     
     /**
-     * Configure motor controllers for optimal performance
-     * Settings tuned specifically for drawer slide application
+     * This method is called periodically by the CommandScheduler.
+     * It updates sensor readings, checks safety conditions, and 
+     * logs information to the dashboard.
      */
-    private void configureMotors() {
-        // Configure extension motor (NEO with 16:1 gearbox)
-        m_extensionMotor.restoreFactoryDefaults();
-        m_extensionMotor.setInverted(Constants.BallArm.EXTENSION_MOTOR_INVERTED);
-        m_extensionMotor.setIdleMode(IdleMode.kBrake); // Brake mode essential for position holding
-        m_extensionMotor.setSmartCurrentLimit(30); // 30A limit protects the motor
-        m_extensionMotor.enableVoltageCompensation(11.0);
-        m_extensionMotor.setOpenLoopRampRate(0.1); // 100ms ramp for smooth acceleration
-        m_extensionMotor.setClosedLoopRampRate(0.1);
-        
-        // Configure PID controller for position control
-        m_pidController.setP(Constants.BallArm.POSITION_KP);
-        m_pidController.setI(Constants.BallArm.POSITION_KI);
-        m_pidController.setD(Constants.BallArm.POSITION_KD);
-        m_pidController.setFF(Constants.BallArm.POSITION_KF);
-        m_pidController.setOutputRange(-Constants.BallArm.MAX_SPEED, Constants.BallArm.MAX_SPEED);
-        
-        // Configure gripper motor (NEO 550)
-        m_gripperMotor.restoreFactoryDefaults();
-        m_gripperMotor.setInverted(Constants.BallArm.GRIPPER_MOTOR_INVERTED);
-        m_gripperMotor.setIdleMode(IdleMode.kBrake);
-        m_gripperMotor.setSmartCurrentLimit(20); // Lower limit for NEO 550
-        m_gripperMotor.enableVoltageCompensation(11.0);
-        
-        // Save configuration to flash memory
-        m_extensionMotor.burnFlash();
-        m_gripperMotor.burnFlash();
-        
-        System.out.println(">> Motors configured: Extension (NEO 16:1), Gripper (NEO 550)");
-        System.out.printf(">> PID values: P=%.4f, I=%.4f, D=%.4f, F=%.4f\n", 
-                          Constants.BallArm.POSITION_KP, Constants.BallArm.POSITION_KI, 
-                          Constants.BallArm.POSITION_KD, Constants.BallArm.POSITION_KF);
-    }
-    
-    /**
-     * Reset arm encoder to establish zero position
-     */
-    public void resetArmEncoder() {
-        m_extensionEncoder.setPosition(0);
-        m_extensionZero = 0;
-        m_targetPosition = 0;
-        System.out.println(">> ARM ENCODER ZEROED: Position tracking calibrated");
-    }
-    
-    /**
-     * Get the arm position in encoder units relative to zero point
-     * @return Current position in rotations
-     */
-    public double getArmPosition() {
-        return m_extensionEncoder.getPosition() - m_extensionZero;
-    }
-    
-    /**
-     * Get current draw from the arm extension motor
-     * @return Current in amps
-     */
-    public double getArmCurrent() {
-        double current = m_extensionMotor.getOutputCurrent();
-        
-        // Track maximum current for diagnostic purposes
-        if (current > m_maxCurrent) {
-            m_maxCurrent = current;
-        }
-        
-        return current;
-    }
-    
-    /**
-     * Move the drawer slide arm using direct speed control
-     * @param speed Speed to move (-1.0 to 1.0), positive = extend, negative = retract
-     */
-    public void moveArm(double speed) {
-        // Safety checks - verify limit switches before moving
-        // Note: switches return TRUE when NOT pressed
-        boolean canExtend = m_extendedLimitSwitch.get();
-        boolean canRetract = m_retractedLimitSwitch.get();
-        
-        // Only allow movement if not at a limit
-        if ((speed > 0 && canExtend) || (speed < 0 && canRetract)) {
-            // Apply motor power with cable-drive compensation
-            // Cable systems require extra power to overcome initial tension
-            double compensatedSpeed = speed;
-            if (Math.abs(speed) < 0.15 && Math.abs(speed) > 0.05) {
-                // Add extra power to overcome cable static friction
-                compensatedSpeed = speed * 1.2;
-            }
-            
-            // Apply the motor power
-            m_extensionMotor.set(compensatedSpeed);
-            
-            // Check for stalls by monitoring position changes
-            double currentPosition = getArmPosition();
-            if (Math.abs(speed) > 0.1 && Math.abs(currentPosition - m_lastPosition) < 0.01) {
-                m_stallCounter++;
-                
-                // If stalled for several cycles, log a warning
-                if (m_stallCounter > 20) {
-                    System.out.println(">> WARNING: Potential mechanism jam detected");
-                    System.out.printf("   Position: %.2f, Current: %.1fA\n", 
-                                     currentPosition, getArmCurrent());
-                }
-            } else {
-                // Reset stall counter if moving normally
-                m_stallCounter = 0;
-            }
-            
-            // Update position tracking
-            m_lastPosition = currentPosition;
-        } else {
-            // At a limit - stop motor
-            m_extensionMotor.set(0);
-            
-            // Log limit events (but don't spam logs)
-            long now = System.currentTimeMillis();
-            if (now - m_lastStatusTime > 1000) {
-                if (speed > 0 && !canExtend) {
-                    System.out.println(">> ARM: At maximum extension limit");
-                } else if (speed < 0 && !canRetract) {
-                    System.out.println(">> ARM: At minimum retraction limit");
-                }
-                m_lastStatusTime = now;
-            }
-        }
-    }
-    
-    /**
-     * Set the gripper wheels to intake or release balls
-     * @param speed Speed to run the gripper (-1.0 to 1.0)
-     */
-    public void setGripper(double speed) {
-        // Apply wheel speed with deadband for small values
-        if (Math.abs(speed) < 0.05) {
-            m_gripperMotor.set(0);
-        } else {
-            m_gripperMotor.set(speed);
-        }
-        
-        // Log significant state changes
-        if (Math.abs(speed) > 0.3) {
-            long now = System.currentTimeMillis();
-            if (now - m_lastStatusTime > 500) {
-                if (speed > 0) {
-                    System.out.println(">> GRIPPER: Intaking at " + (speed * 100) + "% power");
-                } else {
-                    System.out.println(">> GRIPPER: Ejecting at " + (Math.abs(speed) * 100) + "% power");
-                }
-                m_lastStatusTime = now;
-            }
-        }
-    }
-    
-    /**
-     * Check if a ball is detected in the gripper
-     * @return true if ball is detected
-     */
-    public boolean hasBall() {
-        // Get distance reading from ultrasonic sensor
-        double rangeInches = m_ballDetector.getRangeInches();
-        
-        // Ball detected if distance is below threshold
-        boolean ballDetected = rangeInches < Constants.BallArm.DETECTION_THRESHOLD_INCHES;
-        
-        // Announce new ball detection without spamming logs
-        if (ballDetected && !m_hasBall) {
-            System.out.println("\n>> BALL ACQUIRED! Distance: " + 
-                             String.format("%.1f", rangeInches) + " inches");
-            System.out.println(">> Gripper secure - Ready for transport\n");
-        } else if (!ballDetected && m_hasBall) {
-            System.out.println("\n>> BALL RELEASED! Gripper now empty\n");
-        }
-        
-        // Update state tracking
-        m_hasBall = ballDetected;
-        
-        return ballDetected;
-    }
-    
-    /**
-     * Set arm to a specific position using PID control
-     * @param targetPosition Target position in encoder units
-     */
-    public void setArmPosition(double targetPosition) {
-        // Enforce position limits for safety
-        if (targetPosition < Constants.BallArm.MIN_POSITION) {
-            targetPosition = Constants.BallArm.MIN_POSITION;
-            System.out.println(">> Position limited to minimum safe extension");
-        } else if (targetPosition > Constants.BallArm.MAX_POSITION) {
-            targetPosition = Constants.BallArm.MAX_POSITION;
-            System.out.println(">> Position limited to maximum safe extension");
-        }
-        
-        // Update target tracking
-        m_targetPosition = targetPosition;
-        
-        // Apply position setpoint to PID controller
-        m_pidController.setReference(targetPosition + m_extensionZero, 
-                                   CANSparkMax.ControlType.kPosition);
-        
-        // Log significant position changes
-        double currentPosition = getArmPosition();
-        double error = Math.abs(targetPosition - currentPosition);
-        
-        if (error > 0.5) {
-            long now = System.currentTimeMillis();
-            if (now - m_lastStatusTime > 500) {
-                System.out.printf(">> ARM: Moving to %.2f (current: %.2f, error: %.2f)\n", 
-                                targetPosition, currentPosition, error);
-                m_lastStatusTime = now;
-            }
-        }
-    }
-    
-    /**
-     * Move arm to fully retracted home position
-     */
-    public void homeArm() {
-        System.out.println(">> COMMAND: Retracting arm to home position");
-        setArmPosition(Constants.BallArm.HOME_POSITION);
-    }
-    
-    /**
-     * Move arm to pickup position for floor ball acquisition
-     */
-    public void pickupPosition() {
-        System.out.println("\n>> COMMAND: Extending arm to floor pickup position");
-        System.out.println(">> Ball acquisition sequence initiated\n");
-        setArmPosition(Constants.BallArm.PICKUP_POSITION);
-    }
-    
-    /**
-     * Move arm to scoring position at full extension
-     */
-    public void scorePosition() {
-        System.out.println("\n>> COMMAND: Extending arm to scoring position");
-        System.out.println(">> Preparing for ball release\n");
-        setArmPosition(Constants.BallArm.SCORE_POSITION);
-    }
-    
-    /**
-     * Automatically intake a ball at optimal speed
-     */
-    public void intakeBall() {
-        // Run intake at full power if no ball detected
-        if (!hasBall()) {
-            setGripper(Constants.BallArm.GRIPPER_INTAKE_SPEED);
-        } else {
-            // Reduce to holding speed once ball is secured
-            setGripper(Constants.BallArm.GRIPPER_HOLD_SPEED);
-        }
-    }
-    
-    /**
-     * Release ball at high speed for scoring
-     */
-    public void releaseBall() {
-        System.out.println(">> LAUNCHING BALL!");
-        setGripper(Constants.BallArm.GRIPPER_RELEASE_SPEED);
-    }
-    
-    /**
-     * Emergency stop for the arm system
-     */
-    public void emergencyStop() {
-        m_extensionMotor.set(0);
-        m_gripperMotor.set(0);
-        System.out.println("!!! ARM EMERGENCY STOP ACTIVATED !!!");
-    }
-    
     @Override
     public void periodic() {
-        // Track ball state and report to dashboard
-        boolean currentBallState = hasBall();
-        SmartDashboard.putBoolean("Has Ball", currentBallState);
+        // Update ball detection status
+        hasBall = !ballDetector.get(); // Switches are typically active-low
         
-        // Blink status indicator for dashboard
-        long now = System.currentTimeMillis();
-        if (now - m_lastStatusTime > 250) {
-            m_statusBlink = !m_statusBlink;
-            m_lastStatusTime = now;
+        // Check limit switches for safety
+        checkLimitSwitches();
+        
+        // Run the safety monitor
+        safetyMonitor.check();
+        
+        // Update dashboard with current state
+        updateDashboard();
+    }
+    
+    /**
+     * Sets the arm to move to a specific position.
+     * The position is given in encoder units, where 0 is the lowest position.
+     * 
+     * @param position The target position in encoder units
+     */
+    public void setArmPosition(double position) {
+        // Clamp the position to safe limits
+        position = Math.min(Math.max(position, Constants.BALL_ARM_MIN_POSITION), 
+                          Constants.BALL_ARM_MAX_POSITION);
+        
+        // Only change target if it's different
+        if (Math.abs(position - targetPosition) > 0.1) {
+            targetPosition = position;
+            armPIDController.setReference(targetPosition, CANSparkMax.ControlType.kPosition);
+            isMoving = true;
+            SmartDashboard.putString("Ball Arm Status", "Moving to position: " + position);
         }
-        
-        // Report arm position and status to dashboard
-        double currentPosition = getArmPosition();
-        SmartDashboard.putNumber("Arm Position", currentPosition);
-        SmartDashboard.putNumber("Arm Target", m_targetPosition);
-        SmartDashboard.putNumber("Arm Current", getArmCurrent());
-        SmartDashboard.putBoolean("At Extension Limit", !m_extendedLimitSwitch.get());
-        SmartDashboard.putBoolean("At Retraction Limit", !m_retractedLimitSwitch.get());
-        SmartDashboard.putBoolean("Status Indicator", m_statusBlink);
-        
-        // Check for excessive current draw
-        double current = getArmCurrent();
-        if (current > Constants.BallArm.STALL_CURRENT_THRESHOLD) {
-            // Log warning if sustained high current
-            if (now - m_lastStatusTime > 1000) {
-                System.out.println(">> WARNING: High arm current: " + 
-                                 String.format("%.1f", current) + "A");
+    }
+    
+    /**
+     * Moves the arm up at a controlled speed.
+     * Will stop at the upper limit switch.
+     */
+    public void moveArmUp() {
+        if (!isAtUpperLimit()) {
+            armMotor.set(Constants.BALL_ARM_UP_SPEED);
+            isMoving = true;
+            SmartDashboard.putString("Ball Arm Status", "Moving Up");
+        } else {
+            stopArm();
+        }
+    }
+    
+    /**
+     * Moves the arm down at a controlled speed.
+     * Will stop at the lower limit switch.
+     */
+    public void moveArmDown() {
+        if (!isAtLowerLimit()) {
+            armMotor.set(-Constants.BALL_ARM_DOWN_SPEED);
+            isMoving = true;
+            SmartDashboard.putString("Ball Arm Status", "Moving Down");
+        } else {
+            stopArm();
+        }
+    }
+    
+    /**
+     * Stops all arm movement immediately.
+     */
+    public void stopArm() {
+        armMotor.set(0);
+        isMoving = false;
+        targetPosition = armEncoder.getPosition();
+        SmartDashboard.putString("Ball Arm Status", "Stopped");
+    }
+    
+    /**
+     * Runs the intake to collect a ball.
+     * Will automatically stop when a ball is detected.
+     */
+    public void intakeBall() {
+        if (!hasBall) {
+            intakeMotor.set(Constants.BALL_INTAKE_SPEED);
+            SmartDashboard.putString("Intake Status", "Intaking");
+        } else {
+            stopIntake();
+        }
+    }
+    
+    /**
+     * Runs the intake in reverse to expel a ball.
+     */
+    public void outtakeBall() {
+        intakeMotor.set(-Constants.BALL_OUTTAKE_SPEED);
+        SmartDashboard.putString("Intake Status", "Outtaking");
+    }
+    
+    /**
+     * Stops the intake motor.
+     */
+    public void stopIntake() {
+        intakeMotor.set(0);
+        SmartDashboard.putString("Intake Status", "Stopped");
+    }
+    
+    /**
+     * Checks if the arm is at its upper limit.
+     * 
+     * @return true if the upper limit switch is activated
+     */
+    public boolean isAtUpperLimit() {
+        return !upperLimitSwitch.get(); // Switches are typically active-low
+    }
+    
+    /**
+     * Checks if the arm is at its lower limit.
+     * 
+     * @return true if the lower limit switch is activated
+     */
+    public boolean isAtLowerLimit() {
+        return !lowerLimitSwitch.get(); // Switches are typically active-low
+    }
+    
+    /**
+     * Checks if the robot currently has a ball.
+     * 
+     * @return true if a ball is detected
+     */
+    public boolean hasBall() {
+        return hasBall;
+    }
+    
+    /**
+     * Gets the current position of the arm.
+     * 
+     * @return The current position in encoder units
+     */
+    public double getArmPosition() {
+        return armEncoder.getPosition();
+    }
+    
+    /**
+     * Resets the arm encoder to zero at the current position.
+     * Typically used when the arm is known to be at a specific position.
+     */
+    public void resetEncoder() {
+        armEncoder.setPosition(0);
+        targetPosition = 0;
+        SmartDashboard.putString("Ball Arm Status", "Encoder Reset");
+    }
+    
+    /**
+     * Checks limit switches and stops the motor if limits are reached.
+     * This is a safety feature to prevent mechanical damage.
+     */
+    private void checkLimitSwitches() {
+        if (isMoving) {
+            // If moving up and hit upper limit, stop
+            if (armMotor.get() > 0 && isAtUpperLimit()) {
+                stopArm();
+            }
+            
+            // If moving down and hit lower limit, stop
+            if (armMotor.get() < 0 && isAtLowerLimit()) {
+                stopArm();
             }
         }
     }
     
     /**
-     * Get the extension motor for external access
-     * @return The extension motor controller
+     * Updates the SmartDashboard with current subsystem information.
+     * Useful for debugging and driver feedback.
      */
-    public CANSparkMax getExtensionMotor() {
-        return m_extensionMotor;
+    private void updateDashboard() {
+        SmartDashboard.putNumber("Arm Position", getArmPosition());
+        SmartDashboard.putBoolean("Has Ball", hasBall());
+        SmartDashboard.putBoolean("At Upper Limit", isAtUpperLimit());
+        SmartDashboard.putBoolean("At Lower Limit", isAtLowerLimit());
+        SmartDashboard.putNumber("Arm Motor Temperature", armMotor.getMotorTemperature());
+        SmartDashboard.putNumber("Intake Motor Temperature", intakeMotor.getMotorTemperature());
     }
     
     /**
-     * Get the gripper motor for external access
-     * @return The gripper motor controller
+     * Prepares the arm for the autonomous period.
+     * Sets the arm to a known starting position.
      */
-    public CANSparkMax getGripperMotor() {
-        return m_gripperMotor;
+    public void prepareForAuto() {
+        // Move to the starting position for autonomous
+        setArmPosition(Constants.BALL_ARM_AUTO_START_POSITION);
+    }
+    
+    /**
+     * Prepares the arm for teleop control.
+     * This method can be called when switching from autonomous to teleop.
+     */
+    public void prepareForTeleop() {
+        // Any specific setup for teleop can go here
+        stopArm();
+        stopIntake();
     }
 }
