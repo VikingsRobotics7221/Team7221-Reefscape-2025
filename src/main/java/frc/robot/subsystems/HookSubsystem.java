@@ -26,12 +26,9 @@ package frc.robot.subsystems;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import com.revrobotics.spark.SparkMax;
-import com.revrobotics.spark.SparkLowLevel.MotorType;
-import com.revrobotics.spark.config.SparkMaxConfig;
-import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
-import com.revrobotics.spark.SparkBase.PersistMode;
-import com.revrobotics.spark.SparkBase.ResetMode;
+import com.revrobotics.CANSparkMax;
+import com.revrobotics.CANSparkLowLevel.MotorType;
+import com.revrobotics.CANSparkBase.IdleMode;
 import frc.robot.Constants;
 
 /**
@@ -46,7 +43,7 @@ import frc.robot.Constants;
  */
 public class HookSubsystem extends SubsystemBase {
     // ===== HARDWARE COMPONENTS =====
-    private final SparkMax m_hookMotor; // Controls linear actuator extension/retraction
+    private final CANSparkMax m_hookMotor; // Controls linear actuator extension/retraction
     private final DigitalInput m_extendedLimitSwitch; // Detects full extension
     private final DigitalInput m_retractedLimitSwitch; // Detects full retraction
     
@@ -70,16 +67,14 @@ public class HookSubsystem extends SubsystemBase {
         System.out.println("");
         
         // Initialize the actuator motor controller
-        m_hookMotor = new SparkMax(Constants.HOOK_MOTOR_ID, MotorType.kBrushless);
+        m_hookMotor = new CANSparkMax(Constants.Hook.MOTOR_ID, MotorType.kBrushless);
         
         // Configure for optimal performance
-        SparkMaxConfig config = new SparkMaxConfig();
-        config.inverted(Constants.HOOK_MOTOR_INVERTED).idleMode(IdleMode.kBrake);
-        m_hookMotor.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+        configureMotorController();
         
         // Initialize limit switches for position detection
-        m_extendedLimitSwitch = new DigitalInput(Constants.HOOK_EXTENDED_LIMIT_SWITCH_PORT);
-        m_retractedLimitSwitch = new DigitalInput(Constants.HOOK_RETRACTED_LIMIT_SWITCH_PORT);
+        m_extendedLimitSwitch = new DigitalInput(Constants.Electrical.HOOK_EXTENDED_LIMIT_SWITCH_PORT);
+        m_retractedLimitSwitch = new DigitalInput(Constants.Electrical.HOOK_RETRACTED_LIMIT_SWITCH_PORT);
         
         // Default to retracted state
         m_isExtended = false;
@@ -90,6 +85,32 @@ public class HookSubsystem extends SubsystemBase {
         System.out.println(">> HOOK SUBSYSTEM ONLINE AND READY FOR BATTLE!!! <<");
         System.out.println(">> BARGE CAPTURE CAPABILITY: MAXIMUM             <<");
         System.out.println("==================================================");
+    }
+    
+    /**
+     * Configure the motor controller with optimal settings
+     */
+    private void configureMotorController() {
+        // Reset to factory defaults
+        m_hookMotor.restoreFactoryDefaults();
+        
+        // Configure basic settings
+        m_hookMotor.setInverted(Constants.Hook.MOTOR_INVERTED);
+        m_hookMotor.setIdleMode(IdleMode.kBrake); // Brake mode essential for holding position
+        
+        // Configure current limits
+        m_hookMotor.setSmartCurrentLimit(30); // 30A limit protects the motor
+        
+        // Add voltage compensation for consistent performance
+        m_hookMotor.enableVoltageCompensation(11.0);
+        
+        // Configure ramping to prevent current spikes
+        m_hookMotor.setOpenLoopRampRate(0.2); // 200ms ramp for smooth acceleration
+        
+        // Save configuration to flash memory
+        m_hookMotor.burnFlash();
+        
+        System.out.println(">> Hook motor configured for optimal performance");
     }
     
     /**
@@ -105,16 +126,16 @@ public class HookSubsystem extends SubsystemBase {
             if (m_lastExtendTime == 0) {
                 // First call to extend, initialize timing and start slow
                 m_lastExtendTime = System.currentTimeMillis();
-                m_currentHookSpeed = Constants.HOOK_EXTEND_MIN_SPEED;
+                m_currentHookSpeed = Constants.Hook.EXTEND_MIN_SPEED;
                 System.out.println(">> INITIATING HOOK EXTENSION SEQUENCE <<");
             } else if (timeSinceStart < 500) {
                 // Smooth acceleration ramp during first 500ms
                 double rampProgress = timeSinceStart / 500.0;
-                m_currentHookSpeed = Constants.HOOK_EXTEND_MIN_SPEED + 
-                    (Constants.HOOK_EXTEND_MAX_SPEED - Constants.HOOK_EXTEND_MIN_SPEED) * rampProgress;
+                m_currentHookSpeed = Constants.Hook.EXTEND_MIN_SPEED + 
+                    (Constants.Hook.EXTEND_MAX_SPEED - Constants.Hook.EXTEND_MIN_SPEED) * rampProgress;
             } else {
                 // Full speed after 500ms
-                m_currentHookSpeed = Constants.HOOK_EXTEND_MAX_SPEED;
+                m_currentHookSpeed = Constants.Hook.EXTEND_MAX_SPEED;
             }
             
             // Apply calculated speed to motor
@@ -151,7 +172,7 @@ public class HookSubsystem extends SubsystemBase {
         // Only retract if not already retracted and limit switch isn't triggered
         if (!isRetracted() && !m_retractedLimitSwitch.get()) {
             // Set motor to retraction speed with pulling force
-            double retractSpeed = -Constants.HOOK_RETRACT_SPEED;
+            double retractSpeed = -Constants.Hook.RETRACT_SPEED;
             
             // Apply motor power
             m_hookMotor.set(retractSpeed);
@@ -162,7 +183,7 @@ public class HookSubsystem extends SubsystemBase {
             double current = m_hookMotor.getOutputCurrent();
             if (current > m_peakCurrent) {
                 m_peakCurrent = current;
-                if (m_peakCurrent > Constants.HOOK_MAX_CURRENT * 0.8) {
+                if (m_peakCurrent > Constants.Hook.MAX_CURRENT * 0.8) {
                     System.out.println(">> HIGH LOAD DETECTED DURING RETRACTION: " + 
                                       m_peakCurrent + "A <<");
                 }
@@ -263,7 +284,7 @@ public class HookSubsystem extends SubsystemBase {
         
         // Safety check - if current is too high, stop motor
         double current = m_hookMotor.getOutputCurrent();
-        if (current > Constants.HOOK_MAX_CURRENT) {
+        if (current > Constants.Hook.MAX_CURRENT) {
             System.out.println(">> !!! HOOK CURRENT CRITICAL: " + current + "A !!! <<");
             System.out.println(">> !!! EMERGENCY STOP ACTIVATED !!! <<");
             stopHook();
@@ -311,5 +332,14 @@ public class HookSubsystem extends SubsystemBase {
         }
         
         return limitsWorking && motorResponding;
+    }
+    
+    /**
+     * Get the hook motor controller for external monitoring
+     * 
+     * @return The SparkMAX motor controller
+     */
+    public CANSparkMax getHookMotor() {
+        return m_hookMotor;
     }
 }
