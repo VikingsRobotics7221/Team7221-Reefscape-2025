@@ -1,144 +1,138 @@
-// Author: Team 7221
-// Last Updated: March 2025
-
+// src/main/java/frc/robot/commands/autonomous/basic_path_planning/Drivetrain_GyroStrafe.java
 package frc.robot.commands.autonomous.basic_path_planning;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Constants;
 import frc.robot.Robot;
-
 import frc.robot.subsystems.DriveSubsystem;
 
 /** 
- * Drivetrain_GyroStrafe - NO-GYRO TANK DRIVE STRAFE SIMULATION!
+ * Drivetrain_GyroStrafe - Tank Drive Strafe Simulation
  * 
- * This command simulates strafing motion on a tank drive by applying differential
- * power to create a "crab-like" movement. Since we removed the gyro, we now use
- * encoder feedback to determine when we've moved enough distance.
+ * This command creates a lateral "strafe-like" motion on a tank drive by applying
+ * differential power to the tracks. Since tank drives cannot physically strafe,
+ * this simulates the motion by rotating the tracks in opposite directions.
  * 
- * It's honestly amazing how well this works without a gyro!!! The differential
- * wheel speeds create a sort of "sliding" motion that *feels* like strafing.
+ * The command uses encoder feedback to determine when the robot has moved
+ * the requested distance sideways. This allows precise control without requiring
+ * a gyro sensor.
  * 
- * FUN FACT: Real tanks can't actually strafe - this is just a clever trick!
- * 
- * coded by paysean
+ * System Integration:
+ * - Uses DriveSubsystem for motor control
+ * - Reads encoders to track movement distance
+ * - Interacts with Constants for configurable parameters
  */
 public class Drivetrain_GyroStrafe extends Command {
   
-    // ======= CONSTANTS - CRITICAL VALUES FOR PERFECT STRAFING =======
-    private static final double CIRCUMFRENCE = Constants.WHEEL_DIAMETER * Math.PI;
-    private static final double STRAFE_SPEED_MULTIPLIER = 1.8; // Since "strafing" is less efficient than driving
+    // Physics constants
+    private static final double WHEEL_CIRCUMFERENCE = Constants.Dimensions.WHEEL_DIAMETER * Math.PI;
+    private static final double STRAFE_EFFICIENCY_FACTOR = 1.8; // Strafe requires more movement than direct travel
     
-    // ======= INSTANCE VARIABLES - TRACKING OUR MOVEMENT =======
+    // Command state variables
     private final DriveSubsystem drivetrain = Robot.m_driveSubsystem;
-    private double strafePower; // Power level for the strafe motion
-    private double goalDistance; // How far to "strafe" in wheel rotations
-    private long startTime; // For tracking command duration
-    private double leftEncoderStart, rightEncoderStart; // Store starting positions
+    private double strafePower;     // Power level (0-1.0)
+    private double goalDistance;    // Target distance in wheel rotations
+    private long startTime;         // For tracking execution time
+    private double direction;       // Direction: positive = right, negative = left
     
-    // Direction tracking (positive = right, negative = left)
-    private double direction;
+    // Position tracking 
+    private double leftEncoderStart, rightEncoderStart;
     
     /**
-     * Creates a new "Strafe" command for tank drive (without gyro)
+     * Creates a new simulated strafe command for tank drive.
      * 
-     * @param distance Distance to "strafe" in meters
+     * @param distance Distance to "strafe" in meters (positive = right, negative = left)
      * @param power Power level for the motion (0.0 to 1.0)
      */
     public Drivetrain_GyroStrafe(double distance, double power) {
-        // Set direction based on sign of distance
+        // Calculate direction from the sign of the distance
         direction = Math.signum(distance);
         
-        // Store the power level (always positive - direction handled separately)
+        // Store power as a positive value - direction is handled separately
         strafePower = Math.abs(power);
         
-        // Convert distance to encoder rotations, but multiply by our "strafe factor"
-        // because tank drive strafing is less efficient than regular driving
-        goalDistance = Math.abs(distance) / CIRCUMFRENCE * STRAFE_SPEED_MULTIPLIER;
+        // Convert distance to encoder rotations
+        // Apply efficiency factor since tank "strafing" requires more movement
+        goalDistance = Math.abs(distance) / WHEEL_CIRCUMFERENCE * STRAFE_EFFICIENCY_FACTOR;
         
-        // This command requires the drivetrain subsystem
+        // Register the drivetrain requirement
         addRequirements(drivetrain);
         
-        System.out.println(">> CREATING STRAFE SIMULATION - DISTANCE: " + 
-                          distance + "m, POWER: " + power);
+        // Log creation information
+        System.out.println(">> Creating strafe simulation - Distance: " + 
+                         distance + "m, Power: " + power);
     }
 
-    // Called when the command is initially scheduled.
     @Override
     public void initialize() {
-        System.out.println(">> STARTING TANK DRIVE STRAFE SIMULATION!");
-        System.out.println(">> DIRECTION: " + (direction > 0 ? "RIGHT" : "LEFT"));
+        System.out.println(">> Starting tank drive strafe simulation");
+        System.out.println(">> Direction: " + (direction > 0 ? "RIGHT" : "LEFT"));
         
         // Stop any existing movement
         drivetrain.arcadeDrive(0, 0);
         
         // Record starting encoder positions
-        leftEncoderStart = drivetrain.getLeftFrontPosition();
-        rightEncoderStart = drivetrain.getRightFrontPosition();
+        leftEncoderStart = drivetrain.getLeftPosition();
+        rightEncoderStart = drivetrain.getRightPosition();
         
-        // Record start time for diagnostics
+        // Record start time for performance metrics
         startTime = System.currentTimeMillis();
     }
 
-    // Called every time the scheduler runs while the command is scheduled.
     @Override
     public void execute() {
-        // OMG THIS IS SO COOL - We simulate strafing by applying opposing power to the tracks
-        // When one side goes forward and the other backward, we get a "sliding" motion!
-        
-        // Direction determines which side goes which way
+        // Simulate strafing by applying opposite power to each track
+        // When tracks move in opposite directions, the robot slides sideways
         double leftPower = strafePower * direction;
         double rightPower = -strafePower * direction;
         
-        // Apply tank drive with our differential powers
+        // Apply tank drive with differential powers
         drivetrain.tankDrive(leftPower, rightPower);
         
-        // Debug info
-        if (System.currentTimeMillis() - startTime > 500 && 
-           (System.currentTimeMillis() - startTime) % 500 < 20) {
-            
-            // Calculate how far we've gone
-            double leftTravel = Math.abs(drivetrain.getLeftFrontPosition() - leftEncoderStart);
-            double rightTravel = Math.abs(drivetrain.getRightFrontPosition() - rightEncoderStart);
+        // Provide periodic progress updates (every 500ms)
+        long elapsedTime = System.currentTimeMillis() - startTime;
+        if (elapsedTime > 500 && (elapsedTime % 500 < 20)) {
+            // Calculate progress percentage
+            double leftTravel = Math.abs(drivetrain.getLeftPosition() - leftEncoderStart);
+            double rightTravel = Math.abs(drivetrain.getRightPosition() - rightEncoderStart);
             double avgTravel = (leftTravel + rightTravel) / 2.0;
+            double percentComplete = avgTravel / goalDistance * 100;
             
-            // Report progress
-            System.out.println(">> STRAFING: " + 
-                              (avgTravel / goalDistance * 100) + 
-                              "% complete");
+            System.out.printf(">> Strafing: %.1f%% complete\n", percentComplete);
         }
     }
 
-    // Returns true when the command should end.
     @Override
     public boolean isFinished() {
         // Calculate distance traveled by each side
-        double leftTravel = Math.abs(drivetrain.getLeftFrontPosition() - leftEncoderStart);
-        double rightTravel = Math.abs(drivetrain.getRightFrontPosition() - rightEncoderStart);
+        double leftTravel = Math.abs(drivetrain.getLeftPosition() - leftEncoderStart);
+        double rightTravel = Math.abs(drivetrain.getRightPosition() - rightEncoderStart);
         
         // Use the average travel distance to determine completion
         double avgTravel = (leftTravel + rightTravel) / 2.0;
         
-        // We're done when the average travel exceeds our goal
-        if (avgTravel >= goalDistance) {
-            System.out.println(">> STRAFE COMPLETE! TRAVELED: " + avgTravel + " rotations");
-            return true;
-        }
-        return false;
+        // Command is complete when we've traveled the goal distance
+        return avgTravel >= goalDistance;
     }
 
-    // Called once the command ends or is interrupted.
     @Override
     public void end(boolean interrupted) {
-        // SAFETY FIRST - Stop all motors
+        // Stop all motors for safety
         drivetrain.arcadeDrive(0, 0);
         
         if (interrupted) {
-            System.out.println(">> STRAFE INTERRUPTED!");
+            System.out.println(">> Strafe interrupted!");
         } else {
-            // Calculate execution time
+            // Report completion and execution time
             double executionTime = (System.currentTimeMillis() - startTime) / 1000.0;
-            System.out.println(">> STRAFE COMPLETED IN " + executionTime + " SECONDS!");
+            
+            // Calculate actual distance traveled
+            double leftTravel = Math.abs(drivetrain.getLeftPosition() - leftEncoderStart);
+            double rightTravel = Math.abs(drivetrain.getRightPosition() - rightEncoderStart);
+            double avgTravel = (leftTravel + rightTravel) / 2.0;
+            
+            System.out.printf(">> Strafe completed in %.1f seconds (traveled %.2f rotations)\n", 
+                           executionTime, avgTravel);
         }
     }
 }
