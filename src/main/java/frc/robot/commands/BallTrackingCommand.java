@@ -1,55 +1,34 @@
-/*
- * ================================================================
- *  ____        _     _   _____                _    _               
- * |  _ \      | |   | | |_   _| __ __ _  ___| | _(_)_ __   __ _   
- * | |_) | __ _| | __| |   | || '__/ _` |/ __| |/ / | '_ \ / _` |  
- * |  _ < / _` | |/ _` |   | || | | (_| | (__|   <| | | | | (_| |  
- * |_| \_\ (_,_|_|\__,_|   |_||_|  \__,_|\___|_|\_\_|_| |_|\__, |  
- *                                                          |___/   
- * ================ REEFSCAPE 2025 =========================
- *
- * TEAM 7221 - THE VIKINGS - OPTIMIZED BALL TRACKER
- *
- * This is our ULTIMATE ball tracking system - optimized specifically 
- * for our 16:1 drivetrain and drawer slide arm combo! This advanced
- * state machine handles target acquisition, approach, and collection
- * with maximum efficiency and ZERO wasted CPU cycles!
- *
- * coded by paysean - Viking Code Warrior
- * Last Updated: March 2025
- */
+// Copyright (c) FIRST and other WPILib contributors.
+// Open Source Software; you can modify and/or share it under the terms of
+// the WPILib BSD license file in the root directory of this project.
 
 package frc.robot.commands;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.math.controller.PIDController;
 import frc.robot.Constants;
-import frc.robot.Robot;
 import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.subsystems.BallArmSubsystem;
 import frc.robot.subsystems.VisionSubsystem;
 
 /**
- * OptimizedBallTrackingCommand - THE ULTIMATE BALL HUNTER!
+ * BallTrackingCommand - Tracks and collects balls using vision processing.
  * 
- * Our most advanced ball acquisition sequence - combines vision processing,
- * optimized drive control, and precise arm movements in a single command.
+ * This command implements a state machine that:
+ * 1. Scans the field to locate balls using the vision system
+ * 2. Aligns the robot with detected balls
+ * 3. Approaches balls at an appropriate speed
+ * 4. Collects balls using the arm subsystem
+ * 5. Returns to the starting orientation
  * 
- * WAIT this is actually BETTER than the old version because I rewrote the
- * entire state machine to be WAY more efficient. Every single CPU cycle
- * is optimized for maximum ball-finding DOMINATION!
- * 
- * NEW FEATURES:
- * - Advanced state machine with predictive target tracking
- * - Optimized for 16:1 drive ratio (slower but MUCH more torque)
- * - Real-time performance monitoring
- * - Dynamic speed control based on target distance
- * - Automatic error recovery
+ * The command uses PID control for precise movement and includes
+ * timeout handling for robustness in competition environments.
  */
-public class OptimizedBallTrackingCommand extends Command {
+public class BallTrackingCommand extends Command {
     
-    // ===== STATE MACHINE DEFINITION =====
+    // State machine definition
     private enum TrackingState {
         INITIALIZING,  // Setting up systems
         SCANNING,      // Looking for balls
@@ -58,15 +37,19 @@ public class OptimizedBallTrackingCommand extends Command {
         COLLECTING,    // Deploying arm to collect ball
         SECURING,      // Confirming successful collection
         RETURNING,     // Going back to starting position
-        COMPLETE       // All done!
+        COMPLETE       // All done
     }
     
-    // ===== SUBSYSTEM REFERENCES =====
+    // Subsystem references
     private final DriveSubsystem m_drive;
     private final BallArmSubsystem m_arm;
     private final VisionSubsystem m_vision;
     
-    // ===== STATE TRACKING =====
+    // PID controllers for precise movement
+    private final PIDController m_rotationPID;
+    private final PIDController m_distancePID;
+    
+    // State tracking
     private TrackingState m_state = TrackingState.INITIALIZING;
     private final Timer m_stateTimer = new Timer();
     private final Timer m_commandTimer = new Timer();
@@ -76,73 +59,47 @@ public class OptimizedBallTrackingCommand extends Command {
     private double m_lastYaw = 0.0;
     private double m_lastDistance = 0.0;
     private boolean m_acquiredTarget = false;
-    private boolean m_hasTimedOut = false;
     
-    // ===== PERFORMANCE TRACKING =====
-    private double m_maxLoopTime = 0.0;
-    private int m_loopCount = 0;
-    private final Timer m_loopTimer = new Timer();
-    
-    // ===== ASCII ART FOR DRAMATIC EFFECT =====
-    private static final String[] STATE_ASCII = {
-        "  .-.   \n" +
-        " (o.o)  \n" +
-        "  |=|   \n" +
-        " INIT   ",
-        
-        "  .-.   \n" +
-        " (o.o)  \n" +
-        "  |=|   \n" +
-        " SCAN   ",
-        
-        "  .-.   \n" +
-        " (9.9)  \n" +
-        "  |=|   \n" +
-        "TARGET  ",
-        
-        "  .-.   \n" +
-        " (^.^)  \n" +
-        "  |=|   \n" +
-        "APPROACH",
-        
-        "  .-.   \n" +
-        " (O.O)  \n" +
-        "  |=|   \n" +
-        "COLLECT ",
-        
-        "  .-.   \n" +
-        " (*.*)  \n" +
-        "  |=|   \n" +
-        " SECURE ",
-        
-        "  .-.   \n" +
-        " (-.-)  \n" +
-        "  |=|   \n" +
-        "RETURN  ",
-        
-        "  .-.   \n" +
-        " (^.^)  \n" +
-        "  |=|   \n" +
-        "COMPLETE"
-    };
+    // Constants for tracking
+    private static final double ROTATION_P = 0.02;
+    private static final double ROTATION_I = 0.0;
+    private static final double ROTATION_D = 0.0;
+    private static final double DISTANCE_P = 0.6;
+    private static final double DISTANCE_I = 0.0;
+    private static final double DISTANCE_D = 0.0;
+    private static final double MAX_ROTATION_SPEED = 0.4;
+    private static final double MAX_DRIVE_SPEED = 0.45;
+    private static final double SCAN_ROTATION_SPEED = 0.3;
+    private static final double ALIGNMENT_THRESHOLD_DEGREES = 3.0;
+    private static final double COLLECTION_DISTANCE_METERS = 0.5;
     
     /**
-     * Creates a new OptimizedBallTrackingCommand - THE ULTIMATE BALL FINDER!
+     * Creates a new BallTrackingCommand.
+     * 
+     * @param driveSubsystem The drive subsystem for robot movement
+     * @param visionSubsystem The vision subsystem for ball detection
+     * @param ballArmSubsystem The ball arm subsystem for collection
      */
-    public OptimizedBallTrackingCommand() {
-        // Get subsystem references from Robot
-        m_drive = Robot.m_driveSubsystem;
-        m_arm = Robot.m_ballArmSubsystem;
-        m_vision = Robot.m_visionSubsystem;
+    public BallTrackingCommand(
+            DriveSubsystem driveSubsystem,
+            VisionSubsystem visionSubsystem,
+            BallArmSubsystem ballArmSubsystem) {
         
-        // Need control of these subsystems
-        addRequirements(m_drive, m_arm);
+        m_drive = driveSubsystem;
+        m_vision = visionSubsystem;
+        m_arm = ballArmSubsystem;
         
-        // Wait, better make sure we're not adding unnecessary requirements
-        // since that would block other commands! THINK TEAM THINK!
+        // Configure PID controllers
+        m_rotationPID = new PIDController(ROTATION_P, ROTATION_I, ROTATION_D);
+        m_rotationPID.setTolerance(ALIGNMENT_THRESHOLD_DEGREES);
         
-        System.out.println(">>>>> OPTIMIZED BALL TRACKING COMMAND CREATED <<<<<");
-        System.out.println(">>>>> BALL HUNTING DOMINANCE IMMINENT! <<<<<");
+        m_distancePID = new PIDController(DISTANCE_P, DISTANCE_I, DISTANCE_D);
+        m_distancePID.setTolerance(0.1);
+        
+        // Require control of the drive and arm subsystems
+        addRequirements(driveSubsystem, ballArmSubsystem);
+        
+        System.out.println("Ball tracking command created");
     }
     
     @Override
@@ -150,51 +107,32 @@ public class OptimizedBallTrackingCommand extends Command {
         // Start in INITIALIZING state
         transitionToState(TrackingState.INITIALIZING);
         
-        // Start overall command timer
+        // Start timers
         m_commandTimer.reset();
         m_commandTimer.start();
         
         // Store initial gyro angle for return
         m_initialAngle = m_drive.getGyroAngle();
         
-        // CRITICAL FOR PREDICTABLE MOVEMENT WITH 16:1 RATIO!
-        m_drive.enablePrecisionMode();
+        // Reset PID controllers
+        m_rotationPID.reset();
+        m_distancePID.reset();
         
-        // Initialize scanning direction randomly for unpredictability
+        // Initialize scanning direction
         m_scanDirection = (Math.random() > 0.5) ? 1 : -1;
         
-        // Reset performance tracking
-        m_maxLoopTime = 0.0;
-        m_loopCount = 0;
-        m_loopTimer.reset();
-        
-        // Disable manual control while auto-tracking
-        Robot.manualDriveControl = false;
-        
         // Make sure vision is in ball detection mode
-        m_vision.setPipeline(0);  // Pipeline 0 = Ball detection
+        m_vision.setPipeline(0);
         
-        System.out.println("");
-        System.out.println("╔════════════════════════════════════════╗");
-        System.out.println("║  OPTIMIZED BALL TRACKING INITIALIZED!  ║");
-        System.out.println("║  PREPARE FOR MAXIMUM BALL DOMINATION!  ║");
-        System.out.println("╚════════════════════════════════════════╝");
-        System.out.println("");
+        System.out.println("Ball tracking initialized");
+        SmartDashboard.putBoolean("Ball Tracking Active", true);
     }
    
     @Override
     public void execute() {
-        // Start timing this loop execution for performance tracking
-        m_loopTimer.reset();
-        m_loopTimer.start();
-        m_loopCount++;
-        
-        // Track time in current state
-        double stateTime = m_stateTimer.get();
-        
         // Update dashboard with current state
         SmartDashboard.putString("Ball Tracking State", m_state.toString());
-        SmartDashboard.putNumber("State Time", stateTime);
+        SmartDashboard.putNumber("State Time", m_stateTimer.get());
         
         // Run appropriate state logic
         switch (m_state) {
@@ -227,44 +165,29 @@ public class OptimizedBallTrackingCommand extends Command {
                 break;
                 
             case COMPLETE:
-                // Nothing to do in complete state, just waiting to end
+                // Nothing to do in complete state
                 break;
         }
         
         // Check for timeouts based on state
         checkForTimeout();
-        
-        // Track performance metrics
-        double loopTime = m_loopTimer.get();
-        if (loopTime > m_maxLoopTime) {
-            m_maxLoopTime = loopTime;
-        }
-        
-        // Log performance data occasionally
-        if (m_loopCount % 50 == 0) {
-            SmartDashboard.putNumber("Max Loop Time (ms)", m_maxLoopTime * 1000.0);
-            SmartDashboard.putNumber("Loop Count", m_loopCount);
-        }
     }
     
     /**
      * INITIALIZING state - Set up systems for ball hunting
      */
     private void executeInitializing() {
-        // This should be a very quick state - just prepare systems
-        
         // Put arm in home position for better camera view
         m_arm.homeArm();
         
-        // Wait just a moment to let things stabilize
+        // Wait briefly to let systems stabilize
         if (m_stateTimer.get() > 0.25) {
-            // Move to scanning state
             transitionToState(TrackingState.SCANNING);
         }
     }
     
     /**
-     * SCANNING state - Spin around looking for balls
+     * SCANNING state - Rotate to search for balls
      */
     private void executeScanning() {
         // Check if vision system has found a target
@@ -273,35 +196,33 @@ public class OptimizedBallTrackingCommand extends Command {
             m_lastYaw = m_vision.getBestTarget().getYaw();
             m_lastDistance = m_vision.getTargetDistance();
             
-            System.out.println(">> BALL DETECTED! Yaw: " + m_lastYaw + 
-                              "°, Distance: " + m_lastDistance + "m");
+            System.out.println("Ball detected at " + m_lastYaw + 
+                              "° yaw, " + m_lastDistance + "m distance");
             
             // Transition to targeting state
             transitionToState(TrackingState.TARGETING);
             return;
         }
         
-        // No target yet, keep searching with oscillating scan pattern
+        // No target yet, keep searching
         double scanTime = m_stateTimer.get();
         
-        // ADAPTIVE SCANNING: Change direction if we've been scanning too long
+        // Change direction if we've been scanning too long
         if (scanTime > 3.0 && m_scanCount == 0) {
             m_scanDirection *= -1;
             m_scanCount++;
-            System.out.println(">> CHANGING SCAN DIRECTION! New direction: " + 
-                              (m_scanDirection > 0 ? "RIGHT" : "LEFT"));
+            System.out.println("Changing scan direction");
         }
         
-        // Use oscillating scan pattern - slower for 16:1 ratio!
-        double turnPower = 0.3 * m_scanDirection;
+        // Apply rotation for scanning
+        m_drive.tankDrive(
+            SCAN_ROTATION_SPEED * m_scanDirection, 
+            -SCAN_ROTATION_SPEED * m_scanDirection
+        );
         
-        // Apply the rotation
-        m_drive.arcadeDrive(0, turnPower);
-        
-        // OK WAIT MAYBE WE SHOULD SAY SOMETHING OCCASIONALLY SO THEY KNOW
-        // WE'RE STILL DOING SOMETHING LOL
+        // Log status periodically
         if (scanTime > 1.0 && Math.floor(scanTime) == scanTime) {
-            System.out.println(">> SCANNING FOR BALLS... " + (int)scanTime + "s elapsed");
+            System.out.println("Scanning for balls... " + (int)scanTime + "s elapsed");
         }
     }
     
@@ -314,37 +235,27 @@ public class OptimizedBallTrackingCommand extends Command {
             m_lastYaw = m_vision.getBestTarget().getYaw();
             m_lastDistance = m_vision.getTargetDistance();
         } else if (m_stateTimer.get() > 0.5) {
-            // Lost sight of target and we've given enough time to reacquire
-            System.out.println(">> TARGET LOST DURING ALIGNMENT! Returning to scanning...");
+            // Lost sight of target
+            System.out.println("Target lost during alignment");
             transitionToState(TrackingState.SCANNING);
             return;
         }
         
-        // Calculate turn power using PID-like approach
-        // P term - proportional to error
-        double proportionalTerm = m_lastYaw * 0.02;
+        // Calculate turn power using PID
+        double turnPower = m_rotationPID.calculate(m_lastYaw, 0);
         
-        // D term - dampening based on rate of change
-        // (Simplified since we don't have continuous rate tracking)
-        double dampening = 0.3; // Dampening factor for 16:1 gearing
+        // Limit turn power
+        turnPower = Math.max(-MAX_ROTATION_SPEED, Math.min(MAX_ROTATION_SPEED, turnPower));
         
-        // Combine terms
-        double turnPower = proportionalTerm * dampening;
+        // Apply turn power (convert to tank drive)
+        m_drive.tankDrive(turnPower, -turnPower);
         
-        // Limit maximum turn power based on how well we're aligned
-        double maxTurnPower = Math.min(0.4, Math.abs(m_lastYaw) * 0.02);
-        turnPower = Math.max(-maxTurnPower, Math.min(maxTurnPower, turnPower));
-        
-        // Apply turn power
-        m_drive.arcadeDrive(0, turnPower);
-        
-        // Check if we're adequately aligned (within 3 degrees)
-        boolean isAligned = Math.abs(m_lastYaw) < 3.0;
+        // Check if we're adequately aligned
+        boolean isAligned = Math.abs(m_lastYaw) < ALIGNMENT_THRESHOLD_DEGREES;
         
         // If aligned, move to approach state
         if (isAligned) {
-            System.out.println(">> ALIGNED WITH TARGET! Yaw: " + m_lastYaw + 
-                              "°, Moving to approach...");
+            System.out.println("Aligned with target, beginning approach");
             transitionToState(TrackingState.APPROACHING);
         }
     }
@@ -361,7 +272,7 @@ public class OptimizedBallTrackingCommand extends Command {
             m_acquiredTarget = true;
             
             // Calculate course correction (turn power)
-            double turnCorrection = m_lastYaw * 0.015;  // Proportional control
+            double turnCorrection = m_rotationPID.calculate(m_lastYaw, 0);
             
             // Limit correction for smooth movement
             turnCorrection = Math.max(-0.2, Math.min(0.2, turnCorrection));
@@ -369,40 +280,43 @@ public class OptimizedBallTrackingCommand extends Command {
             // Calculate forward speed based on distance
             double forwardSpeed = calculateApproachSpeed(m_lastDistance);
             
+            // Convert to tank drive values
+            double leftPower = forwardSpeed + turnCorrection;
+            double rightPower = forwardSpeed - turnCorrection;
+            
             // Drive toward target
-            m_drive.arcadeDrive(forwardSpeed, turnCorrection);
+            m_drive.tankDrive(leftPower, rightPower);
             
             // Check if we're close enough to collect
-            if (m_lastDistance < Constants.BALL_DETECTION_THRESHOLD_INCHES / 39.37) {
-                System.out.println(">> IN COLLECTION RANGE! Distance: " + m_lastDistance + "m");
+            if (m_lastDistance < COLLECTION_DISTANCE_METERS) {
+                System.out.println("In collection range");
                 transitionToState(TrackingState.COLLECTING);
             }
         } else if (m_acquiredTarget) {
-            // We had target but lost it - try to continue approach
+            // We had target but lost it
             
             // If we're close to where we last saw target, it may be below camera view
             if (m_lastDistance < 0.5) {
-                System.out.println(">> TARGET LOST BUT LIKELY BELOW CAMERA VIEW");
-                System.out.println(">> CONTINUING TO APPROACH LAST KNOWN POSITION");
+                System.out.println("Target lost but continuing approach");
                 
                 // Keep driving forward (more slowly)
-                m_drive.arcadeDrive(0.15, 0);
+                m_drive.tankDrive(0.15, 0.15);
                 
                 // If we've been approaching blind for a bit, try collection
                 if (m_stateTimer.get() > 1.0) {
-                    System.out.println(">> ATTEMPTING COLLECTION AT APPROXIMATE POSITION");
+                    System.out.println("Attempting collection at approximate position");
                     transitionToState(TrackingState.COLLECTING);
                 }
             } else {
                 // Lost target and not close - stop and go back to scanning
-                m_drive.arcadeDrive(0, 0);
-                System.out.println(">> TARGET LOST DURING APPROACH!");
+                m_drive.tankDrive(0, 0);
+                System.out.println("Target lost during approach");
                 transitionToState(TrackingState.SCANNING);
             }
         } else {
             // Never acquired target - should not happen, but handle gracefully
-            m_drive.arcadeDrive(0, 0);
-            System.out.println(">> NO TARGET ACQUIRED IN APPROACH STATE!");
+            m_drive.tankDrive(0, 0);
+            System.out.println("No target acquired in approach state");
             transitionToState(TrackingState.SCANNING);
         }
     }
@@ -412,36 +326,32 @@ public class OptimizedBallTrackingCommand extends Command {
      */
     private void executeCollecting() {
         // Stop the drivetrain
-        m_drive.arcadeDrive(0, 0);
+        m_drive.tankDrive(0, 0);
         
         // First moment in this state? Deploy the arm!
         if (m_stateTimer.get() < 0.1) {
             // Deploy arm to pickup position
-            m_arm.pickupPosition();
+            m_arm.setArmPosition(Constants.BallArm.PICKUP_POSITION);
             
             // Activate intake
-            m_arm.setGripper(Constants.BALL_GRIPPER_INTAKE_SPEED);
+            m_arm.setIntakePower(Constants.BallArm.INTAKE_SPEED);
             
-            System.out.println("");
-            System.out.println(">> ARM DEPLOYED! ACTIVATING INTAKE!");
-            System.out.println(">> BALL ACQUISITION SEQUENCE INITIATED!");
-            System.out.println("");
+            System.out.println("Arm deployed, activating intake");
         }
         
         // Check if we have successfully collected a ball
         if (m_arm.hasBall()) {
-            // Success! Got the ball
-            System.out.println(">> BALL ACQUIRED! Securing...");
+            System.out.println("Ball acquired");
             transitionToState(TrackingState.SECURING);
         }
         
         // If we've been trying for too long without success
         if (m_stateTimer.get() > 2.0) {
             // Try a small forward nudge to improve collection odds
-            m_drive.arcadeDrive(0.1, 0);
+            m_drive.tankDrive(0.1, 0.1);
             
             if (m_stateTimer.get() > 3.0) {
-                System.out.println(">> COLLECTION TIMEOUT - No ball detected");
+                System.out.println("Collection timeout - no ball detected");
                 transitionToState(TrackingState.SECURING);
             }
         }
@@ -452,16 +362,16 @@ public class OptimizedBallTrackingCommand extends Command {
      */
     private void executeSecuring() {
         // Stop movement
-        m_drive.arcadeDrive(0, 0);
+        m_drive.tankDrive(0, 0);
         
         // If ball is detected, hold it securely
         if (m_arm.hasBall()) {
-            m_arm.setGripper(Constants.BALL_GRIPPER_HOLD_SPEED);
-            System.out.println(">> BALL SECURED! Preparing for return...");
+            m_arm.setIntakePower(Constants.BallArm.HOLD_SPEED);
+            System.out.println("Ball secured");
         } else {
-            // No ball detected, turn off gripper
-            m_arm.setGripper(0);
-            System.out.println(">> NO BALL DETECTED! Collection unsuccessful.");
+            // No ball detected, turn off intake
+            m_arm.setIntakePower(0);
+            System.out.println("No ball detected, collection unsuccessful");
         }
         
         // Return arm to safe position
@@ -480,8 +390,7 @@ public class OptimizedBallTrackingCommand extends Command {
         // Ensure arm is fully retracted for safe travel
         m_arm.homeArm();
         
-        // If we have gyro - use it to return to original angle
-        // NOTE: This is simulating a gyro since we don't have a real one
+        // Use gyro to return to original angle
         double currentAngle = m_drive.getGyroAngle();
         double angleError = m_initialAngle - currentAngle;
         
@@ -489,49 +398,37 @@ public class OptimizedBallTrackingCommand extends Command {
         while (angleError > 180) angleError -= 360;
         while (angleError < -180) angleError += 360;
         
-        // Calculate turn power using PID-like control
-        double turnPower = angleError * Constants.GYRO_TURN_KP;
+        // Calculate turn power
+        double turnPower = angleError * 0.01;
         
-        // Limit turn power for safety with 16:1 ratio
+        // Limit turn power for safety
         turnPower = Math.max(-0.3, Math.min(0.3, turnPower));
         
-        // Apply turning power
-        m_drive.arcadeDrive(0, turnPower);
+        // Apply turning power (convert to tank drive)
+        m_drive.tankDrive(turnPower, -turnPower);
         
         // Check if we're close to the target angle
-        boolean atTargetAngle = Math.abs(angleError) < Constants.TURNING_THRESHOLD_DEGREES;
+        boolean atTargetAngle = Math.abs(angleError) < 5.0;
         
         // Once we're at the target angle, we're done!
         if (atTargetAngle || m_stateTimer.get() > 3.0) {
-            m_drive.arcadeDrive(0, 0);
-            System.out.println(">> BALL TRACKING SEQUENCE COMPLETE!");
-            
-            // If we have a ball, celebrate!
-            if (m_arm.hasBall()) {
-                System.out.println("");
-                System.out.println("╔════════════════════════════════════╗");
-                System.out.println("║  MISSION SUCCESSFUL! BALL ACQUIRED ║");
-                System.out.println("║  TEAM 7221 IS UNSTOPPABLE!         ║");
-                System.out.println("╚════════════════════════════════════╝");
-                System.out.println("");
-            }
-            
+            m_drive.tankDrive(0, 0);
+            System.out.println("Ball tracking sequence complete");
             transitionToState(TrackingState.COMPLETE);
         }
     }
     
     /**
      * Calculate approach speed based on distance
-     * Carefully tuned for 16:1 gear ratio
      * 
      * @param distance Distance to target in meters
      * @return Appropriate approach speed
      */
     private double calculateApproachSpeed(double distance) {
         // Base speed proportional to distance
-        double speed = Math.min(0.45, distance * 0.6);
+        double speed = Math.min(MAX_DRIVE_SPEED, distance * 0.6);
         
-        // Taper speed as we get closer - essential for 16:1 ratio!
+        // Taper speed as we get closer
         if (distance < 0.7) {
             speed = Math.min(speed, 0.3);
         }
@@ -555,53 +452,51 @@ public class OptimizedBallTrackingCommand extends Command {
         
         switch (m_state) {
             case INITIALIZING:
-                timeout = 1.0; // 1 second to initialize
+                timeout = 1.0;
                 break;
             case SCANNING:
-                timeout = 10.0; // 10 seconds to find a ball
+                timeout = 10.0;
                 break;
             case TARGETING:
-                timeout = 3.0; // 3 seconds to align
+                timeout = 3.0;
                 break;
             case APPROACHING:
-                timeout = 5.0; // 5 seconds to approach
+                timeout = 5.0;
                 break;
             case COLLECTING:
-                timeout = 4.0; // 4 seconds to collect
+                timeout = 4.0;
                 break;
             case SECURING:
-                timeout = 2.0; // 2 seconds to secure
+                timeout = 2.0;
                 break;
             case RETURNING:
-                timeout = 5.0; // 5 seconds to return
+                timeout = 5.0;
                 break;
             case COMPLETE:
-                timeout = Double.POSITIVE_INFINITY; // No timeout in completed state
+                timeout = Double.POSITIVE_INFINITY;
                 break;
             default:
-                timeout = 5.0; // Default timeout
+                timeout = 5.0;
                 break;
         }
         
         // Check if we've exceeded the timeout
         if (m_stateTimer.get() > timeout) {
-            // Handle timeout based on state
             handleTimeout();
         }
         
         // Also check overall command timeout
-        if (m_commandTimer.get() > 25.0) { // 25 second total timeout
-            System.out.println(">> COMMAND TIMEOUT - Ending ball tracking");
-            m_hasTimedOut = true;
+        if (m_commandTimer.get() > 25.0) {
+            System.out.println("Command timeout - ending ball tracking");
             transitionToState(TrackingState.COMPLETE);
         }
     }
     
     /**
-     * Handle timeout in current state - RECOVERY LOGIC
+     * Handle timeout in current state
      */
     private void handleTimeout() {
-        System.out.println(">> TIMEOUT in state: " + m_state);
+        System.out.println("Timeout in state: " + m_state);
         
         switch (m_state) {
             case SCANNING:
@@ -611,11 +506,10 @@ public class OptimizedBallTrackingCommand extends Command {
                 
                 // If we've tried both directions, give up
                 if (m_scanCount > 2) {
-                    System.out.println(">> SCANNING FAILED - No balls found");
+                    System.out.println("Scanning failed - no balls found");
                     transitionToState(TrackingState.RETURNING);
                 } else {
-                    System.out.println(">> CHANGING SCAN DIRECTION to " + 
-                                      (m_scanDirection > 0 ? "RIGHT" : "LEFT"));
+                    System.out.println("Changing scan direction");
                     // Reset timer but stay in scanning state
                     m_stateTimer.reset();
                 }
@@ -628,22 +522,22 @@ public class OptimizedBallTrackingCommand extends Command {
                 
             case APPROACHING:
                 // Approach timed out - try collection anyway
-                System.out.println(">> APPROACH TIMED OUT - Attempting collection");
+                System.out.println("Approach timed out - attempting collection");
                 transitionToState(TrackingState.COLLECTING);
                 break;
                 
             case COLLECTING:
             case SECURING:
                 // Collection timed out - go to return
-                System.out.println(">> COLLECTION TIMED OUT - Returning to start");
-                m_arm.setGripper(0);
+                System.out.println("Collection timed out - returning to start");
+                m_arm.setIntakePower(0);
                 m_arm.homeArm();
                 transitionToState(TrackingState.RETURNING);
                 break;
                 
             case RETURNING:
                 // Return timed out - just finish
-                System.out.println(">> RETURN TIMED OUT - Ending sequence");
+                System.out.println("Return timed out - ending sequence");
                 transitionToState(TrackingState.COMPLETE);
                 break;
                 
@@ -661,10 +555,7 @@ public class OptimizedBallTrackingCommand extends Command {
      */
     private void transitionToState(TrackingState newState) {
         // Log state transition
-        System.out.println(">> TRANSITION: " + m_state + " → " + newState);
-        
-        // Display ASCII art state indicator (because it's cool)
-        System.out.println(STATE_ASCII[newState.ordinal()]);
+        System.out.println("State transition: " + m_state + " → " + newState);
         
         // Update state
         m_state = newState;
@@ -683,45 +574,30 @@ public class OptimizedBallTrackingCommand extends Command {
     @Override
     public void end(boolean interrupted) {
         // Safety first - stop everything
-        m_drive.arcadeDrive(0, 0);
+        m_drive.tankDrive(0, 0);
         
         // Ensure arm is in a safe position
         m_arm.homeArm();
         
-        // Return to normal driving mode
-        m_drive.disableDriveModes();
-        
-        // Re-enable manual control
-        Robot.manualDriveControl = true;
-        
         // Stop all timers
         m_stateTimer.stop();
         m_commandTimer.stop();
-        m_loopTimer.stop();
-        
-        // Log performance metrics
-        System.out.println(">> PERFORMANCE METRICS:");
-        System.out.println(">> Total runtime: " + m_commandTimer.get() + "s");
-        System.out.println(">> Max loop time: " + (m_maxLoopTime * 1000.0) + "ms");
-        System.out.println(">> Loop count: " + m_loopCount);
         
         // Status message
         if (interrupted) {
-            System.out.println(">> BALL TRACKING INTERRUPTED BY OPERATOR");
-        } else if (m_hasTimedOut) {
-            System.out.println(">> BALL TRACKING ENDED DUE TO TIMEOUT");
+            System.out.println("Ball tracking interrupted");
         } else {
-            System.out.println(">> BALL TRACKING COMPLETED SUCCESSFULLY");
+            System.out.println("Ball tracking completed");
             
-            // If we have a ball, report success!
+            // If we have a ball, report success
             if (m_arm.hasBall()) {
-                System.out.println(">> MISSION SUCCESSFUL - BALL ACQUIRED!");
+                System.out.println("Ball successfully acquired");
             } else {
-                System.out.println(">> MISSION COMPLETE - NO BALL ACQUIRED");
+                System.out.println("No ball acquired");
             }
         }
         
-        System.out.println("\n>> OPTIMIZED BALL TRACKING COMMAND TERMINATED <<\n");
+        SmartDashboard.putBoolean("Ball Tracking Active", false);
     }
     
     @Override
