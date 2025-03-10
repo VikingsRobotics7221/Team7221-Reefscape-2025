@@ -7,152 +7,143 @@ import edu.wpi.first.wpilibj2.command.ParallelCommandGroup;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 
 import frc.robot.Robot;
+import frc.robot.Constants;
 import frc.robot.commands.BallTrackingCommand;
-import frc.robot.commands.BallControlCommands;
+import frc.robot.commands.BallControlCommands.ScoreSequence;
 import frc.robot.commands.autonomous.basic_path_planning.Drivetrain_GyroStraight;
 import frc.robot.commands.autonomous.basic_path_planning.Drivetrain_GyroTurn;
-import frc.robot.commands.autonomous.basic_path_planning.Drivetrain_GyroStrafe;
 import frc.robot.commands.autonomous.basic_path_planning.OptimizedTankDriveCommand;
 
 /**
- * StrategicBallHuntAuto - THE ULTIMATE BALL HUNTING SEQUENCE!
+ * StrategicBallHuntAuto - Advanced ball collection autonomous routine
  * 
- * This autonomous routine combines our 16:1 ratio optimized drive commands
- * with our vision system to create the PERFECT ball collection strategy.
+ * This routine combines precise movement, vision-based tracking, and efficient
+ * ball handling to create a high-scoring autonomous sequence. It's designed to:
  * 
- * Strategy Overview:
- * 1. Fast initial drive to center field using our 16:1 power
- * 2. Quick scan rotation to locate balls
- * 3. Vision-based tracking and collection
- * 4. Strategic positioning near scoring zones
- * 5. Ball scoring
- * 6. Defense positioning
+ * 1. Navigate quickly to the game field center using optimized drive commands
+ * 2. Use vision to locate and collect game pieces efficiently
+ * 3. Score collected game pieces for maximum autonomous points
+ * 4. Position the robot strategically for teleop takeover
  * 
- * THIS ROUTINE WILL CRUSH THE COMPETITION!!!
+ * The sequence adapts to the 16:1 gear ratio by using slower, more controlled
+ * movements with higher torque. This provides better pushing power and more
+ * precise control when tracking balls.
  * 
- * coded by paysean - March 2025
+ * System Connections:
+ * - Uses DriveSubsystem for movement control
+ * - Uses BallArmSubsystem for game piece manipulation
+ * - Uses VisionSubsystem for target identification
+ * - Uses path planning commands from the basic_path_planning package
  */
 public class StrategicBallHuntAuto extends SequentialCommandGroup {
     
-    // ASCII ART FOR THE WIN!!!
-    //    _____                 _____  
-    //   / ____|               |  __ \ 
-    //  | |  __ ___  ____ _  __| |__) |
-    //  | | |_ / _ \|  _ | |/ /|  _  / 
-    //  | |__| | (_) | | | | |_| | \ \ 
-    //   \_____\___/|_| |_|\__|_|  \_\
-    //                                 
-    
     /**
-     * Creates our ultimate autonomous routine!
-     * MUST be aligned with the starting position by driver station 2
+     * Creates a new autonomous routine for strategic ball collection and scoring.
+     * This should be positioned at the starting position near driver station 2.
      */
     public StrategicBallHuntAuto() {
         addCommands(
-            // ===== PHASE 1: INITIALIZE AND DIAGNOSTICS =====
+            // Phase 1: System initialization and diagnostics
             new InstantCommand(() -> {
-                // Reset encoders for accurate navigation
+                // Reset encoders for accurate distance tracking
                 Robot.m_driveSubsystem.resetEncoders();
                 
-                // Set vision to ball detection mode (pipeline 0)
-                Robot.m_visionSubsystem.setPipeline(0);
+                // Configure vision system for ball detection
+                Robot.m_visionSubsystem.setPipeline(0); // 0 = Ball tracking pipeline
                 
-                // Enable turbo mode for fast initial movement
+                // Enable turbo mode for quick initial movement
                 Robot.m_driveSubsystem.enableTurboMode();
                 
-                System.out.println("");
-                System.out.println("◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤");
-                System.out.println(">> STRATEGIC BALL HUNT AUTO ACTIVATED!!");
-                System.out.println(">> 16:1 DRIVE RATIO ENGAGED!!");
-                System.out.println(">> MAXIMUM TORQUE = MAXIMUM DOMINATION!!");
-                System.out.println("◥◣◥◣◥◣◥◣◥◣◥◣◥◣◥◣◥◣◥◣◥◣◥◣◥◣◥◣◥◣◥◣◥◣◥◣");
-                System.out.println("");
+                // Log autonomous routine start
+                System.out.println("STRATEGIC BALL HUNT AUTO ACTIVATED");
+                System.out.println("16:1 DRIVE RATIO OPTIMIZED ROUTINE STARTING");
             }),
             
-            // Quick systems check to verify we're ready
+            // Quick systems verification
             new InstantCommand(() -> {
+                // Verify battery is sufficient for auto routine
                 double voltage = RobotController.getBatteryVoltage();
                 if (voltage < 12.0) {
-                    System.out.println("!! WARNING: Battery voltage low: " + voltage + "V !!");
-                    System.out.println("!! Performance may be affected !!");
+                    System.out.println("WARNING: Battery voltage low: " + voltage + "V");
+                    System.out.println("Performance may be affected");
                 }
                 
-                // Make sure arm is in home position before moving
+                // Ensure arm is in home position for movement
                 Robot.m_ballArmSubsystem.homeArm();
             }),
             
-            // ===== PHASE 2: RUSH TO STRATEGIC POSITION =====
-            // Using our optimized drive command specifically tuned for 16:1 ratio!
+            // Phase 2: Navigate to strategic position
+            // Using optimal drive command for 16:1 ratio
             new OptimizedTankDriveCommand(1.8, 0.9, 3.0),
             
-            // Fast 60-degree turn to face ball collection area
+            // Turn to face ball collection area
             new Drivetrain_GyroTurn(60),
             
-            // Switch to precision mode for better control during ball hunting
+            // Switch to precision mode for fine control during tracking
             new InstantCommand(() -> {
                 Robot.m_driveSubsystem.disableDriveModes();
                 Robot.m_driveSubsystem.enablePrecisionMode();
-                System.out.println(">> SWITCHED TO PRECISION MODE FOR HUNTING <<");
+                System.out.println("SWITCHED TO PRECISION MODE FOR BALL HUNTING");
             }),
             
-            // Brief pause to let things settle
+            // Brief pause to stabilize before vision tracking
             new WaitCommand(0.2),
             
-            // ===== PHASE 3: HUNT FIRST BALL =====
-            // Drive forward slowly to approach ball area
+            // Phase 3: Hunt and collect first ball
+            // Short approach movement to get within vision range
             new Drivetrain_GyroStraight(0.5, 0.3),
             
-            // Use vision to find and collect ball
-            new BallTrackingCommand().withTimeout(5.0), 
+            // Use vision tracking for precise ball acquisition
+            new BallTrackingCommand().withTimeout(5.0),
             
-            // Make sure arm is securely holding the ball
+            // Secure ball in gripper
             new InstantCommand(() -> {
-                Robot.m_ballArmSubsystem.setGripper(Constants.BALL_GRIPPER_HOLD_SPEED);
-                System.out.println(">> FIRST BALL ACQUIRED! SECURING... <<");
+                Robot.m_ballArmSubsystem.setGripper(Constants.BallArm.GRIPPER_HOLD_SPEED);
+                System.out.println("FIRST BALL ACQUIRED AND SECURED");
             }),
             
-            // Return to home position with ball
+            // Return arm to home position with ball
             new InstantCommand(() -> Robot.m_ballArmSubsystem.homeArm()),
             
-            // ===== PHASE 4: STRATEGIC REPOSITIONING =====
-            // Back up slightly to clear space
+            // Phase 4: Navigate to scoring position
+            // Back up slightly to clear obstructions
             new Drivetrain_GyroStraight(-0.3, 0.4),
             
             // Turn toward scoring zone
             new Drivetrain_GyroTurn(135),
             
-            // Switch back to turbo mode for fast transit
+            // Switch to turbo mode for fast transit to scoring zone
             new InstantCommand(() -> {
                 Robot.m_driveSubsystem.disableDriveModes();
                 Robot.m_driveSubsystem.enableTurboMode();
-                System.out.println(">> TURBO MODE ACTIVATED FOR STRATEGIC REPOSITIONING <<");
+                System.out.println("TURBO MODE ACTIVATED FOR TRANSIT TO SCORING ZONE");
             }),
             
-            // Drive quickly to scoring zone
+            // Fast drive to scoring position
             new OptimizedTankDriveCommand(1.5, 0.85, 2.5),
             
-            // ===== PHASE 5: SCORING SEQUENCE =====
-            // Switch back to precision mode for scoring
+            // Phase 5: Score the collected ball
+            // Switch to precision mode for accurate scoring
             new InstantCommand(() -> {
                 Robot.m_driveSubsystem.disableDriveModes();
                 Robot.m_driveSubsystem.enablePrecisionMode();
-                System.out.println(">> PRECISION MODE ACTIVATED FOR SCORING <<");
+                System.out.println("PRECISION MODE ACTIVATED FOR SCORING");
             }),
             
-            // Final alignment turn
+            // Final alignment adjustment
             new Drivetrain_GyroTurn(-15),
             
-            // Score the ball!
-            new BallControlCommands.ScoreSequence(Robot.m_ballArmSubsystem),
+            // Score the ball
+            new ScoreSequence(Robot.m_ballArmSubsystem),
             
-            // ===== PHASE 6: DEFENSE POSITIONING =====
+            // Phase 6: Position for teleop
             // Turn to face field center
             new Drivetrain_GyroTurn(180),
             
-            // Back to normal drive mode
+            // Return to normal drive mode
             new InstantCommand(() -> Robot.m_driveSubsystem.disableDriveModes()),
             
-            // Position to block opponent scoring paths
+            // Move into strategic position while preparing arm for next ball
             new ParallelCommandGroup(
                 // Drive forward while turning slightly to position diagonally
                 new OptimizedTankDriveCommand(1.2, 0.6, 2.0),
@@ -164,22 +155,21 @@ public class StrategicBallHuntAuto extends SequentialCommandGroup {
                 )
             ),
             
-            // ===== PHASE 7: ENDGAME PREPARATION =====
-            // Final positioning for teleop takeover
+            // Final turn to optimal defensive position
             new Drivetrain_GyroTurn(45),
             
-            // Return everything to safe state
+            // Phase 7: Cleanup and teleop handoff
             new InstantCommand(() -> {
+                // Return arm to safe position
                 Robot.m_ballArmSubsystem.homeArm();
+                
+                // Disable special drive modes
                 Robot.m_driveSubsystem.disableDriveModes();
                 
-                System.out.println("");
-                System.out.println("◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤");
-                System.out.println(">> STRATEGIC AUTO COMPLETE - MISSION SUCCESS!!!");
-                System.out.println(">> BALL COLLECTED, SCORED, AND POSITIONED FOR DEFENSE!");
-                System.out.println(">> READY FOR DRIVER TAKEOVER!");
-                System.out.println("◥◣◥◣◥◣◥◣◥◣◥◣◥◣◥◣◥◣◥◣◥◣◥◣◥◣◥◣◥◣◥◣◥◣◥◣");
-                System.out.println("");
+                // Report completion status
+                System.out.println("STRATEGIC BALL HUNT AUTO COMPLETE");
+                System.out.println("BALL COLLECTED AND SCORED");
+                System.out.println("ROBOT POSITIONED FOR DRIVER CONTROL");
             })
         );
     }
