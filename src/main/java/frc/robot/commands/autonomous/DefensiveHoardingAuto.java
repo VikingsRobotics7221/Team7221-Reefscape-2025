@@ -3,21 +3,24 @@ package frc.robot.commands.autonomous;
 
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
-import edu.wpi.first.wpilibj2.command.ParallelCommandGroup;
-import edu.wpi.first.wpilibj2.command.WaitCommand;
+// import edu.wpi.first.wpilibj2.command.ParallelCommandGroup; // Unused import removed
+// import edu.wpi.first.wpilibj2.command.WaitCommand; // Unused import removed
 import edu.wpi.first.wpilibj2.command.RunCommand;
 
 import frc.robot.Robot;
 import frc.robot.Constants;
 import frc.robot.commands.BallTrackingCommand;
-import frc.robot.commands.BallControlCommands.PickupSequence;
+// import frc.robot.commands.BallControlCommands.PickupSequence; // Unused import removed
 import frc.robot.commands.BallControlCommands.ScoreSequence;
 import frc.robot.commands.autonomous.basic_path_planning.Drivetrain_GyroStraight;
 import frc.robot.commands.autonomous.basic_path_planning.Drivetrain_GyroTurn;
 import frc.robot.commands.autonomous.basic_path_planning.Drivetrain_GyroStrafe;
 
 /**
- * DefensiveHoardingAuto - Strategic Ball Control Autonomous Routine
+ * ┌───────────────────────────────────────────────────────────────┐
+ * │  DEFENSIVE HOARDING AUTO - BALL CONTROL STRATEGY              │
+ * │  Dominates field position through aggressive ball acquisition  │
+ * └───────────────────────────────────────────────────────────────┘
  * 
  * This autonomous command sequence implements a defensive strategy for the Reefscape game.
  * The robot will:
