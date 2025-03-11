@@ -2,52 +2,52 @@
 package frc.robot.commands.autonomous.basic_path_planning;
 
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj.Timer;
 import frc.robot.Constants;
 import frc.robot.Robot;
 import frc.robot.subsystems.DriveSubsystem;
 
 /**
- * OptimizedTankDriveCommand - Precision Movement Control for Tank Drive
+ * ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║ OPTIMIZED TANK DRIVE COMMAND - PRECISION MOVEMENT CONTROL               ║
+ * ║══════════════════════════════════════════════════════════════════════════║
+ * ║ Advanced movement command implementing time-based precision driving      ║
+ * ║ with smooth acceleration profiles and predictive stopping logic.         ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝
+ *
+ * This command provides high-precision movement for tank drive systems using
+ * time-based estimation for position tracking. It's specifically designed to
+ * work with PWM motor controllers that lack encoder feedback.
  * 
- * This command provides precise, position-controlled movement for the robot's
- * tank drive system. It's specially calibrated for the 16:1 gear ratio to ensure
- * accurate distance tracking and smooth acceleration/deceleration.
- * 
- * Features:
+ * Key Features:
  * - Dynamic acceleration/deceleration profiles for smooth movement
- * - Encoder-based position tracking for exact distances
- * - Automatic correction for drivetrain drift during straight-line movement
+ * - Time-based distance estimation with calibrated speed values
  * - Predictive stopping to minimize overshooting target positions
- * 
- * System Integration:
- * - Uses DriveSubsystem for motor control
- * - Uses Constants for configuration parameters
- * - Uses encoder feedback for closed-loop position control
+ * - Status logging and performance monitoring throughout execution
  */
 public class OptimizedTankDriveCommand extends Command {
     
-    // Physical parameters
+    // ===== PHYSICAL PARAMETERS =====
     private static final double WHEEL_CIRCUMFERENCE = Constants.Dimensions.WHEEL_DIAMETER * Math.PI;
     
-    // Motion profile parameters
+    // ===== MOTION PROFILE PARAMETERS =====
     private static final double ACCELERATION_TIME = 0.5;  // Time to reach full speed (seconds)
     private static final double DECELERATION_THRESHOLD = 0.4;  // Portion of distance where deceleration begins
     private static final double MIN_POWER = 0.1;  // Minimum power to overcome static friction
-    private static final double ENCODER_TOLERANCE = 0.05;  // Acceptable position error (rotations)
     
-    // Command state variables
+    // ===== CALIBRATION CONSTANTS =====
+    // Time-based motion calibration (replace with encoder feedback when available)
+    private static final double METERS_PER_SECOND_AT_FULL_POWER = 3.0;  // Estimated robot speed
+    
+    // ===== COMMAND STATE VARIABLES =====
     private final DriveSubsystem m_drive;
     private final double m_distance;  // Target distance in meters
     private final double m_maxPower;  // Maximum power (0-1.0)
     private final double m_timeout;   // Maximum execution time (seconds)
     
-    // Target tracking
-    private double m_targetEncoderDistance;  // Target distance in encoder rotations
-    private double m_startingLeftPosition;
-    private double m_startingRightPosition;
-    
-    // Execution state
-    private long m_startTimeMillis;
+    // ===== EXECUTION STATE =====
+    private Timer m_timer = new Timer();
+    private double m_estimatedDistanceTraveled = 0.0;
     private boolean m_isFinished = false;
     
     /**
@@ -63,13 +63,10 @@ public class OptimizedTankDriveCommand extends Command {
         m_maxPower = Math.abs(maxPower);
         m_timeout = timeoutSeconds;
         
-        // Calculate target encoder distance (rotations)
-        m_targetEncoderDistance = distance / WHEEL_CIRCUMFERENCE;
-        
         // Register the drivetrain requirement
         addRequirements(m_drive);
         
-        System.out.println("Creating OptimizedTankDriveCommand: " + 
+        System.out.println(">> Creating OptimizedTankDriveCommand: " + 
                           distance + "m, " + maxPower + " power, " + 
                           timeoutSeconds + "s timeout");
     }
@@ -83,78 +80,59 @@ public class OptimizedTankDriveCommand extends Command {
     
     @Override
     public void initialize() {
-        System.out.println("Starting optimized drive: " + m_distance + " meters");
+        System.out.println(">> Starting optimized drive: " + m_distance + " meters");
         
         // Ensure the robot is stopped before we begin
         m_drive.arcadeDrive(0, 0);
         
-        // Record starting positions for distance tracking
-        m_startingLeftPosition = m_drive.getLeftPosition();
-        m_startingRightPosition = m_drive.getRightPosition();
-        
-        // Record start time for timeout and motion profiling
-        m_startTimeMillis = System.currentTimeMillis();
-        
-        // Reset completion state
+        // Reset timer and tracking variables
+        m_timer.reset();
+        m_timer.start();
+        m_estimatedDistanceTraveled = 0.0;
         m_isFinished = false;
+        
+        // NOTE: With encoder support, we would store starting positions here:
+        // m_startingLeftPosition = m_drive.getLeftPosition();
+        // m_startingRightPosition = m_drive.getRightPosition();
     }
     
     @Override
     public void execute() {
         // Calculate elapsed time for motion profiling
-        double elapsedSeconds = (System.currentTimeMillis() - m_startTimeMillis) / 1000.0;
+        double elapsedSeconds = m_timer.get();
         
-        // Get current positions and calculate distance traveled
-        double currentLeftPosition = m_drive.getLeftPosition() - m_startingLeftPosition;
-        double currentRightPosition = m_drive.getRightPosition() - m_startingRightPosition;
+        // Calculate estimated distance traveled based on time and power
+        // NOTE: This is a simplified model. With encoders, we would use:
+        // double currentLeftPosition = m_drive.getLeftPosition() - m_startingLeftPosition;
+        // double currentRightPosition = m_drive.getRightPosition() - m_startingRightPosition;
+        // double averageDistance = (currentLeftPosition + currentRightPosition) / 2.0;
         
-        // Calculate average distance traveled (preserving direction)
-        double direction = Math.signum(m_targetEncoderDistance);
-        double averageDistance = direction * (Math.abs(currentLeftPosition) + 
-                                            Math.abs(currentRightPosition)) / 2.0;
+        // Time-based distance estimation
+        double direction = Math.signum(m_distance);
+        double currentSpeed = calculateProfiledPower(elapsedSeconds) * m_maxPower * METERS_PER_SECOND_AT_FULL_POWER;
+        double distanceDelta = currentSpeed * 0.02; // Assuming 50Hz update rate
+        m_estimatedDistanceTraveled += distanceDelta;
         
         // Calculate progress percentage
-        double percentComplete = Math.abs(averageDistance / m_targetEncoderDistance);
+        double percentComplete = Math.abs(m_estimatedDistanceTraveled / m_distance);
         
         // Calculate power based on motion profile
-        double power = calculateProfiledPower(elapsedSeconds, percentComplete);
+        double power = calculateProfiledPower(elapsedSeconds) * direction;
         
-        // Apply direction
-        power *= direction;
-        
-        // Apply small correction if sides are uneven (drift compensation)
-        double leftAdjust = 1.0;
-        double rightAdjust = 1.0;
-        
-        // If one side is moving faster than the other, adjust to correct drift
-        double leftDistance = Math.abs(currentLeftPosition);
-        double rightDistance = Math.abs(currentRightPosition);
-        
-        if (leftDistance > rightDistance * 1.02) {
-            // Left side is moving faster, reduce its power slightly
-            leftAdjust = 0.95;
-            rightAdjust = 1.05;
-        } else if (rightDistance > leftDistance * 1.02) {
-            // Right side is moving faster, reduce its power slightly
-            leftAdjust = 1.05;
-            rightAdjust = 0.95;
-        }
-        
-        // Apply adjusted power to both sides
-        m_drive.tankDrive(power * leftAdjust, power * rightAdjust);
+        // Apply power to drive
+        m_drive.tankDrive(power, power);
         
         // Log progress occasionally
         if (elapsedSeconds > 0.5 && Math.floor(elapsedSeconds * 2) / 2.0 == elapsedSeconds) {
-            System.out.printf("Drive progress: %.1f%% complete (%.2fm of %.2fm)\n", 
+            System.out.printf(">> Drive progress: %.1f%% complete (est. %.2fm of %.2fm)\n", 
                              percentComplete * 100.0, 
-                             averageDistance * WHEEL_CIRCUMFERENCE,
+                             m_estimatedDistanceTraveled,
                              m_distance);
         }
         
-        // Check if we've reached target distance
-        if (Math.abs(averageDistance) >= Math.abs(m_targetEncoderDistance) - ENCODER_TOLERANCE) {
-            System.out.println("Target reached! Stopping at " + 
-                              (averageDistance * WHEEL_CIRCUMFERENCE) + "m");
+        // Check if we've reached the estimated target distance
+        if (Math.abs(m_estimatedDistanceTraveled) >= Math.abs(m_distance)) {
+            System.out.println(">> Estimated target reached! Stopping");
             m_isFinished = true;
         }
     }
@@ -163,10 +141,9 @@ public class OptimizedTankDriveCommand extends Command {
      * Calculate motor power using a trapezoidal motion profile
      * 
      * @param elapsedSeconds Time elapsed since start
-     * @param percentComplete Percentage of distance completed
-     * @return Optimized power level
+     * @return Optimized power level (0.0 to 1.0)
      */
-    private double calculateProfiledPower(double elapsedSeconds, double percentComplete) {
+    private double calculateProfiledPower(double elapsedSeconds) {
         double power;
         
         // Acceleration phase - ramp up power
@@ -175,10 +152,10 @@ public class OptimizedTankDriveCommand extends Command {
             power = MIN_POWER + (m_maxPower - MIN_POWER) * (elapsedSeconds / ACCELERATION_TIME);
         } 
         // Deceleration phase - slow down as we approach target
-        else if (percentComplete > (1.0 - DECELERATION_THRESHOLD)) {
+        else if (m_estimatedDistanceTraveled / m_distance > (1.0 - DECELERATION_THRESHOLD)) {
             // Calculate how far into deceleration zone we are (0 to 1)
             double decelerationProgress = 
-                (percentComplete - (1.0 - DECELERATION_THRESHOLD)) / DECELERATION_THRESHOLD;
+                (m_estimatedDistanceTraveled / m_distance - (1.0 - DECELERATION_THRESHOLD)) / DECELERATION_THRESHOLD;
             
             // Quadratic deceleration curve for smooth stopping
             power = m_maxPower * (1.0 - Math.pow(decelerationProgress, 2)) + MIN_POWER;
@@ -194,12 +171,11 @@ public class OptimizedTankDriveCommand extends Command {
     @Override
     public boolean isFinished() {
         // Check if we've reached target or timed out
-        long elapsedMillis = System.currentTimeMillis() - m_startTimeMillis;
-        boolean timedOut = elapsedMillis >= (m_timeout * 1000);
+        boolean timedOut = m_timer.hasElapsed(m_timeout);
         
         if (timedOut && !m_isFinished) {
-            System.out.println("Drive command timed out after " + 
-                               (elapsedMillis / 1000.0) + " seconds");
+            System.out.println(">> Drive command timed out after " + 
+                               m_timer.get() + " seconds");
         }
         
         return m_isFinished || timedOut;
@@ -210,12 +186,25 @@ public class OptimizedTankDriveCommand extends Command {
         // Safety first - stop the motors
         m_drive.arcadeDrive(0, 0);
         
+        // Report completion status
         if (interrupted) {
-            System.out.println("Drive command interrupted");
-        } else if (!m_isFinished) {
-            System.out.println("Drive command timed out");
+            System.out.println(">> Drive command interrupted");
+        } else if (m_isFinished) {
+            System.out.println(">> Drive command completed successfully");
+            System.out.println(">> Estimated distance traveled: " + 
+                               m_estimatedDistanceTraveled + " meters");
         } else {
-            System.out.println("Drive command completed successfully");
+            System.out.println(">> Drive command timed out");
         }
+    }
+    
+    /**
+     * Simulated encoder distance - for compatibility with test harnesses
+     * NOTE: This is just a simulation - with real encoders we would return actual positions
+     * 
+     * @return Estimated distance in meters
+     */
+    public double getEstimatedDistance() {
+        return m_estimatedDistanceTraveled;
     }
 }
