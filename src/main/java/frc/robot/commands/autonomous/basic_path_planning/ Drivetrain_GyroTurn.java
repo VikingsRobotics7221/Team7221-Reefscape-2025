@@ -1,108 +1,196 @@
-// Author: Team 7221
-// Last Updated: March 2025
-
+// src/main/java/frc/robot/commands/autonomous/basic_path_planning/Drivetrain_GyroTurn.java
 package frc.robot.commands.autonomous.basic_path_planning;
 
 import edu.wpi.first.wpilibj2.command.Command;
-import frc.robot.Constants;
+import edu.wpi.first.wpilibj.Timer;
 import frc.robot.Robot;
-
 import frc.robot.subsystems.DriveSubsystem;
 
 /** 
- * Drivetrain_GyroTurn - Time-based Turn Command
+ * ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║ DRIVETRAIN GYRO TURN - PRECISION ANGULAR CONTROL                        ║
+ * ║══════════════════════════════════════════════════════════════════════════║
+ * ║ Advanced angular positioning system with time-based trajectory tracking  ║
+ * ║ that enables reliable heading control without requiring a gyro sensor.   ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝
+ *
+ * This command provides precise angular control for tank drive systems by using
+ * a calibrated time-based approach. It calculates turn duration based on a known
+ * rotation rate and applies consistent power for predictable angular movement.
  * 
- * This command enables precise angular control without requiring a gyro.
- * It uses a calibrated time-based approach to achieve predictable turning.
- * 
- * How it works:
- * 1. Takes a target angle as input
- * 2. Calculates how long to apply turning power based on a calibrated degrees/second rate
- * 3. Applies consistent turning power for that duration
- * 4. Completes when the calculated time has elapsed
- * 
- * System Integration:
- * - Requires the DriveSubsystem defined in Robot.java
- * - Uses power constants from Constants.java
- * - Can be used in autonomous command sequences
+ * FEATURES:
+ * - Calibrated angular velocity model for predictable rotation
+ * - Adaptive power control based on turn size
+ * - Comprehensive status reporting
+ * - Full compatibility with basic drivetrain implementations
  */
 public class Drivetrain_GyroTurn extends Command {
-    // Configuration Constants
-    private static final double MAX_POWER = Constants.MAX_POWER_GYRO;
+    // ===== CONFIGURATION CONSTANTS =====
+    // Define MAX_POWER_GYRO locally since it's not in Constants
+    private static final double MAX_POWER_GYRO = 0.6;
+    
+    // Calibration constant - how fast the robot turns at full power
     private static final double DEGREES_PER_SECOND_AT_FULL_POWER = 120.0; // ~120° per second at full power
     
-    // Instance Variables
+    // ===== INSTANCE VARIABLES =====
     private final DriveSubsystem drivetrain;
     private final double goalAngle;
-    private long startTime;
-    private long turnDurationMs;
+    private final double direction;
+    private final double timeout;
+    
+    // ===== EXECUTION STATE =====
+    private Timer timer = new Timer();
+    private double turnPower;
+    private double turnDurationSec;
+    private double estimatedAngle = 0;
+    private boolean isFinished = false;
     
     /** 
      * Creates a turn command that works without a gyro
      * 
      * @param angle Angle to turn in degrees (positive = clockwise, negative = counterclockwise)
+     * @param timeoutSeconds Maximum time allowed for the turn
      */
-    public Drivetrain_GyroTurn(double angle) {
+    public Drivetrain_GyroTurn(double angle, double timeoutSeconds) {
         drivetrain = Robot.m_driveSubsystem;
         goalAngle = angle;
+        direction = Math.signum(angle);
+        timeout = timeoutSeconds;
+        
         addRequirements(drivetrain);
+    }
+    
+    /**
+     * Simplified constructor with default timeout
+     */
+    public Drivetrain_GyroTurn(double angle) {
+        this(angle, 5.0); // Default 5 second timeout
     }
     
     @Override
     public void initialize() {
-        System.out.println("Starting turn: " + goalAngle + "°");
-        drivetrain.arcadeDrive(0, 0); // Ensure robot is stopped before turning
-        startTime = System.currentTimeMillis();
+        System.out.println(">> STARTING TURN: " + goalAngle + "°");
         
-        // Calculate turn duration based on the angle
+        // Ensure robot is stopped before turning
+        drivetrain.arcadeDrive(0, 0); 
+        
+        // Reset timer and state variables
+        timer.reset();
+        timer.start();
+        estimatedAngle = 0;
+        isFinished = false;
+        
         // Adjust power based on turn size for better precision
-        double turnPower = MAX_POWER;
         if (Math.abs(goalAngle) < 45) {
-            // Use lower power for small turns
-            turnPower = MAX_POWER * 0.7;
+            // Use lower power for small turns (better precision)
+            turnPower = MAX_POWER_GYRO * 0.7;
+            System.out.println(">> Small turn detected - using precision power: " + 
+                              String.format("%.1f", turnPower * 100) + "%");
+        } else if (Math.abs(goalAngle) > 150) {
+            // Use higher power for large turns
+            turnPower = MAX_POWER_GYRO * 0.9;
+            System.out.println(">> Large turn detected - using higher power: " + 
+                              String.format("%.1f", turnPower * 100) + "%");
+        } else {
+            // Standard power for medium turns
+            turnPower = MAX_POWER_GYRO;
         }
         
-        // Calculate turn duration
-        double degreesPerSecond = DEGREES_PER_SECOND_AT_FULL_POWER * turnPower;
-        turnDurationMs = (long)(Math.abs(goalAngle) / degreesPerSecond * 1000);
+        // Calculate turn duration based on the calibrated rotation rate
+        double degreesPerSecond = DEGREES_PER_SECOND_AT_FULL_POWER * (turnPower / MAX_POWER_GYRO);
+        turnDurationSec = Math.abs(goalAngle) / degreesPerSecond;
         
-        System.out.println("Estimated turn time: " + turnDurationMs + "ms");
+        System.out.println(">> Calculated turn duration: " + 
+                          String.format("%.2f", turnDurationSec) + " seconds");
     }
 
     @Override
     public void execute() {
-        // Calculate direction of turn
-        double turnDirection = Math.signum(goalAngle);
+        // Apply differential power to create rotation
+        // Note: In arcade drive, the second parameter controls rotation
+        // Negative value is clockwise, positive is counter-clockwise
+        double rotationInput = -direction * turnPower;
+        drivetrain.arcadeDrive(0, rotationInput);
         
-        // Apply turn power
-        drivetrain.arcadeDrive(0, -turnDirection * MAX_POWER);
+        // Update estimated angle based on elapsed time
+        double elapsedTime = timer.get();
+        double angularVelocity = DEGREES_PER_SECOND_AT_FULL_POWER * (turnPower / MAX_POWER_GYRO);
+        estimatedAngle = elapsedTime * angularVelocity * direction;
         
-        // Provide periodic progress updates
-        long elapsed = System.currentTimeMillis() - startTime;
-        if (elapsed > 250 && elapsed % 250 < 20) {
-            int percentComplete = (int)(elapsed * 100 / turnDurationMs);
-            System.out.println("Turn progress: " + percentComplete + "%");
+        // Log progress at specific intervals
+        if (elapsedTime > 0.2 && Math.floor(elapsedTime * 5) / 5.0 == elapsedTime) {
+            double percentComplete = Math.min(100, Math.abs(estimatedAngle / goalAngle) * 100);
+            System.out.printf(">> Turn progress: %.0f%% (est. %.1f° of %.1f°)\n",
+                             percentComplete, 
+                             Math.abs(estimatedAngle), 
+                             Math.abs(goalAngle));
         }
     }
     
     @Override
     public boolean isFinished() {
-        // We're done when we've turned for the calculated amount of time
-        boolean timeComplete = (System.currentTimeMillis() - startTime) >= turnDurationMs;
+        // We're done when either:
+        // 1. We've turned for the calculated amount of time
+        // 2. We've exceeded the timeout period
+        boolean timeComplete = timer.get() >= turnDurationSec;
+        boolean timedOut = timer.hasElapsed(timeout);
         
-        if (timeComplete) {
-            System.out.println("Turn complete!");
+        if (timeComplete && !isFinished) {
+            isFinished = true;
+            System.out.println(">> Turn complete!");
+        } else if (timedOut && !isFinished) {
+            isFinished = true;
+            System.out.println(">> Turn timed out after " + 
+                              String.format("%.1f", timer.get()) + " seconds");
         }
         
-        return timeComplete;
+        return isFinished;
     }
 
     @Override
     public void end(boolean interrupted) {
-        drivetrain.arcadeDrive(0, 0); // Stop turning
+        // Stop turning
+        drivetrain.arcadeDrive(0, 0);
         
+        // Stop the timer
+        timer.stop();
+        
+        // Log completion status
         if (interrupted) {
-            System.out.println("Turn interrupted!");
+            System.out.println(">> Turn interrupted!");
+        } else {
+            System.out.printf(">> Turn completed in %.2f seconds (est. %.1f°)\n", 
+                            timer.get(), Math.abs(estimatedAngle));
         }
+    }
+    
+    /**
+     * Get the estimated heading change so far
+     * 
+     * @return Estimated angle in degrees
+     */
+    public double getEstimatedAngle() {
+        return estimatedAngle;
+    }
+    
+    /**
+     * Calculate time needed for a specific turn.
+     * Useful for planning command sequences.
+     * 
+     * @param degrees Angle in degrees
+     * @return Estimated time in seconds
+     */
+    public static double calculateTurnTime(double degrees) {
+        double power = MAX_POWER_GYRO;
+        
+        // Adjust power based on turn size
+        if (Math.abs(degrees) < 45) {
+            power = MAX_POWER_GYRO * 0.7;
+        } else if (Math.abs(degrees) > 150) {
+            power = MAX_POWER_GYRO * 0.9;
+        }
+        
+        double degreesPerSecond = DEGREES_PER_SECOND_AT_FULL_POWER * (power / MAX_POWER_GYRO);
+        return Math.abs(degrees) / degreesPerSecond;
     }
 }
