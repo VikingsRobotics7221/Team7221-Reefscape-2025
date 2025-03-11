@@ -1,34 +1,4 @@
-/*
- * ════════════════════════════════════════════════════════════════
- *  ____  _____ ____  _____  ___  ____  __  __    _    _   _  ____ _____ 
- * |  _ \| ____|  _ \|  ___|| _ \|  _ \|  \/  |  / \  | \ | |/ ___| ____|
- * | |_) |  _| | |_) | |_   |  _/| | | | |\/| | / _ \ |  \| | |   |  _|  
- * |  __/| |___|  _ <|  _|  | |_ | |_| | |  | |/ ___ \| |\  | |___| |___ 
- * |_|   |_____|_| \_\_|    |___/|____/|_|  |_/_/   \_\_| \_|\____|_____|
- *  ____    _    ____  _   _ ____   ___    _    ____  ____  
- * |  _ \  / \  / ___|| | | | __ ) / _ \  / \  |  _ \|  _ \ 
- * | | | |/ _ \ \___ \| |_| |  _ \| | | |/ _ \ | |_) | | | |
- * | |_| / ___ \ ___) |  _  | |_) | |_| / ___ \|  _ <| |_| |
- * |____/_/   \_\____/|_| |_|____/ \___/_/   \_\_| \_\____/ 
- * ════════════════════════════════════════════════════════════════
- * 
- * TEAM 7221 - THE VIKINGS - REEFSCAPE 2025
- * ULTIMATE PERFORMANCE TRACKING SYSTEM
- * 
- * This utility tracks execution times, CPU usage, loop frequency,
- * and other critical metrics to optimize our robot's code.
- * 
- * HOW TO USE:
- * - Call initialize(boolean verbose) at robot startup
- * - Call startTimer("name") at the beginning of a section
- * - Call stopTimer("name") at the end to record the duration
- * - Call startLoopTiming() at the beginning of robotPeriodic()
- * - Call endLoopTiming() at the end of robotPeriodic()
- * 
- * Coded by: Team 7221
- * Last updated: March 2025
- */
-
+// src/main/java/frc/robot/utils/PerformanceDashboard.java
 package frc.robot.utils;
 
 import edu.wpi.first.wpilibj.Timer;
@@ -40,19 +10,41 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * PerformanceDashboard - THE ULTIMATE PERFORMANCE TRACKER!
+ * ╔════════════════════════════════════════════════════════════════════════════╗
+ * ║ PERFORMANCE DASHBOARD - REAL-TIME EXECUTION OPTIMIZATION SYSTEM            ║
+ * ║════════════════════════════════════════════════════════════════════════════║
+ * ║ Measures, analyzes, and visualizes code execution performance metrics      ║
+ * ║ to identify bottlenecks and ensure optimal robot control responsiveness.   ║
+ * ╚════════════════════════════════════════════════════════════════════════════╝
  * 
- * This utility helps us optimize our code by monitoring execution times,
- * CPU usage, loop frequency, and other critical performance metrics.
+ * This comprehensive performance monitoring system provides critical visibility into:
  * 
- * This has LITERALLY saved us HOURS of debugging time by identifying
- * performance bottlenecks in our robot code.
+ *   1. EXECUTION TIMES - Tracks how long each code section takes to run
+ *   2. LOOP FREQUENCY - Monitors robot control loop execution rate
+ *   3. CPU UTILIZATION - Identifies processing bottlenecks
+ *   4. BATTERY EFFICIENCY - Correlates power consumption with code execution
+ * 
+ * HOW TO USE:
+ *   1. Call initialize() during robotInit()
+ *   2. Call startTimer("name") at the beginning of a section
+ *   3. Call stopTimer("name") at the end to record the duration
+ *   4. Call startLoopTiming() at the beginning of robotPeriodic()
+ *   5. Call endLoopTiming() at the end of robotPeriodic()
+ * 
+ * DASHBOARD INTEGRATION:
+ *   - Real-time metrics available on SmartDashboard
+ *   - Performance report accessible through getPerformanceReport()
  */
 public class PerformanceDashboard {
     
-    // ==== TIMING DATA STORAGE ====
+    // ===== PERFORMANCE THRESHOLDS =====
+    // Define locally to avoid dependency issues
+    private static final double LOOP_TIME_WARNING_THRESHOLD = 0.018; // 18ms loop time warning threshold
+    
+    // ===== TIMER DATA STORAGE =====
     private static Map<String, TimingData> timers = new HashMap<>();
     private static double loopStartTime = 0.0;
     private static int loopCounter = 0;
@@ -61,35 +53,50 @@ public class PerformanceDashboard {
     private static double avgLoopTime = 0.0;
     private static double batteryStartVoltage = 12.0;
     
-    // ==== DISPLAY CONFIGURATION ====
+    // ===== DISPLAY CONFIGURATION =====
     private static boolean verboseMode = false;
-    private static int updateCounter = 0;
+    private static AtomicInteger updateCounter = new AtomicInteger(0);
     private static long startTimeMillis = 0;
     
-    // ==== PERFORMANCE TRACKING ====
+    // ===== PERFORMANCE TRACKING =====
     private static int slowLoopCount = 0;
     private static List<String> slowestSections = new ArrayList<>();
     private static double[] loopTimeHistory = new double[50]; // Rolling history
     private static int historyIndex = 0;
+    private static boolean systemInitialized = false;
     
     /**
-     * Class to track timing metrics for each monitored section of code
+     * Data structure for tracking timing metrics for each monitored section of code
      */
     private static class TimingData {
-        String name;
-        double startTime;
-        double lastDuration;
-        double totalDuration = 0.0;
-        double minDuration = Double.MAX_VALUE;
-        double maxDuration = 0.0;
-        int callCount = 0;
+        String name;            // Section identifier
+        double startTime;       // When timing was started
+        double lastDuration;    // Most recent execution time
+        double totalDuration;   // Cumulative execution time
+        double minDuration;     // Fastest execution time
+        double maxDuration;     // Slowest execution time
+        int callCount;          // Number of times section was executed
+        long lastUpdateMs;      // System time of last update
         
+        /**
+         * Creates a new timing data object for a code section
+         * 
+         * @param name Identifier for this code section
+         */
         public TimingData(String name) {
             this.name = name;
+            this.startTime = 0;
+            this.lastDuration = 0;
+            this.totalDuration = 0;
+            this.minDuration = Double.MAX_VALUE;
+            this.maxDuration = 0;
+            this.callCount = 0;
+            this.lastUpdateMs = System.currentTimeMillis();
         }
         
         /**
          * Calculate average duration of this timed section
+         * 
          * @return Average time in seconds
          */
         public double getAverageDuration() {
@@ -105,27 +112,40 @@ public class PerformanceDashboard {
             maxDuration = 0.0;
             callCount = 0;
             lastDuration = 0.0;
+            lastUpdateMs = System.currentTimeMillis();
         }
     }
     
     /**
      * Initialize the performance dashboard
      * 
-     * @param verbose Whether to show detailed metrics
+     * @param verbose Whether to show detailed metrics (more dashboard entries)
      */
     public static void initialize(boolean verbose) {
+        // Set system configuration
         verboseMode = verbose;
         loopStartTime = Timer.getFPGATimestamp();
         batteryStartVoltage = RobotController.getBatteryVoltage();
         startTimeMillis = System.currentTimeMillis();
         
-        // Initialize history array
+        // Initialize tracking arrays
         for (int i = 0; i < loopTimeHistory.length; i++) {
             loopTimeHistory[i] = 0.0;
         }
         
+        // Reset counters
+        loopCounter = 0;
+        slowLoopCount = 0;
+        updateCounter.set(0);
+        historyIndex = 0;
+        
+        // Indicate system is ready for use
+        systemInitialized = true;
+        
+        // Dashboard indicator
         SmartDashboard.putBoolean("Performance_Tracking", true);
         
+        // Log initialization
         System.out.println("\n" +
             "╔════════════════════════════════════════════════════╗\n" +
             "║   PERFORMANCE DASHBOARD ACTIVATED                  ║\n" +
@@ -138,24 +158,34 @@ public class PerformanceDashboard {
      * Call this when switching modes (auto → teleop)
      */
     public static void reset() {
+        // Skip if not initialized
+        if (!systemInitialized) {
+            System.err.println("ERROR: PerformanceDashboard not initialized. Call initialize() first!");
+            return;
+        }
+        
+        // Reset loop metrics
         maxLoopTime = 0.0;
         avgLoopTime = 0.0;
         loopCounter = 0;
         slowLoopCount = 0;
         batteryStartVoltage = RobotController.getBatteryVoltage();
         
-        // Reset all timing data
+        // Reset timing data for all sections
         for (TimingData timer : timers.values()) {
             timer.reset();
         }
         
-        // Reset history array
+        // Clear history tracking
         for (int i = 0; i < loopTimeHistory.length; i++) {
             loopTimeHistory[i] = 0.0;
         }
         historyIndex = 0;
         
-        System.out.println(">> PERFORMANCE METRICS RESET");
+        // Reset slowest sections list
+        slowestSections.clear();
+        
+        System.out.println(">> PERFORMANCE METRICS RESET <<");
     }
     
     /**
@@ -164,10 +194,18 @@ public class PerformanceDashboard {
      * @param name Name of the code section to time
      */
     public static void startTimer(String name) {
+        // Skip if not initialized
+        if (!systemInitialized) {
+            System.err.println("ERROR: PerformanceDashboard not initialized. Call initialize() first!");
+            return;
+        }
+        
+        // Create new timer if needed
         if (!timers.containsKey(name)) {
             timers.put(name, new TimingData(name));
         }
         
+        // Start timing this section
         TimingData timer = timers.get(name);
         timer.startTime = Timer.getFPGATimestamp();
     }
@@ -179,11 +217,19 @@ public class PerformanceDashboard {
      * @return Duration in seconds
      */
     public static double stopTimer(String name) {
+        // Skip if not initialized
+        if (!systemInitialized) {
+            System.err.println("ERROR: PerformanceDashboard not initialized. Call initialize() first!");
+            return 0.0;
+        }
+        
+        // Validate timer exists
         if (!timers.containsKey(name)) {
             System.out.println("!! Timer not found: " + name + " !!");
             return 0.0;
         }
         
+        // Get timer and calculate duration
         TimingData timer = timers.get(name);
         double now = Timer.getFPGATimestamp();
         double duration = now - timer.startTime;
@@ -192,7 +238,9 @@ public class PerformanceDashboard {
         timer.lastDuration = duration;
         timer.totalDuration += duration;
         timer.callCount++;
+        timer.lastUpdateMs = System.currentTimeMillis();
         
+        // Update min/max values
         if (duration < timer.minDuration) {
             timer.minDuration = duration;
         }
@@ -201,8 +249,8 @@ public class PerformanceDashboard {
             timer.maxDuration = duration;
         }
         
-        // Check if this is taking too long (potential bottleneck)
-        if (duration > Constants.LOOP_TIME_WARNING) {
+        // Check if this section is taking too long (potential bottleneck)
+        if (duration > LOOP_TIME_WARNING_THRESHOLD) {
             if (!slowestSections.contains(name)) {
                 if (slowestSections.size() >= 5) {
                     slowestSections.remove(0); // Keep list manageable
@@ -212,8 +260,7 @@ public class PerformanceDashboard {
         }
         
         // Only update dashboard occasionally to reduce overhead
-        updateCounter++;
-        if (updateCounter % 10 == 0) {
+        if (updateCounter.incrementAndGet() % 10 == 0) {
             updateDashboard();
         }
         
@@ -222,15 +269,28 @@ public class PerformanceDashboard {
     
     /**
      * Start timing a new robot loop iteration
+     * Call at beginning of robotPeriodic()
      */
     public static void startLoopTiming() {
+        // Skip if not initialized
+        if (!systemInitialized) {
+            return;
+        }
+        
         loopStartTime = Timer.getFPGATimestamp();
     }
     
     /**
      * End loop timing and record metrics
+     * Call at end of robotPeriodic()
      */
     public static void endLoopTiming() {
+        // Skip if not initialized
+        if (!systemInitialized) {
+            return;
+        }
+        
+        // Calculate loop execution time
         double now = Timer.getFPGATimestamp();
         lastLoopTime = now - loopStartTime;
         loopCounter++;
@@ -252,13 +312,13 @@ public class PerformanceDashboard {
         }
         
         // Check for loop time issues
-        if (lastLoopTime > Constants.LOOP_TIME_WARNING) {
+        if (lastLoopTime > LOOP_TIME_WARNING_THRESHOLD) {
             slowLoopCount++;
             if (slowLoopCount % 5 == 0) { // Don't spam warnings
                 System.out.println("!! SLOW LOOP DETECTED: " + 
                                  String.format("%.2f", lastLoopTime * 1000) + 
                                  "ms (limit: " + 
-                                 String.format("%.2f", Constants.LOOP_TIME_WARNING * 1000) + "ms) !!");
+                                 String.format("%.2f", LOOP_TIME_WARNING_THRESHOLD * 1000) + "ms) !!");
             }
         }
     }
@@ -267,7 +327,7 @@ public class PerformanceDashboard {
      * Update the dashboard with current performance metrics
      */
     private static void updateDashboard() {
-        // Update basic metrics
+        // Update core metrics
         SmartDashboard.putNumber("Loop_Time_ms", lastLoopTime * 1000);
         SmartDashboard.putNumber("Max_Loop_Time_ms", maxLoopTime * 1000);
         SmartDashboard.putNumber("Avg_Loop_Time_ms", avgLoopTime * 1000);
@@ -335,6 +395,11 @@ public class PerformanceDashboard {
      * @return Formatted performance report
      */
     public static String getPerformanceReport() {
+        // Skip if not initialized
+        if (!systemInitialized) {
+            return "ERROR: PerformanceDashboard not initialized. Call initialize() first!";
+        }
+        
         StringBuilder report = new StringBuilder();
         report.append("╔═══════════════ PERFORMANCE REPORT ════════════════╗\n");
         report.append(String.format("║ Loop Time: %.2fms (avg), %.2fms (max)            ║\n", 
@@ -387,6 +452,11 @@ public class PerformanceDashboard {
      * @return Short timing summary string
      */
     public static String getTimingSummary() {
+        // Skip if not initialized
+        if (!systemInitialized) {
+            return "ERROR: PerformanceDashboard not initialized";
+        }
+        
         return String.format("Loop: %.2fms avg, %.2fms max, %.1f Hz, %d slow loops", 
                           avgLoopTime * 1000, 
                           maxLoopTime * 1000,
@@ -419,5 +489,51 @@ public class PerformanceDashboard {
      */
     public static double getAverageLoopTime() {
         return avgLoopTime;
+    }
+    
+    /**
+     * Check if any section has excessive execution time
+     * 
+     * @return true if any section exceeds warning threshold
+     */
+    public static boolean hasPerformanceIssue() {
+        // Skip if not initialized
+        if (!systemInitialized) {
+            return false;
+        }
+        
+        // Check loop time first
+        if (avgLoopTime > LOOP_TIME_WARNING_THRESHOLD) {
+            return true;
+        }
+        
+        // Check individual sections
+        for (TimingData timer : timers.values()) {
+            if (timer.maxDuration > LOOP_TIME_WARNING_THRESHOLD && timer.callCount > 5) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Start a timing profile for a specific subsystem processing cycle.
+     * Useful for tracking subsystem periodic() method performance.
+     * 
+     * @param subsystemName Name of the subsystem
+     */
+    public static void startSubsystemTiming(String subsystemName) {
+        startTimer("Subsystem_" + subsystemName);
+    }
+    
+    /**
+     * End timing profile for a subsystem processing cycle
+     * 
+     * @param subsystemName Name of the subsystem
+     * @return Duration in seconds
+     */
+    public static double endSubsystemTiming(String subsystemName) {
+        return stopTimer("Subsystem_" + subsystemName);
     }
 }
