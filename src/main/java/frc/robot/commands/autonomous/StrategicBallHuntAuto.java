@@ -5,6 +5,8 @@ import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.ParallelCommandGroup;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
+import edu.wpi.first.wpilibj.RobotController; // Added import to resolve error
+import edu.wpi.first.wpilibj2.command.RunCommand;
 
 import frc.robot.Robot;
 import frc.robot.Constants;
@@ -15,7 +17,10 @@ import frc.robot.commands.autonomous.basic_path_planning.Drivetrain_GyroTurn;
 import frc.robot.commands.autonomous.basic_path_planning.OptimizedTankDriveCommand;
 
 /**
- * StrategicBallHuntAuto - Advanced ball collection autonomous routine
+ * ┌───────────────────────────────────────────────────────────────┐
+ * │  STRATEGIC BALL HUNT AUTO - PRECISION ACQUISITION SEQUENCE    │
+ * │  Methodically eliminates game pieces from the field           │
+ * └───────────────────────────────────────────────────────────────┘
  * 
  * This routine combines precise movement, vision-based tracking, and efficient
  * ball handling to create a high-scoring autonomous sequence. It's designed to:
@@ -43,7 +48,7 @@ public class StrategicBallHuntAuto extends SequentialCommandGroup {
      */
     public StrategicBallHuntAuto() {
         addCommands(
-            // Phase 1: System initialization and diagnostics
+            // ========== PHASE 1: SYSTEM INITIALIZATION AND DIAGNOSTICS ==========
             new InstantCommand(() -> {
                 // Reset encoders for accurate distance tracking
                 Robot.m_driveSubsystem.resetEncoders();
@@ -72,7 +77,7 @@ public class StrategicBallHuntAuto extends SequentialCommandGroup {
                 Robot.m_ballArmSubsystem.homeArm();
             }),
             
-            // Phase 2: Navigate to strategic position
+            // ========== PHASE 2: NAVIGATE TO STRATEGIC POSITION ==========
             // Using optimal drive command for 16:1 ratio
             new OptimizedTankDriveCommand(1.8, 0.9, 3.0),
             
@@ -89,7 +94,7 @@ public class StrategicBallHuntAuto extends SequentialCommandGroup {
             // Brief pause to stabilize before vision tracking
             new WaitCommand(0.2),
             
-            // Phase 3: Hunt and collect first ball
+            // ========== PHASE 3: HUNT AND COLLECT FIRST BALL ==========
             // Short approach movement to get within vision range
             new Drivetrain_GyroStraight(0.5, 0.3),
             
@@ -105,7 +110,7 @@ public class StrategicBallHuntAuto extends SequentialCommandGroup {
             // Return arm to home position with ball
             new InstantCommand(() -> Robot.m_ballArmSubsystem.homeArm()),
             
-            // Phase 4: Navigate to scoring position
+            // ========== PHASE 4: NAVIGATE TO SCORING POSITION ==========
             // Back up slightly to clear obstructions
             new Drivetrain_GyroStraight(-0.3, 0.4),
             
@@ -122,7 +127,7 @@ public class StrategicBallHuntAuto extends SequentialCommandGroup {
             // Fast drive to scoring position
             new OptimizedTankDriveCommand(1.5, 0.85, 2.5),
             
-            // Phase 5: Score the collected ball
+            // ========== PHASE 5: SCORE THE COLLECTED BALL ==========
             // Switch to precision mode for accurate scoring
             new InstantCommand(() -> {
                 Robot.m_driveSubsystem.disableDriveModes();
@@ -136,7 +141,7 @@ public class StrategicBallHuntAuto extends SequentialCommandGroup {
             // Score the ball
             new ScoreSequence(Robot.m_ballArmSubsystem),
             
-            // Phase 6: Position for teleop
+            // ========== PHASE 6: POSITION FOR TELEOP ==========
             // Turn to face field center
             new Drivetrain_GyroTurn(180),
             
@@ -158,7 +163,7 @@ public class StrategicBallHuntAuto extends SequentialCommandGroup {
             // Final turn to optimal defensive position
             new Drivetrain_GyroTurn(45),
             
-            // Phase 7: Cleanup and teleop handoff
+            // ========== PHASE 7: CLEANUP AND TELEOP HANDOFF ==========
             new InstantCommand(() -> {
                 // Return arm to safe position
                 Robot.m_ballArmSubsystem.homeArm();
