@@ -3,111 +3,163 @@ package frc.robot.utils;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
-import com.revrobotics.spark.SparkMax;
 import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.Constants;
 
 /**
- * MotorSafetyMonitor - PROTECTOR OF THE PRECIOUS MOTORS!
+ * ╔═══════════════════════════════════════════════════════════════════╗
+ * ║ MOTOR SAFETY MONITOR - COMPREHENSIVE PROTECTION SYSTEM            ║
+ * ║═══════════════════════════════════════════════════════════════════║
+ * ║ Advanced monitoring system that protects motors from:             ║
+ * ║  • Thermal damage                                                 ║
+ * ║  • Current overloads                                              ║
+ * ║  • Stall conditions                                               ║
+ * ║  • Brown-out scenarios                                            ║
+ * ╚═══════════════════════════════════════════════════════════════════╝
  * 
- * This utility class monitors all NEO motors for dangerous conditions:
- * - Excessive current draw (stalls, jams)
- * - Overheating (prolonged high output)
- * - Brownouts (battery voltage drops)
- * - Stall detection (motor not moving despite power)
+ * This utility provides a robust monitoring framework that detects and prevents
+ * conditions that could damage motors or impair robot performance. The system
+ * operates independently from specific motor controller implementations to
+ * ensure flexibility and reliability across various hardware configurations.
  * 
- * IT LITERALLY SAVES OUR ROBOT FROM DESTROYING ITSELF!!!
+ * IMPLEMENTATION ARCHITECTURE:
+ * - Hardware-agnostic design for multi-platform support
+ * - Event-based alert system with tiered severity levels
+ * - Real-time dashboard integration for instant operator feedback
+ * - Proactive detection of fault conditions before damage occurs
  * 
- * coded by paysean - March 2025
+ * FAULT DETECTION CAPABILITIES:
+ * - Current detection: Identifies when motors draw excessive current
+ * - Temperature monitoring: Prevents thermal damage to motor windings
+ * - Stall detection: Recognizes when motors are powered but not moving
+ * - Voltage monitoring: Identifies brownout conditions that affect performance
  */
 public class MotorSafetyMonitor {
     
-    // ===== TRACKING DATA =====
-    private static Map<Integer, MotorData> motorMap = new HashMap<>();
+    // ========== SYSTEM CONSTANTS ==========
+    // Alert thresholds for various monitored parameters
+    private static final double CURRENT_WARNING = 30.0;  // Amps
+    private static final double CURRENT_CRITICAL = 40.0; // Amps
+    private static final double TEMP_WARNING = 70.0;     // Celsius
+    private static final double TEMP_CRITICAL = 85.0;    // Celsius
+    private static final double STALL_TIME_THRESHOLD = 1.0; // Seconds
+    
+    // ========== SYSTEM STATE TRACKING ==========
+    private static Map<String, MotorData> motorRegistry = new HashMap<>();
     private static double batteryVoltage = 12.0;
     private static int warningCount = 0;
     private static int criticalCount = 0;
     private static Timer monitorTimer = new Timer();
-    
-    // ===== SAFETY THRESHOLDS =====
-    private static final double CURRENT_WARNING = 30.0; // Amps
-    private static final double CURRENT_CRITICAL = 40.0; // Amps
-    private static final double TEMP_WARNING = 70.0; // Celsius
-    private static final double TEMP_CRITICAL = 85.0; // Celsius
-    
-    // Stall detection parameters
-    private static final double MIN_POWER_THRESHOLD = 0.3; // Minimum power to check for stalls
-    private static final double MIN_VELOCITY_THRESHOLD = 0.1; // Minimum expected velocity
-    private static final double STALL_TIME_THRESHOLD = 1.0; // Seconds before considering stalled
-    
+    private static boolean systemInitialized = false;
+
     /**
-     * Data structure to track each motor's status
+     * Comprehensive data structure for tracking motor health metrics
      */
     private static class MotorData {
-        int id;
-        String name;
-        double maxCurrent = 0.0;
-        double maxTemp = 0.0;
-        double lastVelocity = 0.0;
-        double lastPower = 0.0;
-        double stallTime = 0.0;
-        boolean isStalled = false;
-        boolean isWarning = false;
-        boolean isCritical = false;
+        // Motor identification
+        String name;          // Descriptive identifier for this motor
         
-        public MotorData(int id, String name) {
-            this.id = id;
+        // Operational metrics
+        double maxCurrent;    // Highest current observed
+        double maxTemp;       // Highest temperature observed 
+        double stallTime;     // Duration of potential stall condition
+        
+        // Status flags
+        boolean isStalled;    // Whether motor is currently stalled
+        boolean isWarning;    // Whether motor is in warning state
+        boolean isCritical;   // Whether motor is in critical state
+        
+        // Tracking metrics
+        int faultCount;       // Number of fault conditions detected
+        long lastUpdateTime;  // Timestamp of last update
+        
+        /**
+         * Creates a comprehensive motor tracking object
+         * 
+         * @param name Descriptive name for logging and display
+         */
+        public MotorData(String name) {
             this.name = name;
+            this.maxCurrent = 0.0;
+            this.maxTemp = 0.0;
+            this.stallTime = 0.0;
+            this.isStalled = false;
+            this.isWarning = false;
+            this.isCritical = false;
+            this.faultCount = 0;
+            this.lastUpdateTime = System.currentTimeMillis();
         }
     }
     
     /**
-     * Initialize the safety monitor system
+     * Initialize the motor safety monitoring system.
+     * This must be called once during robot initialization.
      */
     public static void initialize() {
+        // System preparation
+        motorRegistry.clear();
+        monitorTimer.reset();
         monitorTimer.start();
-        System.out.println(">> MOTOR SAFETY MONITOR ACTIVATED!");
-        System.out.println(">> PROTECTING THOSE PRECIOUS NEOs FROM DESTRUCTION!");
+        systemInitialized = true;
+        warningCount = 0;
+        criticalCount = 0;
+        
+        // System initialization notification
+        System.out.println("╔═════════════════════════════════════════════════╗");
+        System.out.println("║  MOTOR SAFETY MONITOR INITIALIZED               ║");
+        System.out.println("║  Protecting your robot from electrical damage   ║");
+        System.out.println("╚═════════════════════════════════════════════════╝");
     }
     
     /**
-     * Register a motor for monitoring
+     * Register a motor for monitoring by name.
      * 
-     * @param motor The SparkMax controller to monitor
-     * @param name Descriptive name for this motor
+     * @param motorName Unique identifier for this motor
      */
-    public static void registerMotor(SparkMax motor, String name) {
-        int id = motor.getDeviceId();
-        if (!motorMap.containsKey(id)) {
-            motorMap.put(id, new MotorData(id, name));
-            System.out.println(">> MOTOR REGISTERED FOR PROTECTION: " + name + " (ID: " + id + ")");
+    public static void registerMotor(String motorName) {
+        if (!systemInitialized) {
+            System.err.println("ERROR: MotorSafetyMonitor not initialized! Call initialize() first.");
+            return;
+        }
+        
+        if (!motorRegistry.containsKey(motorName)) {
+            motorRegistry.put(motorName, new MotorData(motorName));
+            System.out.println(">> Motor registered for monitoring: " + motorName);
         }
     }
     
     /**
-     * Update monitoring for a specific motor
+     * Update the safety status of a specific motor with current metrics.
      * 
-     * @param motor The motor to update
-     * @return true if the motor is safe to operate
+     * @param motorName The name of the motor to update
+     * @param current Current draw in amps
+     * @param temperature Motor temperature in Celsius
+     * @param isMoving Whether the motor is currently in motion
+     * @param appliedPower Power level being applied (-1.0 to 1.0)
+     * @return true if the motor is safe to operate, false if critical condition detected
      */
-    public static boolean updateMotor(SparkMax motor) {
-        int id = motor.getDeviceId();
-        if (!motorMap.containsKey(id)) {
-            // Auto-register if not found
-            registerMotor(motor, "Motor-" + id);
+    public static boolean updateMotorStatus(String motorName, double current, double temperature, 
+                                           boolean isMoving, double appliedPower) {
+        // Validate system state
+        if (!systemInitialized) {
+            System.err.println("ERROR: MotorSafetyMonitor not initialized! Call initialize() first.");
+            return false;
         }
         
-        MotorData data = motorMap.get(id);
+        // Auto-register if this is a new motor
+        if (!motorRegistry.containsKey(motorName)) {
+            registerMotor(motorName);
+        }
         
-        // Get current status
-        double current = motor.getOutputCurrent();
-        double temperature = motor.getMotorTemperature();
-        double velocity = Math.abs(motor.getEncoder().getVelocity());
-        double power = Math.abs(motor.getAppliedOutput());
+        MotorData data = motorRegistry.get(motorName);
+        data.lastUpdateTime = System.currentTimeMillis();
         
-        // Update max values
+        // Update peak values for tracking
         if (current > data.maxCurrent) {
             data.maxCurrent = current;
         }
@@ -116,12 +168,13 @@ public class MotorSafetyMonitor {
         }
         
         // Check for stall condition - motor has power but isn't moving
-        if (power > MIN_POWER_THRESHOLD && velocity < MIN_VELOCITY_THRESHOLD) {
+        if (Math.abs(appliedPower) > 0.2 && !isMoving) {
             data.stallTime += 0.02; // Assuming 50Hz update rate
             
             if (data.stallTime > STALL_TIME_THRESHOLD && !data.isStalled) {
                 data.isStalled = true;
-                System.out.println("!! STALL DETECTED: " + data.name + " - MOTOR NOT MOVING DESPITE POWER !!");
+                data.faultCount++;
+                System.out.println("!! STALL DETECTED: " + data.name + " - MOTOR NOT MOVING !!");
                 SmartDashboard.putBoolean("Stall_" + data.name, true);
             }
         } else {
@@ -130,84 +183,124 @@ public class MotorSafetyMonitor {
             SmartDashboard.putBoolean("Stall_" + data.name, false);
         }
         
-        // Check for dangerous current conditions
-        boolean wasCritical = data.isCritical;
+        // Check for warning/critical conditions
         boolean wasWarning = data.isWarning;
+        boolean wasCritical = data.isCritical;
         
-        // Update warning/critical flags
+        // Update status flags based on current measurements
         data.isWarning = current > CURRENT_WARNING || temperature > TEMP_WARNING;
         data.isCritical = current > CURRENT_CRITICAL || temperature > TEMP_CRITICAL || data.isStalled;
         
-        // Log state changes
+        // Log state transitions for operator awareness
         if (!wasWarning && data.isWarning) {
             warningCount++;
-            System.out.println("!! WARNING: " + data.name + " - Current: " + current + 
-                              "A, Temp: " + temperature + "°C !!");
+            System.out.println("!! WARNING: " + data.name + " - Current: " + 
+                              String.format("%.1f", current) + "A, Temp: " + 
+                              String.format("%.1f", temperature) + "°C");
         }
         
         if (!wasCritical && data.isCritical) {
             criticalCount++;
+            data.faultCount++;
             System.out.println("!!! CRITICAL: " + data.name + " - SAFETY LIMITS EXCEEDED !!!");
-            System.out.println("!!! Current: " + current + "A, Temp: " + temperature + "°C !!!");
+            System.out.println("!!! Current: " + String.format("%.1f", current) + 
+                             "A, Temp: " + String.format("%.1f", temperature) + "°C");
         }
         
-        // Update dashboard data
+        // Update dashboard with current status
         updateDashboard(data);
         
-        // Store last values for next comparison
-        data.lastVelocity = velocity;
-        data.lastPower = power;
-        
-        // Return motor safety status
+        // Return operational safety status
         return !data.isCritical;
     }
     
     /**
-     * Update all registered motors
+     * Perform a complete system update, checking all monitored parameters
+     * including battery voltage. This should be called periodically in robotPeriodic().
      * 
-     * @return true if all motors are safe
+     * @return true if all systems are within safe operating parameters
      */
-    public static boolean updateAll() {
-        updateBatteryVoltage();
-        boolean allSafe = true;
-        
-        // Only log periodic updates to avoid spamming
-        boolean shouldLog = monitorTimer.hasElapsed(5.0);
-        if (shouldLog) {
-            monitorTimer.reset();
+    public static boolean update() {
+        // Validate system state
+        if (!systemInitialized) {
+            System.err.println("ERROR: MotorSafetyMonitor not initialized! Call initialize() first.");
+            return false;
         }
         
-        if (shouldLog) {
-            System.out.println(">> MOTOR SAFETY STATUS:");
-            System.out.println(">> Battery: " + batteryVoltage + "V, Warnings: " + 
-                              warningCount + ", Critical: " + criticalCount);
+        // Monitor battery voltage
+        updateBatteryVoltage();
+        
+        // Periodic system status reporting
+        if (monitorTimer.hasElapsed(5.0)) {
+            monitorTimer.reset();
+            
+            // Only log if we have registered motors
+            if (!motorRegistry.isEmpty()) {
+                System.out.println(">> MOTOR SAFETY STATUS:");
+                System.out.println(">> Battery: " + String.format("%.2f", batteryVoltage) + "V, Warnings: " + 
+                                warningCount + ", Critical: " + criticalCount);
+                
+                // Report on stale data (motors not recently updated)
+                checkForStaleData();
+            }
+        }
+        
+        // Check for any critical conditions
+        boolean allSafe = true;
+        for (MotorData data : motorRegistry.values()) {
+            if (data.isCritical) {
+                allSafe = false;
+                break;
+            }
         }
         
         return allSafe;
     }
     
     /**
-     * Update battery voltage monitoring
+     * Check for motors that haven't been updated recently
      */
-    private static void updateBatteryVoltage() {
-        // Get latest voltage from Robot Controller
-        batteryVoltage = RobotController.getBatteryVoltage();
+    private static void checkForStaleData() {
+        long currentTime = System.currentTimeMillis();
+        List<String> staleMotors = new ArrayList<>();
         
-        // Check for brownout conditions
-        if (batteryVoltage < Constants.BATTERY_WARNING_THRESHOLD) {
-            System.out.println("!! LOW BATTERY WARNING: " + batteryVoltage + "V !!");
+        for (Map.Entry<String, MotorData> entry : motorRegistry.entrySet()) {
+            MotorData data = entry.getValue();
+            // Check if data is older than 1 second
+            if (currentTime - data.lastUpdateTime > 1000) {
+                staleMotors.add(data.name);
+            }
         }
         
-        if (batteryVoltage < Constants.BATTERY_BROWNOUT_THRESHOLD) {
-            System.out.println("!!! CRITICAL BATTERY LEVEL: " + batteryVoltage + "V !!!");
-            System.out.println("!!! BROWNOUT IMMINENT - REDUCE POWER USAGE !!!");
+        if (!staleMotors.isEmpty()) {
+            System.out.println(">> WARNING: Stale data for motors: " + String.join(", ", staleMotors));
         }
-        
-        SmartDashboard.putNumber("Battery Voltage", batteryVoltage);
     }
     
     /**
-     * Update dashboard with motor status
+     * Update battery voltage and check for brownout conditions
+     */
+    private static void updateBatteryVoltage() {
+        // Get latest battery voltage from robot controller
+        batteryVoltage = RobotController.getBatteryVoltage();
+        
+        // Check for warning conditions
+        if (batteryVoltage < Constants.Performance.BATTERY_WARNING_THRESHOLD) {
+            System.out.println("!! LOW BATTERY WARNING: " + String.format("%.2f", batteryVoltage) + "V !!");
+        }
+        
+        // Check for critical brownout conditions
+        if (batteryVoltage < Constants.Performance.BATTERY_BROWNOUT_THRESHOLD) {
+            System.out.println("!!! CRITICAL BATTERY LEVEL: " + String.format("%.2f", batteryVoltage) + "V !!!");
+            System.out.println("!!! BROWNOUT IMMINENT - REDUCE POWER USAGE !!!");
+        }
+        
+        // Update dashboard
+        SmartDashboard.putNumber("Battery_Voltage", batteryVoltage);
+    }
+    
+    /**
+     * Update SmartDashboard with current motor status
      * 
      * @param data Motor data to display
      */
@@ -216,37 +309,54 @@ public class MotorSafetyMonitor {
         SmartDashboard.putNumber(data.name + "_Temp", data.maxTemp);
         SmartDashboard.putBoolean(data.name + "_Warning", data.isWarning);
         SmartDashboard.putBoolean(data.name + "_Critical", data.isCritical);
+        SmartDashboard.putNumber(data.name + "_FaultCount", data.faultCount);
     }
     
     /**
-     * Get the status of a motor
+     * Get the safety status of a motor
      * 
-     * @param motorId ID of the motor to check
-     * @return 0=OK, 1=WARNING, 2=CRITICAL
+     * @param motorName Name of the motor to check
+     * @return Status code: 0=OK, 1=WARNING, 2=CRITICAL
      */
-    public static int getMotorStatus(int motorId) {
-        if (!motorMap.containsKey(motorId)) {
-            return Constants.STATUS_OK;
+    public static int getMotorStatus(String motorName) {
+        // Validate system state
+        if (!systemInitialized) {
+            return Constants.Performance.STATUS_WARNING; // Return warning if system not initialized
         }
         
-        MotorData data = motorMap.get(motorId);
+        // Check if motor is registered
+        if (!motorRegistry.containsKey(motorName)) {
+            return Constants.Performance.STATUS_OK; // Unknown motors assumed OK
+        }
+        
+        // Return appropriate status based on conditions
+        MotorData data = motorRegistry.get(motorName);
         if (data.isCritical) {
-            return Constants.STATUS_CRITICAL;
+            return Constants.Performance.STATUS_CRITICAL;
         } else if (data.isWarning) {
-            return Constants.STATUS_WARNING;
+            return Constants.Performance.STATUS_WARNING;
         } else {
-            return Constants.STATUS_OK;
+            return Constants.Performance.STATUS_OK;
         }
     }
     
     /**
-     * Reset all warning counters and tracking data
+     * Reset all monitoring counters and tracking data.
+     * Call this when transitioning between robot modes.
      */
     public static void resetCounters() {
+        // Validate system state
+        if (!systemInitialized) {
+            System.err.println("ERROR: MotorSafetyMonitor not initialized! Call initialize() first.");
+            return;
+        }
+        
+        // Reset global counters
         warningCount = 0;
         criticalCount = 0;
         
-        for (MotorData data : motorMap.values()) {
+        // Reset data for each motor
+        for (MotorData data : motorRegistry.values()) {
             data.maxCurrent = 0.0;
             data.maxTemp = 0.0;
             data.isWarning = false;
@@ -255,6 +365,14 @@ public class MotorSafetyMonitor {
             data.isStalled = false;
         }
         
-        System.out.println(">> MOTOR SAFETY COUNTERS RESET!");
+        System.out.println(">> MOTOR SAFETY MONITORING RESET - ALL COUNTERS CLEARED");
+    }
+    
+    /**
+     * Simplified method for checking motor safety system.
+     * Call this from subsystem periodic methods for continuous monitoring.
+     */
+    public static void check() {
+        update();
     }
 }
