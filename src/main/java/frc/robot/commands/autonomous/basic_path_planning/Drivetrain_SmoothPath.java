@@ -2,165 +2,159 @@
 package frc.robot.commands.autonomous.basic_path_planning;
 
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.math.controller.PIDController;
-import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Translation2d;
-import edu.wpi.first.math.trajectory.Trajectory;
-import edu.wpi.first.math.trajectory.TrajectoryConfig;
-import edu.wpi.first.math.trajectory.TrajectoryGenerator;
-import edu.wpi.first.math.controller.RamseteController;
-import edu.wpi.first.math.trajectory.constraint.CentripetalAccelerationConstraint;
+import edu.wpi.first.wpilibj.Timer;
 import frc.robot.Constants;
 import frc.robot.Robot;
 import frc.robot.subsystems.DriveSubsystem;
-import edu.wpi.first.wpilibj.Timer;
-
-import java.util.List;
-import java.util.ArrayList;
 
 /**
- * Drivetrain_SmoothPath - Advanced Path Following with Tank Drive
+ * ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║ DRIVETRAIN SMOOTH PATH - SIMPLIFIED TRAJECTORY FOLLOWING                ║
+ * ║══════════════════════════════════════════════════════════════════════════║
+ * ║ Time-based smooth motion control for tank drive systems.                ║
+ * ║ This implementation provides basic trajectory functionality without      ║
+ * ║ requiring advanced odometry features or encoder feedback.               ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝
  * 
- * This command generates and follows smooth paths optimized for tank drive systems.
- * It creates curved trajectories between waypoints with proper acceleration and
- * deceleration profiles for reliable autonomous movement.
+ * This command provides a simplified version of path following for basic
+ * tank drive systems without encoders or odometry. It uses time-based estimation
+ * for position tracking and smooth motion profiles to create fluid movements.
  * 
- * SYSTEM INTEGRATION:
- * - Uses DriveSubsystem from Robot.java for motor control
- * - References Constants.java for robot-specific parameters
- * - Utilizes WPILib trajectory classes for path generation
- * - Provides detailed feedback during operation
+ * NOTE: For full trajectory-based path following with odometry and kinematics,
+ * the DriveSubsystem would need to be enhanced with:
+ *   - Encoders for position tracking
+ *   - DifferentialDriveKinematics for wheel speed calculations
+ *   - DifferentialDriveOdometry for position estimation
+ *   - IMU/Gyro for heading measurement
  * 
- * KEY FEATURES:
- * - Creates curved paths between waypoints
- * - Dynamically adjusts speed based on path curvature
- * - Uses encoder feedback for closed-loop position tracking
- * - Manages smooth acceleration/deceleration automatically
+ * This implementation provides a foundation that can be expanded when those
+ * features are added to the drivetrain.
  */
 public class Drivetrain_SmoothPath extends Command {
     
-    // The drivetrain subsystem that will execute the path
+    // ===== DRIVETRAIN REFERENCE =====
     private final DriveSubsystem m_drive;
     
-    // Path generation and following components
-    private final Trajectory m_trajectory;
-    private final RamseteController m_ramseteController = new RamseteController();
-    private final PIDController m_leftController = new PIDController(Constants.kP_DRIVE_VEL, 0, 0);
-    private final PIDController m_rightController = new PIDController(Constants.kP_DRIVE_VEL, 0, 0);
+    // ===== LOCAL CONSTANTS =====
+    // These would normally be in Constants.java but are defined here for now
+    private static final double kP_DRIVE_VEL = 0.1;        // Proportional gain for velocity control
+    private static final double MAX_TURN_RATE_RAD_PER_SEC = 3.0;  // Max turning rate (radians/sec)
     
-    // Timing and tracking variables
+    // ===== PATH CONFIGURATION =====
+    private final double m_distance;        // Distance to travel (meters)
+    private final double m_endHeading;      // Final heading (degrees)
+    private final double m_maxVelocity;     // Maximum velocity (m/s)
+    private final double m_timeoutSeconds;  // Maximum execution time
+    private final boolean m_isReversed;     // Whether to drive backwards
+    
+    // ===== MOTION PROFILE PARAMETERS =====
+    private static final double ACCELERATION_TIME = 1.0;   // Time to accelerate to max speed
+    private static final double DECELERATION_DISTANCE = 0.5; // Distance before end to start slowing
+    private static final double TURN_CORRECTION_FACTOR = 0.05; // Turning correction strength
+    
+    // ===== EXECUTION STATE TRACKING =====
     private final Timer m_timer = new Timer();
-    private final double m_timeoutSeconds;
     private boolean m_isFinished = false;
+    private double m_currentHeading = 0.0;
+    private double m_estimatedDistance = 0.0;
     private double m_previousTime = 0;
-    private double m_maxPathError = 0;
     
     /**
-     * Creates a path-following command between multiple waypoints.
+     * Creates a new path following command for basic tank drives.
      * 
-     * @param startPose Starting position and heading
-     * @param waypoints List of points to pass through
-     * @param endPose Ending position and heading
-     * @param maxVelocity Maximum velocity in m/s
-     * @param maxAcceleration Maximum acceleration in m/s²
-     * @param timeoutSeconds Maximum time to follow path
-     * @param reversed Whether to drive backwards along the path
-     */
-    public Drivetrain_SmoothPath(
-            Pose2d startPose,
-            List<Translation2d> waypoints,
-            Pose2d endPose,
-            double maxVelocity,
-            double maxAcceleration,
-            double timeoutSeconds,
-            boolean reversed) {
-        
-        m_drive = Robot.m_driveSubsystem;
-        m_timeoutSeconds = timeoutSeconds;
-        
-        // Register that this command requires the drivetrain
-        addRequirements(m_drive);
-        
-        // Configure trajectory constraints based on robot capabilities
-        TrajectoryConfig config = new TrajectoryConfig(maxVelocity, maxAcceleration)
-            .setKinematics(m_drive.getKinematics())
-            .setReversed(reversed)
-            .addConstraint(new CentripetalAccelerationConstraint(Constants.MAX_TURN_RATE_RAD_PER_SEC));
-        
-        // Generate the trajectory using WPILib trajectory generator
-        m_trajectory = TrajectoryGenerator.generateTrajectory(
-            startPose,
-            waypoints,
-            endPose,
-            config
-        );
-        
-        // Log path creation for debugging
-        System.out.println("SmoothPath created with " + waypoints.size() + 
-                           " waypoints, " + m_trajectory.getTotalTimeSeconds() + " seconds duration");
-    }
-    
-    /**
-     * Simplified constructor for common path following scenarios.
-     * 
-     * @param waypoints Array of x,y coordinates [x1,y1,x2,y2,...]
+     * @param distance Distance to travel in meters
      * @param endHeading Final heading in degrees
      * @param maxVelocity Maximum velocity in m/s
      * @param timeoutSeconds Maximum execution time
+     * @param reversed Whether to drive backwards
      */
-    public Drivetrain_SmoothPath(double[] waypoints, double endHeading, double maxVelocity, double timeoutSeconds) {
-        this(
-            new Pose2d(0, 0, new Rotation2d(0)),  // Start at current position
-            waypointsArrayToList(waypoints),      // Convert array to Translation2d List
-            new Pose2d(
-                waypoints[waypoints.length-2],    // Last x coordinate
-                waypoints[waypoints.length-1],    // Last y coordinate
-                Rotation2d.fromDegrees(endHeading) // Final orientation
-            ),
-            maxVelocity,
-            maxVelocity * 0.75,  // Limit acceleration to 75% of max velocity
-            timeoutSeconds,
-            false  // Forward by default
-        );
+    public Drivetrain_SmoothPath(double distance, double endHeading, 
+                                double maxVelocity, double timeoutSeconds, 
+                                boolean reversed) {
+        m_drive = Robot.m_driveSubsystem;
+        m_distance = distance;
+        m_endHeading = endHeading;
+        m_maxVelocity = maxVelocity;
+        m_timeoutSeconds = timeoutSeconds;
+        m_isReversed = reversed;
+        
+        // Register this command's requirement on the drivetrain
+        addRequirements(m_drive);
+        
+        System.out.println("SmoothPath created: " + distance + "m @ " + 
+                         maxVelocity + "m/s, final heading: " + endHeading + "°" +
+                         (reversed ? " (reversed)" : ""));
     }
     
     /**
-     * Helper method to convert array of coordinates to List of Translation2d.
-     * This allows for simpler parameter passing when creating paths.
+     * Simplified constructor with default values
+     * 
+     * @param distance Distance to travel in meters
+     * @param endHeading Final heading in degrees
+     * @param maxVelocity Maximum velocity in m/s
      */
-    private static List<Translation2d> waypointsArrayToList(double[] waypoints) {
-        List<Translation2d> waypointsList = new ArrayList<>();
-        
-        // Convert coordinate pairs to Translation2d objects
-        // Skip first and last points (they're specified in start/end poses)
-        for (int i = 0; i < waypoints.length - 3; i += 2) {
-            waypointsList.add(new Translation2d(waypoints[i], waypoints[i+1]));
-        }
-        
-        return waypointsList;
+    public Drivetrain_SmoothPath(double distance, double endHeading, double maxVelocity) {
+        this(distance, endHeading, maxVelocity, 15.0, false);
+    }
+    
+    /**
+     * Simplest constructor - just distance and velocity
+     * 
+     * @param distance Distance to travel in meters
+     * @param maxVelocity Maximum velocity in m/s
+     */
+    public Drivetrain_SmoothPath(double distance, double maxVelocity) {
+        this(distance, 0.0, maxVelocity, 15.0, false);
     }
 
     @Override
     public void initialize() {
-        // Reset the timer and tracking variables
+        // Start the timer and reset tracking variables
         m_timer.reset();
         m_timer.start();
         m_previousTime = 0;
-        m_maxPathError = 0;
+        m_estimatedDistance = 0;
+        m_currentHeading = 0;
+        m_isFinished = false;
         
+        System.out.println("Starting path: " + m_distance + 
+                         "m @ " + m_maxVelocity + "m/s");
+        
+        // Advanced odometry reset (commented out - for future implementation)
+        /*
         // Reset odometry to match the starting pose of the trajectory
-        m_drive.resetOdometry(m_trajectory.getInitialPose());
-        
-        System.out.println("Starting path following from " + m_trajectory.getInitialPose() + 
-                           " to " + m_trajectory.sample(m_trajectory.getTotalTimeSeconds()).poseMeters);
+        m_drive.resetOdometry(new Pose2d(0, 0, new Rotation2d(0)));
+        */
     }
 
     @Override
     public void execute() {
-        // Get the current elapsed time
+        // Get current elapsed time
         double currentTime = m_timer.get();
+        double deltaTime = currentTime - m_previousTime;
+        m_previousTime = currentTime;
         
+        // Calculate desired velocity based on motion profile
+        double targetVelocity = calculateTargetVelocity(currentTime);
+        
+        // Apply direction
+        if (m_isReversed) {
+            targetVelocity = -targetVelocity;
+        }
+        
+        // Calculate turn correction to gradually adjust heading
+        double headingError = m_endHeading - m_currentHeading;
+        double turnCorrection = headingError * TURN_CORRECTION_FACTOR;
+        
+        // Limit turn rate
+        turnCorrection = Math.max(-0.3, Math.min(0.3, turnCorrection));
+        
+        // Update estimated state
+        m_estimatedDistance += Math.abs(targetVelocity) * deltaTime;
+        m_currentHeading += turnCorrection * 10 * deltaTime; // Simplified heading estimation
+        
+        // Advanced trajectory following (commented out - for future implementation)
+        /*
         // Get the desired robot state at the current time
         Trajectory.State desiredState = m_trajectory.sample(currentTime);
         
@@ -169,39 +163,65 @@ public class Drivetrain_SmoothPath extends Command {
             m_ramseteController.calculate(m_drive.getPose(), desiredState)
         );
         
-        // Get current pose for error calculation
-        Pose2d currentPose = m_drive.getPose();
-        Pose2d desiredPose = desiredState.poseMeters;
-        
-        // Calculate path error (distance from desired position)
-        double pathError = currentPose.getTranslation().getDistance(desiredPose.getTranslation());
-        if (pathError > m_maxPathError) {
-            m_maxPathError = pathError;
-        }
-        
         // Apply the calculated wheel speeds to the drivetrain
         m_drive.setWheelSpeeds(targetWheelSpeeds);
+        */
         
-        // Periodically log progress (not every cycle to reduce console spam)
+        // Apply simplified arcade drive control
+        m_drive.arcadeDrive(targetVelocity, turnCorrection);
+        
+        // Log progress periodically
         if (currentTime - m_previousTime > 0.5) {
-            System.out.printf("Path: t=%.1fs, error=%.2fm, pos=(%.2f,%.2f), heading=%.1f°\n",
+            System.out.printf("Path: t=%.1fs, dist=%.2fm, heading=%.1f°, progress=%.1f%%\n",
                             currentTime,
-                            pathError,
-                            currentPose.getX(),
-                            currentPose.getY(),
-                            currentPose.getRotation().getDegrees());
-            m_previousTime = currentTime;
+                            m_estimatedDistance,
+                            m_currentHeading,
+                            (m_estimatedDistance / m_distance) * 100);
         }
         
-        // Check if we've reached the end of the trajectory
-        if (currentTime >= m_trajectory.getTotalTimeSeconds()) {
+        // Check if we've reached the end of the path
+        if (m_estimatedDistance >= m_distance) {
             m_isFinished = true;
         }
     }
 
+    /**
+     * Calculates the target velocity based on trapezoidal motion profile
+     * 
+     * @param time Current time in seconds
+     * @return Target velocity in m/s
+     */
+    private double calculateTargetVelocity(double time) {
+        double velocity;
+        
+        // Acceleration phase
+        if (time < ACCELERATION_TIME) {
+            // Linear ramp up to max velocity
+            velocity = (time / ACCELERATION_TIME) * m_maxVelocity;
+        }
+        // Deceleration phase - if we're approaching the end
+        else if (m_estimatedDistance > (m_distance - DECELERATION_DISTANCE)) {
+            // Calculate how far we are into the deceleration zone (0 to 1)
+            double decelProgress = (m_estimatedDistance - (m_distance - DECELERATION_DISTANCE)) 
+                                / DECELERATION_DISTANCE;
+            
+            // Linear ramp down
+            velocity = m_maxVelocity * (1.0 - decelProgress);
+            
+            // Ensure minimum velocity
+            velocity = Math.max(0.2, velocity);
+        }
+        // Cruise phase - maintain max velocity
+        else {
+            velocity = m_maxVelocity;
+        }
+        
+        return velocity;
+    }
+
     @Override
     public boolean isFinished() {
-        // Command is finished when we reach the end of the trajectory or timeout
+        // Command is finished when we reach the end of the path or timeout
         return m_isFinished || m_timer.hasElapsed(m_timeoutSeconds);
     }
 
@@ -218,8 +238,43 @@ public class Drivetrain_SmoothPath extends Command {
             System.out.println("Path following interrupted after " + m_timer.get() + " seconds");
         } else {
             System.out.println("Path following completed in " + m_timer.get() + " seconds");
-            System.out.println("Maximum path error: " + m_maxPathError + " meters");
-            System.out.println("Final position: " + m_drive.getPose());
+            System.out.println("Estimated distance traveled: " + m_estimatedDistance + " meters");
+            System.out.println("Final heading: " + m_currentHeading + " degrees");
         }
     }
+    
+    /**
+     * Gets the estimated distance traveled along the path
+     * 
+     * @return Estimated distance in meters
+     */
+    public double getEstimatedDistance() {
+        return m_estimatedDistance;
+    }
+    
+    /**
+     * Gets the estimated current heading
+     * 
+     * @return Estimated heading in degrees
+     */
+    public double getEstimatedHeading() {
+        return m_currentHeading;
+    }
+    
+    // The following methods would be implemented with a more advanced drivetrain
+    // that supports odometry, kinematics, and pose estimation.
+    
+    /*
+    private Pose2d getCurrentPose() {
+        return m_drive.getPose();
+    }
+    
+    private double getPathCompletionPercentage() {
+        if (m_trajectory != null) {
+            double currentTime = m_timer.get();
+            return Math.min(100.0, (currentTime / m_trajectory.getTotalTimeSeconds()) * 100.0);
+        }
+        return 0.0;
+    }
+    */
 }
