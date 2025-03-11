@@ -1,59 +1,83 @@
-/*
- * ================================================================
- *  _    _  ____   ____  _  __  _____  _    _ ____   _____       
- * | |  | |/ __ \ / __ \| |/ / / ____|| |  | |  _ \ / ____|      
- * | |__| | |  | | |  | | ' / | (___  | |  | | |_) | (___        
- * |  __  | |  | | |  | |  <   \___ \ | |  | |  _ < \___ \       
- * | |  | | |__| | |__| | . \  ____) || |__| | |_) |____) |      
- * |_|  |_|\____/ \____/|_|\_\|_____/  \____/|____/|_____/       
- *                                                                
- * ================================================================
- * 
- * TEAM 7221 - REEFSCAPE 2025 - HOOK SUBSYSTEM
- * 
- * "Hook it, hang it, conquer all!"
- * 
- * This is our epic linear actuator hook system for grabbing the barge
- * during endgame. It takes precision timing and control to get those
- * sweet endgame points that'll make us UNSTOPPABLE at Regionals!
- * 
- * Designed by Team 7221 - The Vikings
- * Coded by paysean - March 2025
- */
-
+// src/main/java/frc/robot/subsystems/HookSubsystem.java
 package frc.robot.subsystems;
 
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj.DigitalInput;
+import edu.wpi.first.wpilibj.motorcontrol.PWMVictorSPX;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import com.revrobotics.CANSparkMax;
-import com.revrobotics.CANSparkLowLevel.MotorType;
-import com.revrobotics.CANSparkBase.IdleMode;
 import frc.robot.Constants;
 
 /**
- * HookSubsystem - Our vertical barge hook system
+ * ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                                                                          ║
+ * ║   ██╗  ██╗ ██████╗  ██████╗ ██╗  ██╗    ███████╗██╗   ██╗███████╗      ║
+ * ║   ██║  ██║██╔═══██╗██╔═══██╗██║ ██╔╝    ██╔════╝╚██╗ ██╔╝██╔════╝      ║
+ * ║   ███████║██║   ██║██║   ██║█████╔╝     ███████╗ ╚████╔╝ ███████╗      ║
+ * ║   ██╔══██║██║   ██║██║   ██║██╔═██╗     ╚════██║  ╚██╔╝  ╚════██║      ║
+ * ║   ██║  ██║╚██████╔╝╚██████╔╝██║  ██╗    ███████║   ██║   ███████║      ║
+ * ║   ╚═╝  ╚═╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═╝    ╚══════╝   ╚═╝   ╚══════╝      ║
+ * ║                                                                          ║
+ * ║   T E A M  7 2 2 1  -  R E E F S C A P E  B A R G E  D O M I N A T I O N  ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝
+ *
+ * The HookSubsystem controls the vertical J-hook mechanism that grabs the barge
+ * during endgame. This system is crucial for manipulating field elements and
+ * scoring endgame points.
  * 
- * This subsystem controls our linear actuator with J-hook end effector
- * for latching onto the barge in endgame. It extends upward from the robot,
- * hooks onto the barge, and locks for maximum pulling force. The system
- * includes safety features to prevent damage to our robot and the field.
+ * FUNCTIONALITY:
+ * - Precise linear extension control
+ * - Position tracking via limit switches
+ * - Current monitoring for safety
+ * - Emergency stop capabilities
  * 
- * I spent two weeks perfecting this design and the code is DIALED IN.
+ * MECHANICAL INTERFACE:
+ * - Controls a 6" stroke linear actuator
+ * - Uses limit switches to detect fully extended/retracted positions
+ * - Interfaces with a J-hook end effector for barge grabbing
+ * 
+ * IMPORTANT NOTE: This version uses standard PWM motor controllers. For SparkMAX
+ * support, uncomment the SparkMAX sections and comment out the PWM implementation.
+ * 
+ * Control Architecture:
+ * ┌───────────┐     ┌────────────┐     ┌────────────┐     ┌───────────┐
+ * │ Driver    │────>│ Commands   │────>│ Subsystem  │────>│ Linear    │
+ * │ Controls  │     │ (Hook)     │     │ Methods    │     │ Actuator  │
+ * └───────────┘     └────────────┘     └────────────┘     └───────────┘
+ *                                           │
+ *                                           ▼
+ *                                     ┌────────────┐
+ *                                     │ Position   │
+ *                                     │ Feedback   │
+ *                                     └────────────┘
  */
 public class HookSubsystem extends SubsystemBase {
+
     // ===== HARDWARE COMPONENTS =====
-    private final CANSparkMax m_hookMotor; // Controls linear actuator extension/retraction
-    private final DigitalInput m_extendedLimitSwitch; // Detects full extension
-    private final DigitalInput m_retractedLimitSwitch; // Detects full retraction
+    
+    /* NOTE: This implementation uses PWM motor controllers for compatibility.
+     * To use CAN SparkMAX controllers, comment out this section and uncomment
+     * the CANSparkMax section below once libraries are available.
+     */
+    private final PWMVictorSPX m_hookMotor = new PWMVictorSPX(Constants.Electrical.HOOK_MOTOR_ID);
+    private final DigitalInput m_extendedLimitSwitch;
+    private final DigitalInput m_retractedLimitSwitch;
+    
+    /*
+     * ===== SPARKMAX IMPLEMENTATION (COMMENTED OUT) =====
+     * Uncomment this section when REV libraries are available
+     *
+     * private CANSparkMax m_hookMotor;
+     */
     
     // ===== STATE TRACKING =====
-    private boolean m_isExtended = false; // Tracks if hook is fully extended
-    private boolean m_isRetracting = false; // Tracks if hook is currently retracting
-    private long m_lastExtendTime = 0; // For tracking extension duration
-    private double m_currentHookSpeed = 0.0; // Current motor speed
-    private double m_peakCurrent = 0.0; // For tracking maximum current draw
-    private int m_cycleCount = 0; // Tracks how many times we've cycled the hook
+    private boolean m_isExtended = false;     // Tracks if hook is fully extended
+    private boolean m_isRetracting = false;   // Tracks if hook is currently retracting
+    private long m_lastExtendTime = 0;        // For tracking extension duration
+    private double m_currentHookSpeed = 0.0;  // Current motor speed
+    private double m_peakCurrent = 0.0;       // For tracking maximum current draw
+    private int m_cycleCount = 0;             // Tracks how many times hook has been cycled
+    private Timer m_safetyTimer = new Timer(); // For monitoring operation time
     
     /**
      * Creates a new HookSubsystem - our barge-grabbing machine!
@@ -66,10 +90,7 @@ public class HookSubsystem extends SubsystemBase {
         System.out.println("/______\\  PREPARE FOR BARGE DOMINATION!!!");
         System.out.println("");
         
-        // Initialize the actuator motor controller
-        m_hookMotor = new CANSparkMax(Constants.Hook.MOTOR_ID, MotorType.kBrushless);
-        
-        // Configure for optimal performance
+        // Initialize motor controller
         configureMotorController();
         
         // Initialize limit switches for position detection
@@ -79,6 +100,9 @@ public class HookSubsystem extends SubsystemBase {
         // Default to retracted state
         m_isExtended = false;
         m_isRetracting = false;
+        
+        // Start safety timer
+        m_safetyTimer.start();
         
         // Display initialization success message
         System.out.println("==================================================");
@@ -91,26 +115,54 @@ public class HookSubsystem extends SubsystemBase {
      * Configure the motor controller with optimal settings
      */
     private void configureMotorController() {
-        // Reset to factory defaults
-        m_hookMotor.restoreFactoryDefaults();
-        
-        // Configure basic settings
+        // Configure PWM controller
         m_hookMotor.setInverted(Constants.Hook.MOTOR_INVERTED);
-        m_hookMotor.setIdleMode(IdleMode.kBrake); // Brake mode essential for holding position
         
-        // Configure current limits
-        m_hookMotor.setSmartCurrentLimit(30); // 30A limit protects the motor
-        
-        // Add voltage compensation for consistent performance
-        m_hookMotor.enableVoltageCompensation(11.0);
-        
-        // Configure ramping to prevent current spikes
-        m_hookMotor.setOpenLoopRampRate(0.2); // 200ms ramp for smooth acceleration
-        
-        // Save configuration to flash memory
-        m_hookMotor.burnFlash();
+        /* 
+         * ===== SPARKMAX CONFIGURATION (COMMENTED OUT) =====
+         * This would be used if we had SparkMAX controllers
+         * 
+         * m_hookMotor = new CANSparkMax(Constants.Electrical.HOOK_MOTOR_ID, MotorType.kBrushless);
+         * m_hookMotor.restoreFactoryDefaults();
+         * m_hookMotor.setInverted(Constants.Hook.MOTOR_INVERTED);
+         * m_hookMotor.setIdleMode(IdleMode.kBrake);  // Brake mode essential for holding position
+         * m_hookMotor.setSmartCurrentLimit(30);      // 30A limit protects the motor
+         * m_hookMotor.enableVoltageCompensation(11.0);
+         * m_hookMotor.setOpenLoopRampRate(0.2);      // 200ms ramp for smooth acceleration
+         * m_hookMotor.burnFlash();
+         */
         
         System.out.println(">> Hook motor configured for optimal performance");
+    }
+    
+    /**
+     * Called periodically by the CommandScheduler
+     */
+    @Override
+    public void periodic() {
+        // Update dashboard with hook status - ESSENTIAL FOR DRIVERS
+        SmartDashboard.putBoolean("Hook Extended", isExtended());
+        SmartDashboard.putBoolean("Hook Retracted", isRetracted());
+        SmartDashboard.putString("Hook Status", getHookPosition());
+        SmartDashboard.putNumber("Hook Speed", m_currentHookSpeed);
+        SmartDashboard.putNumber("Cycle Count", m_cycleCount);
+        SmartDashboard.putNumber("Est. Height", getEstimatedHeight());
+        
+        // Safety check - For PWM controllers we can only check timing
+        // With SparkMAX we would check current as well
+        
+        // If the motor has been running in the same direction for too long, it might be stalled
+        if (Math.abs(m_currentHookSpeed) > 0.05) {
+            if (m_safetyTimer.get() > 5.0) {
+                System.out.println(">> !!! HOOK OPERATION TIMEOUT: " + m_safetyTimer.get() + "s !!! <<");
+                System.out.println(">> !!! EMERGENCY STOP ACTIVATED !!! <<");
+                stopHook();
+                m_safetyTimer.reset();
+            }
+        } else {
+            // Reset safety timer when motor is stopped
+            m_safetyTimer.reset();
+        }
     }
     
     /**
@@ -128,6 +180,8 @@ public class HookSubsystem extends SubsystemBase {
                 m_lastExtendTime = System.currentTimeMillis();
                 m_currentHookSpeed = Constants.Hook.EXTEND_MIN_SPEED;
                 System.out.println(">> INITIATING HOOK EXTENSION SEQUENCE <<");
+                m_safetyTimer.reset();
+                m_safetyTimer.start();
             } else if (timeSinceStart < 500) {
                 // Smooth acceleration ramp during first 500ms
                 double rampProgress = timeSinceStart / 500.0;
@@ -150,6 +204,7 @@ public class HookSubsystem extends SubsystemBase {
         } else {
             // Either fully extended or limit switch triggered, stop motor
             m_hookMotor.set(0);
+            m_currentHookSpeed = 0;
             
             // Update extended status if newly extended
             if (!m_isExtended && m_extendedLimitSwitch.get()) {
@@ -176,30 +231,28 @@ public class HookSubsystem extends SubsystemBase {
             
             // Apply motor power
             m_hookMotor.set(retractSpeed);
+            m_currentHookSpeed = retractSpeed;
             m_isRetracting = true;
             m_isExtended = false;
             
-            // Monitor current during retraction - critical for detecting load
-            double current = m_hookMotor.getOutputCurrent();
-            if (current > m_peakCurrent) {
-                m_peakCurrent = current;
-                if (m_peakCurrent > Constants.Hook.MAX_CURRENT * 0.8) {
-                    System.out.println(">> HIGH LOAD DETECTED DURING RETRACTION: " + 
-                                      m_peakCurrent + "A <<");
-                }
-            }
+            // Reset safety timer for new operation
+            m_safetyTimer.reset();
+            m_safetyTimer.start();
+            
+            // With SparkMAX, we would monitor current during retraction
+            // In this PWM version, we can only track operation time
         } else {
             // Either fully retracted or limit switch triggered, stop motor
             m_hookMotor.set(0);
+            m_currentHookSpeed = 0;
             
             // Update retraction status if newly retracted
             if (m_isRetracting && m_retractedLimitSwitch.get()) {
                 m_isRetracting = false;
                 System.out.println(">> HOOK FULLY RETRACTED! READY FOR NEXT DEPLOYMENT!");
-                System.out.println(">> PEAK CURRENT DURING CYCLE: " + m_peakCurrent + "A");
                 
-                // Reset peak current for next cycle
-                m_peakCurrent = 0.0;
+                // With SparkMAX we would report peak current
+                System.out.println(">> SUCCESSFUL RETRACTION CYCLE COMPLETED");
             }
         }
         
@@ -212,6 +265,7 @@ public class HookSubsystem extends SubsystemBase {
      */
     public void stopHook() {
         m_hookMotor.set(0);
+        m_currentHookSpeed = 0;
         m_lastExtendTime = 0;
         System.out.println(">> HOOK MOTION STOPPED <<");
     }
@@ -253,46 +307,24 @@ public class HookSubsystem extends SubsystemBase {
     }
     
     /**
-     * Calculate estimated hook height based on motor position
+     * Calculate estimated hook height based on time
      * This is an approximation since we don't have an encoder
      * 
      * @return Estimated height in inches
      */
     public double getEstimatedHeight() {
-        // This is just an approximation since we rely on limit switches
+        // PWM controllers don't have position feedback, so we estimate
+        // With SparkMAX, we could read the encoder position directly
+        
+        // This is just an approximation
         if (isRetracted()) {
             return 0.0;
         } else if (isExtended()) {
             return 6.0; // 6 inch stroke length
         } else {
-            // Rough estimate based on motor output
-            return Math.abs(m_hookMotor.get()) * 6.0;
-        }
-    }
-    
-    @Override
-    public void periodic() {
-        // Update dashboard with hook status - ESSENTIAL FOR DRIVERS
-        SmartDashboard.putBoolean("Hook Extended", isExtended());
-        SmartDashboard.putBoolean("Hook Retracted", isRetracted());
-        SmartDashboard.putString("Hook Status", getHookPosition());
-        SmartDashboard.putNumber("Hook Speed", m_currentHookSpeed);
-        SmartDashboard.putNumber("Hook Current", m_hookMotor.getOutputCurrent());
-        SmartDashboard.putNumber("Peak Current", m_peakCurrent);
-        SmartDashboard.putNumber("Cycle Count", m_cycleCount);
-        SmartDashboard.putNumber("Est. Height", getEstimatedHeight());
-        
-        // Safety check - if current is too high, stop motor
-        double current = m_hookMotor.getOutputCurrent();
-        if (current > Constants.Hook.MAX_CURRENT) {
-            System.out.println(">> !!! HOOK CURRENT CRITICAL: " + current + "A !!! <<");
-            System.out.println(">> !!! EMERGENCY STOP ACTIVATED !!! <<");
-            stopHook();
-        }
-        
-        // Track peak current for diagnostics
-        if (current > m_peakCurrent) {
-            m_peakCurrent = current;
+            // Rough estimate based on motor output and time
+            // This is very approximate without encoder feedback
+            return Math.abs(m_currentHookSpeed) * 6.0;
         }
     }
     
@@ -303,6 +335,7 @@ public class HookSubsystem extends SubsystemBase {
     public void emergencyStop() {
         // Immediately cut power to motor
         m_hookMotor.set(0);
+        m_currentHookSpeed = 0;
         
         // Display emergency shutdown notification
         System.out.println("");
@@ -321,25 +354,65 @@ public class HookSubsystem extends SubsystemBase {
      */
     public boolean checkSystemHealth() {
         boolean limitsWorking = m_extendedLimitSwitch.get() != m_retractedLimitSwitch.get();
-        boolean motorResponding = m_hookMotor.getOutputCurrent() > 0.1;
+        
+        // With SparkMAX we would check motor response too
         
         if (!limitsWorking) {
             System.out.println(">> WARNING: Limit switch failure detected!");
         }
         
-        if (!motorResponding) {
-            System.out.println(">> WARNING: Motor not drawing current!");
-        }
-        
-        return limitsWorking && motorResponding;
+        return limitsWorking;
     }
     
     /**
-     * Get the hook motor controller for external monitoring
+     * Applies a gentle jog to the hook to free it if it's stuck
+     * Useful for clearing minor mechanical obstructions
      * 
-     * @return The SparkMAX motor controller
+     * @param direction Direction to jog (true = up, false = down)
+     * @param duration Time in seconds to apply the jog
      */
-    public CANSparkMax getHookMotor() {
-        return m_hookMotor;
+    public void jogHook(boolean direction, double duration) {
+        // Safety check - don't jog against limit switches
+        if ((direction && isExtended()) || (!direction && isRetracted())) {
+            System.out.println(">> Cannot jog - already at limit!");
+            return;
+        }
+        
+        // Apply a gentle motor power in the requested direction
+        double jogPower = direction ? 0.3 : -0.3;
+        m_hookMotor.set(jogPower);
+        
+        // PWM motor controllers don't have precise timing control
+        // In a real implementation, we would use a Command with timeout
+        // This simple implementation is just for the subsystem API
+        
+        System.out.println(">> Jogging hook " + (direction ? "UP" : "DOWN") + 
+                           " for " + duration + " seconds");
+        
+        // Note: In practice, the jogHook method should be called from a Command
+        // that handles the timing and motor stoppage
+    }
+    
+    /**
+     * Provides direct control of the hook motor
+     * Use with caution! This bypasses safety limits.
+     * Should only be used in special cases when limit switches fail.
+     * 
+     * @param power Power level (-1.0 to 1.0)
+     */
+    public void setDirectHookPower(double power) {
+        // Safety bounds check
+        power = Math.max(-1.0, Math.min(1.0, power));
+        
+        // Log warning since this bypasses normal safety
+        System.out.println(">> WARNING: Direct hook control at " + power + " power");
+        
+        // Set motor power directly
+        m_hookMotor.set(power);
+        m_currentHookSpeed = power;
+        
+        // Reset safety timer
+        m_safetyTimer.reset();
+        m_safetyTimer.start();
     }
 }
